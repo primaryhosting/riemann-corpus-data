@@ -8,7 +8,6 @@ Verification: pending
 Provenance: Aristotle theorem prover (Harmonic)
 -/
 
-
 open scoped BigOperators
 open scoped Real
 open scoped Nat
@@ -34,149 +33,138 @@ set_option grind.warning false
 
 namespace CS
 
-variable {Inst : Type*}
+/-!
+## Dinur's gap amplification
 
-/-- **Amplification along iterations.**  If one application of the transformation `T`
-doubles the unsatisfiability value (until it reaches the target `gap`), then `k`
-applications multiply it by `2 ^ k` (until it reaches `gap`). -/
-theorem unsat_iterate_ge (unsat : Inst → ℝ) (T : Inst → Inst) (gap : ℝ)
-    (hgap : 0 ≤ gap)
-    (hamp : ∀ G : Inst, min (2 * unsat G) gap ≤ unsat (T G)) :
-    ∀ (k : ℕ) (G : Inst), min (2 ^ k * unsat G) gap ≤ unsat (T^[k] G) := by
-  intro k
-  induction k with
-  | zero => intro G; simp
-  | succ k ih =>
-    intro G
-    have h1 : min (2 ^ k * unsat G) gap ≤ unsat (T^[k] G) := ih G
-    have h2 : min (2 * unsat (T^[k] G)) gap ≤ unsat (T (T^[k] G)) := hamp _
-    rw [Function.iterate_succ_apply']
-    refine le_trans (le_min ?_ (min_le_right _ _)) h2
-    rcases le_total (2 ^ k * unsat G) gap with h | h
-    · have : min (2 ^ k * unsat G) gap = 2 ^ k * unsat G := min_eq_left h
-      rw [this] at h1
-      have hk : (2 : ℝ) ^ (k + 1) * unsat G = 2 * (2 ^ k * unsat G) := by ring
-      calc min ((2 : ℝ) ^ (k + 1) * unsat G) gap ≤ 2 ^ (k + 1) * unsat G := min_le_left _ _
-        _ = 2 * (2 ^ k * unsat G) := hk
-        _ ≤ 2 * unsat (T^[k] G) := by linarith
-    · have : min (2 ^ k * unsat G) gap = gap := min_eq_right h
-      rw [this] at h1
-      calc min ((2 : ℝ) ^ (k + 1) * unsat G) gap ≤ gap := min_le_right _ _
-        _ ≤ 2 * unsat (T^[k] G) := by linarith
+We formalise the combinatorial engine of Dinur's proof of the PCP theorem.
 
-/-- Perfect satisfiability (`unsat = 0`) is preserved by iterating `T`. -/
-theorem unsat_iterate_eq_zero (unsat : Inst → ℝ) (T : Inst → Inst)
-    (hcomplete : ∀ G : Inst, unsat G = 0 → unsat (T G) = 0) :
-    ∀ (k : ℕ) (G : Inst), unsat G = 0 → unsat (T^[k] G) = 0 := by
-  intro k
-  induction k with
-  | zero => intro G hG; simpa using hG
-  | succ k ih =>
-    intro G hG
-    rw [Function.iterate_succ_apply']
-    exact hcomplete _ (ih G hG)
-
-/-- The size blow-up of `k` iterations of `T` is at most `C ^ k`. -/
-theorem size_iterate_le (size : Inst → ℕ) (T : Inst → Inst) (C : ℕ)
-    (hsize : ∀ G : Inst, size (T G) ≤ C * size G) :
-    ∀ (k : ℕ) (G : Inst), size (T^[k] G) ≤ C ^ k * size G := by
-  intro k
-  induction k with
-  | zero => intro G; simp
-  | succ k ih =>
-    intro G
-    rw [Function.iterate_succ_apply']
-    calc size (T (T^[k] G)) ≤ C * size (T^[k] G) := hsize _
-      _ ≤ C * (C ^ k * size G) := by
-          exact Nat.mul_le_mul_left C (ih G)
-      _ = C ^ (k + 1) * size G := by ring
-
-/-- **Dinur's gap amplification (statement), iterated form.**
-
-This is the combinatorial core of Dinur's proof of the PCP theorem, phrased over an
-abstract type `Inst` of constraint-satisfaction instances equipped with
+A *constraint system* is modelled abstractly by a type `Inst` of instances equipped with
 
 * a size function `size : Inst → ℕ` (the number of constraints), and
-* an unsatisfiability value `unsat : Inst → ℝ` (the least fraction of constraints
-  violated by any assignment),
+* an *unsat value* `unsat : Inst → ℚ`, the minimum, over all assignments, of the
+  fraction of constraints that are violated.  In particular `unsat I = 0` says that
+  `I` is satisfiable.
 
-together with a *gap-amplification step* `T : Inst → Inst` satisfying Dinur's three
-requirements:
+Dinur's **Main Lemma** (proved via preprocessing / expanderisation, graph powering and
+composition with an assignment tester) produces a polynomial-time map `amp : Inst → Inst`
+over a *fixed* alphabet, together with constants `C ≥ 1` and `0 < alpha ≤ 1`, satisfying
 
-* `hsize`  : linear size blow-up, `size (T G) ≤ C * size G`;
-* `hcomplete` : completeness, satisfiable instances are mapped to satisfiable instances;
-* `hamp`   : soundness/amplification, `min (2 * unsat G) gap ≤ unsat (T G)`;
+* `size (amp I) ≤ C * size I`            (linear blow-up),
+* `unsat I = 0 → unsat (amp I) = 0`      (completeness),
+* `min alpha (2 * unsat I) ≤ unsat (amp I)` (the gap doubles, until it reaches `alpha`).
 
-and the normalisation `hfrac`: a nonzero unsatisfiability value is at least one over
-the number of constraints.
+The content of the theorem `CS.pcp_dinur` below is the second half of Dinur's argument:
+iterating the Main Lemma logarithmically many times turns *any* nonzero gap — in
+particular the trivial gap `1/m` enjoyed by an unsatisfiable instance with `m`
+constraints — into the *constant* gap `alpha`, while keeping the size polynomial.
+This is exactly the gap-amplification reduction underlying the PCP theorem: the map
+`amp^[⌈log₂ m⌉]` sends satisfiable instances to satisfiable instances and unsatisfiable
+instances to instances with `unsat ≥ alpha`.
+-/
 
-The conclusion is the PCP-style gap reduction obtained by iterating `T`: there are
-`k = O(log (size G))` rounds producing an instance `H` of size at most
-`C ^ k * size G` (hence polynomial in `size G`) which is satisfiable if `G` is, and
-otherwise has unsatisfiability value at least the absolute constant `gap`. -/
-theorem pcp_dinur (size : Inst → ℕ) (unsat : Inst → ℝ) (T : Inst → Inst)
-    (C : ℕ) (gap : ℝ) (hgap0 : 0 < gap)
-    (hsize : ∀ G : Inst, size (T G) ≤ C * size G)
-    (hcomplete : ∀ G : Inst, unsat G = 0 → unsat (T G) = 0)
-    (hamp : ∀ G : Inst, min (2 * unsat G) gap ≤ unsat (T G))
-    (hfrac : ∀ G : Inst, 0 < size G → 0 < unsat G → 1 / (size G : ℝ) ≤ unsat G)
-    (G : Inst) (hG : 0 < size G) :
-    ∃ (k : ℕ) (H : Inst),
-      (2 : ℝ) ^ k ≤ 2 * (gap + 1) * (size G : ℝ) ∧
-      size H ≤ C ^ k * size G ∧
-      (unsat G = 0 → unsat H = 0) ∧
-      (0 < unsat G → gap ≤ unsat H) := by
-  set n : ℕ := size G with hn
-  have hn1 : (1 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hG
-  set m : ℕ := ⌈gap * (n : ℝ)⌉₊ with hm
+section Amplification
+
+variable {Inst : Type*} (size : Inst → ℕ) (unsat : Inst → ℚ) (amp : Inst → Inst)
+  (C : ℕ) (alpha : ℚ)
+
+/-- Iterating the size bound of the Main Lemma. -/
+theorem size_iterate_le (hsize : ∀ I : Inst, size (amp I) ≤ C * size I) (I : Inst) (k : ℕ) :
+    size (amp^[k] I) ≤ C ^ k * size I := by
+  induction k with
+  | zero => simp
+  | succ k ih =>
+      rw [Function.iterate_succ_apply']
+      calc size (amp (amp^[k] I)) ≤ C * size (amp^[k] I) := hsize _
+        _ ≤ C * (C ^ k * size I) := Nat.mul_le_mul_left _ ih
+        _ = C ^ (k + 1) * size I := by ring
+
+/-- Iterating completeness of the Main Lemma: satisfiable instances stay satisfiable. -/
+theorem unsat_iterate_eq_zero (hcomplete : ∀ I : Inst, unsat I = 0 → unsat (amp I) = 0)
+    (I : Inst) (hI : unsat I = 0) (k : ℕ) : unsat (amp^[k] I) = 0 := by
+  induction k with
+  | zero => simpa using hI
+  | succ k ih => rw [Function.iterate_succ_apply']; exact hcomplete _ ih
+
+/-- Iterating the gap amplification step: after `k` rounds the gap has been multiplied by
+`2 ^ k`, unless it has already saturated at `alpha`. -/
+theorem le_unsat_iterate (halpha0 : 0 < alpha)
+    (hgap : ∀ I : Inst, min alpha (2 * unsat I) ≤ unsat (amp I)) (I : Inst) (k : ℕ) :
+    min alpha (2 ^ k * unsat I) ≤ unsat (amp^[k] I) := by
+  induction k with
+  | zero => simp
+  | succ k ih =>
+      rw [Function.iterate_succ_apply']
+      refine le_trans ?_ (hgap (amp^[k] I))
+      have h2 : (2 : ℚ) * min alpha (2 ^ k * unsat I) ≤ 2 * unsat (amp^[k] I) := by linarith
+      rcases min_cases alpha (2 ^ k * unsat I) with ⟨he, _⟩ | ⟨he, _⟩
+      · rw [he] at h2
+        have hle : alpha ≤ 2 * unsat (amp^[k] I) := by linarith
+        exact le_trans (min_le_left _ _) (le_min le_rfl hle)
+      · rw [he] at h2
+        have : (2 : ℚ) ^ (k + 1) * unsat I ≤ 2 * unsat (amp^[k] I) := by
+          calc (2 : ℚ) ^ (k + 1) * unsat I = 2 * (2 ^ k * unsat I) := by ring
+            _ ≤ 2 * unsat (amp^[k] I) := h2
+        exact min_le_min le_rfl this
+
+end Amplification
+
+/--
+**Dinur's gap amplification (the PCP theorem via gap amplification).**
+
+Assume the conclusion of Dinur's Main Lemma: a size-linear, complete, gap-doubling
+transformation `amp` of constraint systems over a fixed alphabet, with constants
+`C ≥ 1` and `0 < alpha ≤ 1`.  Let `I` be an instance with at most `m` constraints
+(`m ≥ 1`), so that its unsat value is either `0` (satisfiable) or at least `1/m`
+(at least one of the at most `m` constraints is violated).
+
+Then, after `k = ⌈log₂ m⌉` iterations of `amp`:
+
+* the size stays polynomially bounded: `size (amp^[k] I) ≤ C ^ k * m`;
+* satisfiable instances remain satisfiable (perfect completeness);
+* unsatisfiable instances acquire the *constant* gap `alpha`.
+
+Hence `I ↦ amp^[⌈log₂ m⌉] I` is a gap-creating reduction with constant soundness gap,
+which is precisely the reduction yielding the PCP theorem.
+-/
+theorem pcp_dinur
+    {Inst : Type*} (size : Inst → ℕ) (unsat : Inst → ℚ) (amp : Inst → Inst)
+    (C : ℕ) (alpha : ℚ)
+    (halpha0 : 0 < alpha) (halpha1 : alpha ≤ 1)
+    (hsize : ∀ I : Inst, size (amp I) ≤ C * size I)
+    (hcomplete : ∀ I : Inst, unsat I = 0 → unsat (amp I) = 0)
+    (hgap : ∀ I : Inst, min alpha (2 * unsat I) ≤ unsat (amp I))
+    (I : Inst) (m : ℕ) (hm : 0 < m) (hIm : size I ≤ m)
+    (htrivial : unsat I = 0 ∨ (1 : ℚ) / m ≤ unsat I) :
+    size (amp^[Nat.clog 2 m] I) ≤ C ^ (Nat.clog 2 m) * m ∧
+      (unsat I = 0 → unsat (amp^[Nat.clog 2 m] I) = 0) ∧
+      (unsat I ≠ 0 → alpha ≤ unsat (amp^[Nat.clog 2 m] I)) := by
   set k : ℕ := Nat.clog 2 m with hk
-  refine ⟨k, T^[k] G, ?_, size_iterate_le size T C hsize k G, ?_, ?_⟩
-  · -- the number of rounds is logarithmic
-    rcases le_or_gt m 1 with hm1 | hm1
-    · have : k = 0 := by
-        rw [hk]
-        exact Nat.clog_of_right_le_one hm1 2
-      rw [this]
-      have : (0 : ℝ) < gap + 1 := by linarith
-      nlinarith
-    · have hlt : 2 ^ (k - 1) < m := Nat.pow_pred_clog_lt_self (by norm_num) hm1
-      have hk1 : 1 ≤ k := by
-        rw [hk]
-        exact Nat.clog_pos (by norm_num) hm1
-      have hpow : (2 : ℕ) ^ k = 2 * 2 ^ (k - 1) := by
-        conv_lhs => rw [show k = (k - 1) + 1 by omega]
-        ring
-      have h1 : (2 : ℕ) ^ k ≤ 2 * m := by omega
-      have h2 : (2 : ℝ) ^ k ≤ 2 * (m : ℝ) := by exact_mod_cast h1
-      have h3 : (m : ℝ) ≤ gap * (n : ℝ) + 1 := by
-        have := Nat.ceil_lt_add_one (a := gap * (n : ℝ)) (by positivity)
-        linarith
-      nlinarith
-  · exact unsat_iterate_eq_zero unsat T hcomplete k G
-  · intro hpos
-    have hmain : min (2 ^ k * unsat G) gap ≤ unsat (T^[k] G) :=
-      unsat_iterate_ge unsat T gap hgap0.le hamp k G
-    have hlow : 1 / (n : ℝ) ≤ unsat G := hfrac G hG hpos
-    have hpk : gap * (n : ℝ) ≤ (2 : ℝ) ^ k := by
-      have h1 : m ≤ 2 ^ k := by
-        rw [hk]
-        exact Nat.le_pow_clog (by norm_num) m
-      have h2 : (m : ℝ) ≤ (2 : ℝ) ^ k := by exact_mod_cast h1
-      exact le_trans (Nat.le_ceil _) h2
-    have hge : gap ≤ 2 ^ k * unsat G := by
-      have hnpos : (0 : ℝ) < (n : ℝ) := by linarith
-      have : (2 : ℝ) ^ k * (1 / (n : ℝ)) ≤ 2 ^ k * unsat G := by
-        have : (0 : ℝ) ≤ (2 : ℝ) ^ k := by positivity
-        nlinarith
-      have hgn : gap ≤ (2 : ℝ) ^ k * (1 / (n : ℝ)) := by
-        rw [mul_one_div, le_div_iff₀ hnpos]
-        exact hpk
+  refine ⟨?_, ?_, ?_⟩
+  · exact le_trans (size_iterate_le size amp C hsize I k)
+      (Nat.mul_le_mul_left _ hIm)
+  · intro h0
+    exact unsat_iterate_eq_zero unsat amp hcomplete I h0 k
+  · intro hne
+    have hlow : (1 : ℚ) / m ≤ unsat I := by
+      rcases htrivial with h | h
+      · exact absurd h hne
+      · exact h
+    have hmk : (m : ℚ) ≤ 2 ^ k := by
+      exact_mod_cast Nat.le_pow_clog (by norm_num) m
+    have hmpos : (0 : ℚ) < m := by exact_mod_cast hm
+    have hone : (1 : ℚ) ≤ 2 ^ k * unsat I := by
+      have h1 : (2 : ℚ) ^ k * (1 / m) ≤ 2 ^ k * unsat I := by
+        have : (0 : ℚ) < 2 ^ k := by positivity
+        exact mul_le_mul_of_nonneg_left hlow (le_of_lt this)
+      have h2 : (1 : ℚ) ≤ 2 ^ k * (1 / m) := by
+        rw [mul_one_div, le_div_iff₀ hmpos]
+        simpa using hmk
       linarith
-    have : min ((2 : ℝ) ^ k * unsat G) gap = gap := min_eq_right hge
-    rw [this] at hmain
-    exact hmain
+    have := le_unsat_iterate unsat amp alpha halpha0 hgap I k
+    have hmin : alpha ≤ min alpha (2 ^ k * unsat I) := by
+      refine le_min le_rfl ?_
+      linarith
+    linarith
 
 end CS
-
-#print axioms CS.pcp_dinur
 
