@@ -1,5 +1,4 @@
 import Mathlib
-
 /-!
 # Choi Jamiolkowski
 Category: Frontier Qi
@@ -8,155 +7,114 @@ Verification: pending
 Provenance: Aristotle theorem prover (Harmonic)
 -/
 
-open scoped MatrixOrder ComplexOrder
-
 namespace QI
 
-open Matrix
+open Matrix Finset
+open scoped ComplexOrder MatrixOrder
 
-variable {n m : Type} [Fintype n] [DecidableEq n] [Fintype m] [DecidableEq m]
+variable {n m : Type} [Fintype n] [DecidableEq n] [Fintype m]
 
-/-- The ampliation `id_d ⊗ Φ` of a linear map `Φ` between matrix algebras, described
-blockwise: the `(a, b)` block of the output is `Φ` applied to the `(a, b)` block of the input. -/
-def amp (Φ : Matrix n n ℂ →ₗ[ℂ] Matrix m m ℂ) {d : Type} (M : Matrix (d × n) (d × n) ℂ) :
-    Matrix (d × m) (d × m) ℂ :=
-  Matrix.of fun p q => Φ (Matrix.of fun i j => M (p.1, i) (q.1, j)) p.2 q.2
+/-- The amplification (ampliation) `id_k ⊗ Φ` of a linear map `Φ` between matrix algebras.
+A matrix indexed by `k × n` is viewed as a `k × k` array of `n × n` blocks; the amplification
+applies `Φ` to each block. -/
+def amp (Φ : Matrix n n ℂ →ₗ[ℂ] Matrix m m ℂ) {k : Type} [Fintype k]
+    (M : Matrix (k × n) (k × n) ℂ) : Matrix (k × m) (k × m) ℂ :=
+  Matrix.of fun pa qb => Φ (Matrix.of fun i j => M (pa.1, i) (qb.1, j)) pa.2 qb.2
 
-/-- `Φ` is completely positive: every ampliation `id_d ⊗ Φ` maps positive semidefinite
+/-- `Φ` is completely positive: every amplification `id_k ⊗ Φ` maps positive semidefinite
 matrices to positive semidefinite matrices. -/
-def IsCompletelyPositive (Φ : Matrix n n ℂ →ₗ[ℂ] Matrix m m ℂ) : Prop :=
-  ∀ (d : Type) [Fintype d] (M : Matrix (d × n) (d × n) ℂ), M.PosSemidef → (amp Φ M).PosSemidef
+def IsCP (Φ : Matrix n n ℂ →ₗ[ℂ] Matrix m m ℂ) : Prop :=
+  ∀ (k : Type) [Fintype k] (M : Matrix (k × n) (k × n) ℂ), M.PosSemidef → (amp Φ M).PosSemidef
 
-/-- The Choi matrix of `Φ`, i.e. `(id ⊗ Φ)` applied to (an unnormalized) maximally
-entangled state: its `((i,s),(j,t))` entry is `Φ (Eᵢⱼ) s t`. -/
-def choiMatrix (Φ : Matrix n n ℂ →ₗ[ℂ] Matrix m m ℂ) : Matrix (n × m) (n × m) ℂ :=
-  Matrix.of fun p q => Φ (Matrix.single p.1 q.1 1) p.2 q.2
+/-- The Choi matrix of `Φ`: the block matrix whose `(i,j)` block is `Φ (Eᵢⱼ)`. -/
+def choi (Φ : Matrix n n ℂ →ₗ[ℂ] Matrix m m ℂ) : Matrix (n × m) (n × m) ℂ :=
+  Matrix.of fun ia jb => Φ (Matrix.single ia.1 jb.1 1) ia.2 jb.2
 
-/-- The unnormalized maximally entangled state `∑ᵢⱼ Eᵢⱼ ⊗ Eᵢⱼ`, as a matrix indexed by `n × n`. -/
-def maxEnt (n : Type) [Fintype n] [DecidableEq n] : Matrix (n × n) (n × n) ℂ :=
-  Matrix.of fun p q => (if p.1 = p.2 then 1 else 0) * (if q.1 = q.2 then 1 else 0)
+/-- Every positive semidefinite matrix factors as `Bᴴ * B`. -/
+lemma posSemidef_exists_factor {N : Type} [Fintype N] {A : Matrix N N ℂ} (hA : A.PosSemidef) :
+    ∃ B : Matrix N N ℂ, A = Bᴴ * B := by
+  classical
+  exact CStarAlgebra.nonneg_iff_eq_star_mul_self.mp hA.nonneg
 
-lemma maxEnt_posSemidef : (maxEnt n).PosSemidef := by
-  have : maxEnt n = (Matrix.of fun (_ : Unit) (p : n × n) => (if p.1 = p.2 then (1 : ℂ) else 0))ᴴ *
-      (Matrix.of fun (_ : Unit) (p : n × n) => (if p.1 = p.2 then (1 : ℂ) else 0)) := by
-    ext p q
-    simp [maxEnt, Matrix.mul_apply, Matrix.conjTranspose_apply]
-  rw [this]
-  exact Matrix.posSemidef_conjTranspose_mul_self _
-
-omit [Fintype m] [DecidableEq m] in
-lemma amp_maxEnt (Φ : Matrix n n ℂ →ₗ[ℂ] Matrix m m ℂ) :
-    amp Φ (maxEnt n) = choiMatrix Φ := by
-  ext p q
-  have h : (Matrix.of fun i j => maxEnt n (p.1, i) (q.1, j)) = Matrix.single p.1 q.1 1 := by
-    ext i j
-    simp only [maxEnt, Matrix.single_apply, Matrix.of_apply, ite_and]
-    split_ifs with h1 h2 h3 <;> simp_all [eq_comm]
-  simp only [amp, choiMatrix, Matrix.of_apply, h]
-
-omit [Fintype m] [DecidableEq m] in
-/-- Expansion of `Φ A` via linearity in the standard matrix basis. -/
-lemma apply_eq_sum (Φ : Matrix n n ℂ →ₗ[ℂ] Matrix m m ℂ) (A : Matrix n n ℂ) (s t : m) :
-    Φ A s t = ∑ i : n, ∑ j : n, A i j * Φ (Matrix.single i j 1) s t := by
-  conv_lhs => rw [Matrix.matrix_eq_sum_single A]
+omit [Fintype m] in
+/-- Expansion of `Φ X` in terms of the Choi matrix. -/
+lemma apply_eq_sum_choi (Φ : Matrix n n ℂ →ₗ[ℂ] Matrix m m ℂ) (X : Matrix n n ℂ)
+    (a b : m) : Φ X a b = ∑ i, ∑ j, X i j * choi Φ (i, a) (j, b) := by
+  conv_lhs => rw [Matrix.matrix_eq_sum_single X]
   rw [map_sum]
   simp only [Matrix.sum_apply]
   refine Finset.sum_congr rfl fun i _ => ?_
   rw [map_sum]
   simp only [Matrix.sum_apply]
   refine Finset.sum_congr rfl fun j _ => ?_
-  have : Matrix.single i j (A i j) = A i j • Matrix.single i j (1 : ℂ) := by
-    ext a b; simp [Matrix.single_apply]
-  rw [this, map_smul]
-  simp
+  have hsm : Matrix.single i j (X i j) = (X i j) • Matrix.single i j (1 : ℂ) := by
+    ext p q; simp [Matrix.single_apply]
+  rw [hsm, map_smul]
+  simp [choi]
 
-omit [DecidableEq n] [DecidableEq m] in
-/-- If `Φ` has a Kraus decomposition then it is completely positive. -/
-lemma isCompletelyPositive_of_kraus {Φ : Matrix n n ℂ →ₗ[ℂ] Matrix m m ℂ} {K : Type}
-    [Fintype K] (V : K → Matrix m n ℂ) (hV : ∀ A, Φ A = ∑ k, V k * A * (V k)ᴴ) :
-    IsCompletelyPositive Φ := by
-  classical
-  intro d _ M hM
-  have hsum : ∀ (d' : Type) [Fintype d'] (h : d' → n → ℂ) (a : d'),
-      (∑ c : d', ∑ i : n, if a = c then h c i else 0) = ∑ i : n, h a i := by
-    intro d' _ h a
-    rw [Finset.sum_comm]
-    simp
-  have key : amp Φ M = ∑ k : K,
-      (Matrix.of fun (p : d × m) (q : d × n) => if p.1 = q.1 then V k p.2 q.2 else 0) * M *
-      (Matrix.of fun (p : d × m) (q : d × n) => if p.1 = q.1 then V k p.2 q.2 else 0)ᴴ := by
-    ext p q
-    simp only [amp, Matrix.of_apply, Matrix.sum_apply, hV, Matrix.sum_apply]
-    refine Finset.sum_congr rfl fun k _ => ?_
-    simp only [Matrix.mul_apply, Matrix.conjTranspose_apply, Matrix.of_apply,
-      Fintype.sum_prod_type, ite_mul, zero_mul,
-      apply_ite (star : ℂ → ℂ), star_zero, mul_ite, mul_zero]
-    simp only [hsum]
-  rw [key]
-  exact Matrix.posSemidef_sum _ fun k _ => hM.mul_mul_conjTranspose_same _
+/-- The purely combinatorial rearrangement behind the hard direction. -/
+lemma sum_four_swap {K T I J : Type} [Fintype K] [Fintype T] [Fintype I] [Fintype J]
+    (f : K → I → ℂ) (g : K → J → ℂ) (u : T → I → ℂ) (v : T → J → ℂ) :
+    ∑ i, ∑ j, (∑ s, f s i * g s j) * (∑ t, u t i * v t j)
+      = ∑ s, ∑ t, (∑ i, f s i * u t i) * (∑ j, g s j * v t j) := by
+  have sum4 : ∀ F : I → J → K → T → ℂ,
+      ∑ i, ∑ j, ∑ s, ∑ t, F i j s t = ∑ s, ∑ t, ∑ i, ∑ j, F i j s t := by
+    intro F
+    rw [show (∑ i, ∑ j, ∑ s, ∑ t, F i j s t) = ∑ x : (I × J) × (K × T),
+          F x.1.1 x.1.2 x.2.1 x.2.2 by simp [Fintype.sum_prod_type]]
+    rw [show (∑ s, ∑ t, ∑ i, ∑ j, F i j s t) = ∑ y : (K × T) × (I × J),
+          F y.2.1 y.2.2 y.1.1 y.1.2 by simp [Fintype.sum_prod_type]]
+    exact Fintype.sum_equiv (Equiv.prodComm _ _) _ _ fun _ => rfl
+  simp_rw [Finset.sum_mul_sum]
+  rw [sum4 fun i j s t => (f s i * g s j) * (u t i * v t j)]
+  exact Finset.sum_congr rfl fun s _ => Finset.sum_congr rfl fun t _ =>
+    Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun j _ => by ring
 
-/-- If the Choi matrix is positive semidefinite, `Φ` admits a Kraus decomposition. -/
-lemma exists_kraus_of_posSemidef_choi {Φ : Matrix n n ℂ →ₗ[ℂ] Matrix m m ℂ}
-    (h : (choiMatrix Φ).PosSemidef) :
-    ∃ V : (n × m) → Matrix m n ℂ, ∀ A, Φ A = ∑ k, V k * A * (V k)ᴴ := by
-  obtain ⟨B, hB⟩ := CStarAlgebra.nonneg_iff_eq_star_mul_self.mp h.nonneg
-  refine ⟨fun k => Matrix.of fun s i => star (B k (i, s)), fun A => ?_⟩
-  ext s t
-  rw [apply_eq_sum Φ A s t]
-  simp only [Matrix.sum_apply, Matrix.mul_apply, Matrix.conjTranspose_apply, Matrix.of_apply]
-  have hc : ∀ i j : n, Φ (Matrix.single i j 1) s t
-      = ∑ k : n × m, star (B k (i, s)) * B k (j, t) := by
-    intro i j
-    have := congrFun (congrFun hB (i, s)) (j, t)
-    simpa [choiMatrix, Matrix.mul_apply, Matrix.star_apply] using this
-  have triple : ∀ f : n → n → (n × m) → ℂ,
-      (∑ i, ∑ j, ∑ k, f i j k) = ∑ k, ∑ j, ∑ i, f i j k := by
-    intro f
-    have step1 : ∀ j : n, (∑ i, ∑ k, f i j k) = ∑ k, ∑ i, f i j k := fun _ => Finset.sum_comm
-    rw [Finset.sum_comm]
-    simp_rw [step1]
-    rw [Finset.sum_comm]
-  simp only [hc, Finset.mul_sum, star_star, Finset.sum_mul]
-  rw [triple]
-  refine Finset.sum_congr rfl fun k _ => Finset.sum_congr rfl fun j _ =>
-    Finset.sum_congr rfl fun i _ => by ring
-
-/-- **Choi–Jamiołkowski isomorphism**: a linear map between matrix algebras is completely
-positive if and only if its Choi matrix is positive semidefinite. -/
 theorem choi_jamiolkowski (Φ : Matrix n n ℂ →ₗ[ℂ] Matrix m m ℂ) :
-    IsCompletelyPositive Φ ↔ (choiMatrix Φ).PosSemidef := by
+    IsCP Φ ↔ (choi Φ).PosSemidef := by
   constructor
-  · intro h
-    have := h n (maxEnt n) maxEnt_posSemidef
-    rwa [amp_maxEnt] at this
-  · intro h
-    obtain ⟨V, hV⟩ := exists_kraus_of_posSemidef_choi h
-    exact isCompletelyPositive_of_kraus V hV
+  · -- CP implies the Choi matrix (the image of the maximally entangled state) is PSD
+    intro h
+    set w : Matrix Unit (n × n) ℂ :=
+      Matrix.of fun _ pi => if pi.1 = pi.2 then (1 : ℂ) else 0 with hw
+    have hOmega : (choi Φ) = amp Φ (k := n) (wᴴ * w) := by
+      ext ⟨p, a⟩ ⟨q, b⟩
+      have hblk : (Matrix.of fun i j => (wᴴ * w) (p, i) (q, j)) = Matrix.single p q (1 : ℂ) := by
+        ext i j
+        simp only [hw, Matrix.mul_apply, Matrix.conjTranspose_apply, Matrix.of_apply,
+          Matrix.single_apply, Finset.univ_unique, Finset.sum_singleton]
+        split_ifs <;> simp_all
+      simp only [amp, choi, Matrix.of_apply, hblk]
+    rw [hOmega]
+    exact h n _ (Matrix.posSemidef_conjTranspose_mul_self _)
+  · -- A PSD Choi matrix yields a completely positive map
+    intro hC k _ M hM
+    obtain ⟨D, hD⟩ := posSemidef_exists_factor hC
+    obtain ⟨B, hB⟩ := posSemidef_exists_factor hM
+    have key : amp Φ M =
+        (Matrix.of fun (st : (k × n) × (n × m)) (pa : k × m) =>
+          ∑ i, B st.1 (pa.1, i) * D st.2 (i, pa.2))ᴴ *
+        (Matrix.of fun (st : (k × n) × (n × m)) (pa : k × m) =>
+          ∑ i, B st.1 (pa.1, i) * D st.2 (i, pa.2)) := by
+      ext ⟨p, a⟩ ⟨q, b⟩
+      have hlhs : amp Φ M (p, a) (q, b)
+          = ∑ i, ∑ j, (∑ s, (starRingEnd ℂ) (B s (p, i)) * B s (q, j)) *
+              (∑ t, (starRingEnd ℂ) (D t (i, a)) * D t (j, b)) := by
+        simp only [amp, Matrix.of_apply]
+        rw [apply_eq_sum_choi]
+        simp only [Matrix.of_apply]
+        refine Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun j _ => ?_
+        rw [show M (p, i) (q, j) = ∑ s, (starRingEnd ℂ) (B s (p, i)) * B s (q, j) by
+              rw [hB]; simp [Matrix.mul_apply, Matrix.conjTranspose_apply]]
+        rw [show choi Φ (i, a) (j, b) = ∑ t, (starRingEnd ℂ) (D t (i, a)) * D t (j, b) by
+              rw [hD]; simp [Matrix.mul_apply, Matrix.conjTranspose_apply]]
+      rw [hlhs, sum_four_swap (fun s i => (starRingEnd ℂ) (B s (p, i)))
+        (fun s j => B s (q, j)) (fun t i => (starRingEnd ℂ) (D t (i, a)))
+        (fun t j => D t (j, b))]
+      simp only [Matrix.mul_apply, Matrix.conjTranspose_apply, Matrix.of_apply,
+        Fintype.sum_prod_type, star_sum, star_mul', Complex.star_def]
+    rw [key]
+    exact Matrix.posSemidef_conjTranspose_mul_self _
 
 end QI
-
-import Mathlib
-
-open scoped BigOperators
-open scoped Real
-open scoped Nat
-open scoped Classical
-open scoped Pointwise
-
-set_option maxHeartbeats 8000000
-set_option maxRecDepth 4000
-set_option synthInstance.maxHeartbeats 20000
-set_option synthInstance.maxSize 128
-
-set_option relaxedAutoImplicit false
-set_option autoImplicit false
-
-set_option pp.fullNames true
-set_option pp.structureInstances true
-set_option pp.coercions.types true
-set_option pp.funBinderTypes true
-set_option pp.letVarTypes true
-set_option pp.piBinderTypes true
-
-set_option grind.warning false
 
