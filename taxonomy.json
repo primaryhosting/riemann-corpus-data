@@ -1,0 +1,82 @@
+{
+ "generated_from": "scripts/classify_corpus.py",
+ "fields": {
+  "Mathematics": 804,
+  "Physics": 209,
+  "Brockian Program": 145,
+  "Computer Science": 75,
+  "Frontier": 47,
+  "Chemistry": 37
+ },
+ "field_concepts": {
+  "Mathematics › Mathematics (general)": 288,
+  "Mathematics › Number Theory": 244,
+  "Brockian Program › Core / Other": 125,
+  "Mathematics › Riemann / Zeta": 105,
+  "Physics › Physics": 85,
+  "Mathematics › Algebra / Group Theory": 60,
+  "Computer Science › Theory of Computation": 49,
+  "Mathematics › Analysis / Topology": 48,
+  "Mathematics › Set Theory": 39,
+  "Frontier › Frontier (unsorted)": 39,
+  "Physics › Quantum Information": 38,
+  "Chemistry › Chemistry": 37,
+  "Physics › Quantum Computing": 36,
+  "Physics › Quantum": 27,
+  "Computer Science › Proof-Carrying / Formal Methods": 26,
+  "Physics › Quantum Physics": 23,
+  "Brockian Program › Pentagon / Admissibility": 20,
+  "Mathematics › Combinatorics": 14,
+  "Frontier › Foundations / Mind": 8,
+  "Mathematics › Moonshine / Modular": 6
+ },
+ "source_programs": {
+  "Other": 324,
+  "Brockian program": 283,
+  "Core mathematics": 160,
+  "Frontier attempts": 159,
+  "Physics corpus": 117,
+  "Corpus extension (C-series)": 70,
+  "Zeta-2/3 program": 46,
+  "CS corpus": 44,
+  "Chemistry corpus": 33,
+  "Riemann corpus": 29,
+  "Proof-Carrying Apps": 26,
+  "MS series": 21,
+  "Aristotle prompts": 5
+ },
+ "tree": {
+  "Mathematics": {
+   "Mathematics (general)": 288,
+   "Number Theory": 244,
+   "Riemann / Zeta": 105,
+   "Algebra / Group Theory": 60,
+   "Analysis / Topology": 48,
+   "Set Theory": 39,
+   "Combinatorics": 14,
+   "Moonshine / Modular": 6
+  },
+  "Physics": {
+   "Physics": 85,
+   "Quantum Information": 38,
+   "Quantum Computing": 36,
+   "Quantum": 27,
+   "Quantum Physics": 23
+  },
+  "Brockian Program": {
+   "Core / Other": 125,
+   "Pentagon / Admissibility": 20
+  },
+  "Computer Science": {
+   "Theory of Computation": 49,
+   "Proof-Carrying / Formal Methods": 26
+  },
+  "Frontier": {
+   "Frontier (unsorted)": 39,
+   "Foundations / Mind": 8
+  },
+  "Chemistry": {
+   "Chemistry": 37
+  }
+ }
+}
