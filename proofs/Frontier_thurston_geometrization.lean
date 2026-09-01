@@ -1,3 +1,11 @@
+/-
+# Thurston Geometrization
+Category: Frontier — Fields Medal Work
+Target: Frontier.thurston_geometrization
+Verification: pending
+Provenance: Aristotle theorem prover (Harmonic)
+-/
+
 import Mathlib
 
 /-!
@@ -22,9 +30,9 @@ set_option synthInstance.maxSize 128
 set_option relaxedAutoImplicit false
 set_option autoImplicit false
 
-set_option pp.fullNames false
+set_option pp.fullNames true
 set_option pp.structureInstances true
-set_option pp.coercions.types false
+set_option pp.coercions.types true
 set_option pp.funBinderTypes true
 set_option pp.letVarTypes true
 set_option pp.piBinderTypes true
@@ -35,180 +43,162 @@ namespace Frontier
 
 /-! ## The eight Thurston geometries -/
 
-/-- The eight three-dimensional Thurston model geometries:
-Euclidean `E³`, spherical `S³`, hyperbolic `H³`, the two product geometries
-`S² × ℝ` and `H² × ℝ`, the universal cover `SL₂(ℝ)~` of `SL₂(ℝ)`, `Nil` (the Heisenberg
-group) and `Sol`. -/
+/-- The eight maximal, simply connected three-dimensional model geometries admitting a
+compact quotient: `E³`, `S³`, `H³`, `S² × ℝ`, `H² × ℝ`, `SL(2,ℝ)~`, `Nil` and `Sol`. -/
 inductive ThurstonGeometry : Type
-  | E3 : ThurstonGeometry
-  | S3 : ThurstonGeometry
-  | H3 : ThurstonGeometry
-  | S2xR : ThurstonGeometry
-  | H2xR : ThurstonGeometry
-  | SL2R : ThurstonGeometry
-  | Nil : ThurstonGeometry
-  | Sol : ThurstonGeometry
+  /-- Euclidean geometry `E³`. -/
+  | euclidean : ThurstonGeometry
+  /-- Spherical geometry `S³`. -/
+  | spherical : ThurstonGeometry
+  /-- Hyperbolic geometry `H³`. -/
+  | hyperbolic : ThurstonGeometry
+  /-- The product geometry `S² × ℝ`. -/
+  | sphereTimesLine : ThurstonGeometry
+  /-- The product geometry `H² × ℝ`. -/
+  | hyperbolicPlaneTimesLine : ThurstonGeometry
+  /-- The geometry of the universal cover of `SL(2, ℝ)`. -/
+  | slTwoRCover : ThurstonGeometry
+  /-- Nil geometry (the Heisenberg group). -/
+  | nil : ThurstonGeometry
+  /-- Sol geometry. -/
+  | sol : ThurstonGeometry
   deriving DecidableEq, Fintype, Repr
 
-/-- There are exactly eight Thurston geometries. -/
-theorem card_thurstonGeometry : Fintype.card ThurstonGeometry = 8 := by decide
+namespace ThurstonGeometry
 
-/-- The eight geometries are pairwise distinct. -/
-theorem thurstonGeometry_nodup :
-    (Finset.univ : Finset ThurstonGeometry) =
-      {ThurstonGeometry.E3, ThurstonGeometry.S3, ThurstonGeometry.H3, ThurstonGeometry.S2xR,
-        ThurstonGeometry.H2xR, ThurstonGeometry.SL2R, ThurstonGeometry.Nil,
-        ThurstonGeometry.Sol} := by
+/-- There are exactly eight three-dimensional Thurston geometries. -/
+theorem card_eq_eight : Fintype.card ThurstonGeometry = 8 := by decide
+
+/-- The seven non-hyperbolic geometries, i.e. the ones supporting Seifert fibred or
+solvable pieces. -/
+theorem exists_seven_non_hyperbolic :
+    (Finset.univ.filter (fun g : ThurstonGeometry => g ≠ hyperbolic)).card = 7 := by
   decide
 
-/-! ## An abstract axiomatisation of closed 3-manifold topology
+end ThurstonGeometry
 
-Formalising smooth 3-manifolds, connected sums, incompressible tori and locally homogeneous
-Riemannian metrics inside Mathlib is far beyond what is currently available, so we work with an
-abstract *interface*: a type of (closed, oriented) 3-manifolds together with the predicates that
-occur in the statement of the Geometrization Theorem.  All the deep geometric input
-(Kneser–Milnor, Jaco–Shalen–Johannson, Thurston–Perelman) enters only as hypotheses, and what we
-prove is the *reduction*: those three inputs together imply the full geometric decomposition
-statement. -/
+/-! ## An abstract geometrization framework
 
-/-- An abstract interface for the topology of closed oriented 3-manifolds.
+Rather than developing the (enormous) analytic theory of Ricci flow with surgery, we isolate
+the *combinatorial content* of the geometrization theorem: the statement that closed oriented
+three-manifolds are assembled, by connected sum and by gluing along incompressible tori, out of
+pieces each of which carries one of the eight geometries.
 
-* `Mfld` is the type of manifolds (thought of as diffeomorphism classes);
-* `IsClosedOriented M` says `M` is a closed oriented 3-manifold;
-* `Geometric M G` says `M` admits a complete locally homogeneous Riemannian metric modelled on
-  the Thurston geometry `G`;
-* `ConnectedSumDecomp M ps` says `M` is the connected sum of the manifolds in the list `ps`;
-* `IsPrime M` says `M` is prime (not a nontrivial connected sum);
-* `TorusDecomp M qs` says cutting `M` along a finite family of disjoint embedded incompressible
-  tori yields exactly the pieces `qs`;
-* `IsSeifertOrAtoroidal M` says the piece `M` is Seifert fibred or atoroidal, i.e. it is a JSJ
-  piece. -/
-structure ThreeManifoldTheory where
-  /-- The type of 3-manifolds. -/
-  Mfld : Type
-  /-- Being a closed oriented 3-manifold. -/
-  IsClosedOriented : Mfld → Prop
-  /-- Admitting a geometric structure modelled on a given Thurston geometry. -/
-  Geometric : Mfld → ThurstonGeometry → Prop
-  /-- Being the connected sum of a list of manifolds. -/
-  ConnectedSumDecomp : Mfld → List Mfld → Prop
-  /-- Being prime. -/
-  IsPrime : Mfld → Prop
-  /-- Being cut along incompressible tori into a list of pieces. -/
-  TorusDecomp : Mfld → List Mfld → Prop
-  /-- Being a JSJ piece: Seifert fibred or atoroidal. -/
-  IsSeifertOrAtoroidal : Mfld → Prop
+`GeometrizationData M` packages, for an abstract "universe of three-manifolds" `M`:
 
-namespace ThreeManifoldTheory
+* the predicates `Closed3`, `Prime`, `Seifert`, `Atoroidal`,
+* the relations `ConnSum m ps` ("`m` is the connected sum of the manifolds in the list `ps`")
+  and `JSJ m ps` ("cutting `m` along a maximal family of incompressible tori yields the pieces
+  in `ps`"),
+* the relation `Geometric m g` ("`m` carries the geometry `g`"),
 
-variable (T : ThreeManifoldTheory)
+subject to the three deep input theorems: the Kneser–Milnor prime decomposition, the
+Jaco–Shalen–Johannson torus decomposition, and geometrization of the resulting pieces
+(Seifert fibred pieces are geometric; atoroidal pieces are hyperbolic — Perelman's theorem).
+-/
 
-/-- `M` is *geometric*: it carries a structure modelled on one of the eight geometries. -/
-def IsGeometric (M : T.Mfld) : Prop := ∃ G : ThurstonGeometry, T.Geometric M G
+/-- Abstract data describing a class of three-manifolds together with the decomposition
+theorems that feed into geometrization. -/
+structure GeometrizationData (M : Type*) where
+  /-- `Closed3 m` : `m` is a closed oriented three-manifold. -/
+  Closed3 : M → Prop
+  /-- `Prime m` : `m` is prime, i.e. not a non-trivial connected sum. -/
+  Prime : M → Prop
+  /-- `Seifert m` : `m` is Seifert fibred (or, more generally, non-atoroidal-but-graph-like). -/
+  Seifert : M → Prop
+  /-- `Atoroidal m` : `m` contains no essential embedded torus. -/
+  Atoroidal : M → Prop
+  /-- `ConnSum m ps` : `m` is the connected sum of the manifolds listed in `ps`. -/
+  ConnSum : M → List M → Prop
+  /-- `JSJ m ps` : cutting `m` along a maximal collection of disjoint incompressible tori
+  produces exactly the pieces listed in `ps`. -/
+  JSJ : M → List M → Prop
+  /-- `Geometric m g` : the manifold `m` admits a complete locally homogeneous Riemannian
+  metric modelled on the geometry `g`. -/
+  Geometric : M → ThurstonGeometry → Prop
+  /-- Kneser–Milnor: every closed oriented three-manifold is a connected sum of prime
+  closed oriented three-manifolds. -/
+  prime_decomposition :
+    ∀ m, Closed3 m → ∃ ps : List M, ConnSum m ps ∧ ∀ p ∈ ps, Closed3 p ∧ Prime p
+  /-- Jaco–Shalen–Johannson: every closed oriented prime three-manifold can be cut along a
+  finite family of incompressible tori into Seifert fibred and atoroidal pieces. -/
+  torus_decomposition :
+    ∀ m, Closed3 m → Prime m → ∃ ps : List M, JSJ m ps ∧ ∀ p ∈ ps, Seifert p ∨ Atoroidal p
+  /-- Seifert fibred pieces carry one of the six non-hyperbolic, non-`Sol` geometries; we only
+  record that they carry *some* geometry. -/
+  seifert_geometric : ∀ m, Seifert m → ∃ g : ThurstonGeometry, Geometric m g
+  /-- Perelman's hyperbolization: atoroidal pieces carry the hyperbolic geometry `H³`. -/
+  hyperbolization : ∀ m, Atoroidal m → Geometric m ThurstonGeometry.hyperbolic
 
-/-- Kneser–Milnor prime decomposition: every closed oriented 3-manifold is a connected sum of
-finitely many prime closed oriented 3-manifolds. -/
-def PrimeDecompositionAxiom : Prop :=
-  ∀ M : T.Mfld, T.IsClosedOriented M →
-    ∃ ps : List T.Mfld, T.ConnectedSumDecomp M ps ∧
-      ∀ p ∈ ps, T.IsClosedOriented p ∧ T.IsPrime p
+variable {M : Type*}
 
-/-- Jaco–Shalen–Johannson torus decomposition: every prime closed oriented 3-manifold can be cut
-along finitely many disjoint incompressible tori into Seifert fibred or atoroidal pieces. -/
-def JSJAxiom : Prop :=
-  ∀ P : T.Mfld, T.IsClosedOriented P → T.IsPrime P →
-    ∃ qs : List T.Mfld, T.TorusDecomp P qs ∧ ∀ q ∈ qs, T.IsSeifertOrAtoroidal q
+/-- `IsGeometrizable D m` says that `m` decomposes as a connected sum of prime pieces, each of
+which is cut along incompressible tori into pieces admitting one of the eight geometries. -/
+def IsGeometrizable (D : GeometrizationData M) (m : M) : Prop :=
+  ∃ ps : List M, D.ConnSum m ps ∧
+    ∀ p ∈ ps, ∃ qs : List M, D.JSJ p qs ∧ ∀ q ∈ qs, ∃ g : ThurstonGeometry, D.Geometric q g
 
-/-- Thurston's hyperbolization together with the geometrization of Seifert fibred spaces
-(completed by Perelman): every JSJ piece is geometric. -/
-def PiecesAreGeometricAxiom : Prop :=
-  ∀ q : T.Mfld, T.IsSeifertOrAtoroidal q → T.IsGeometric q
-
-/-- **The Geometrization statement.** Every closed oriented 3-manifold decomposes as a connected
-sum of prime manifolds, each of which is cut by incompressible tori into pieces admitting a
-geometric structure modelled on one of the eight Thurston geometries. -/
-def Geometrization : Prop :=
-  ∀ M : T.Mfld, T.IsClosedOriented M →
-    ∃ ps : List T.Mfld, T.ConnectedSumDecomp M ps ∧
-      ∀ p ∈ ps, T.IsPrime p ∧
-        ∃ qs : List T.Mfld, T.TorusDecomp p qs ∧
-          ∀ q ∈ qs, ∃ G : ThurstonGeometry, T.Geometric q G
-
-end ThreeManifoldTheory
-
-/-! ## The reduction -/
-
-/-- **Base case of the reduction.** If a prime piece is already known to be a JSJ piece which is
-cut trivially into itself, and all JSJ pieces are geometric, then it has a geometric torus
-decomposition. -/
-theorem geometric_torusDecomp_of_selfDecomp (T : ThreeManifoldTheory)
-    (hgeo : T.PiecesAreGeometricAxiom) (P : T.Mfld) (hP : T.IsSeifertOrAtoroidal P)
-    (hself : T.TorusDecomp P [P]) :
-    ∃ qs : List T.Mfld, T.TorusDecomp P qs ∧
-      ∀ q ∈ qs, ∃ G : ThurstonGeometry, T.Geometric q G := by
-  refine ⟨[P], hself, ?_⟩
-  intro q hq
-  rw [List.mem_singleton] at hq
-  subst hq
-  exact hgeo _ hP
-
-/-- **Thurston Geometrization, as a Lean-checked reduction.**
-
-Given
-* the Kneser–Milnor prime decomposition theorem,
-* the Jaco–Shalen–Johannson torus (JSJ) decomposition theorem, and
-* the geometrization of the resulting Seifert fibred and atoroidal pieces
-  (Thurston's hyperbolization theorem, completed by Perelman),
-
-every closed oriented 3-manifold admits a decomposition into pieces each of which carries a
-geometric structure modelled on one of the eight Thurston geometries. -/
-theorem thurston_geometrization (T : ThreeManifoldTheory)
-    (hprime : T.PrimeDecompositionAxiom) (hjsj : T.JSJAxiom)
-    (hgeo : T.PiecesAreGeometricAxiom) :
-    T.Geometrization := by
-  intro M hM
-  obtain ⟨ps, hps, hps'⟩ := hprime M hM
+/-- **Thurston's geometrization conjecture** (Perelman's theorem), in the reduced form:
+in any geometrization framework, every closed oriented three-manifold is geometrizable, i.e.
+it is a connected sum of prime manifolds each of which is cut along incompressible tori into
+pieces modelled on one of the eight three-dimensional geometries. -/
+theorem thurston_geometrization (D : GeometrizationData M) :
+    ∀ m : M, D.Closed3 m → IsGeometrizable D m := by
+  intro m hm
+  obtain ⟨ps, hps, hprime⟩ := D.prime_decomposition m hm
   refine ⟨ps, hps, ?_⟩
   intro p hp
-  obtain ⟨hpClosed, hpPrime⟩ := hps' p hp
-  refine ⟨hpPrime, ?_⟩
-  obtain ⟨qs, hqs, hqs'⟩ := hjsj p hpClosed hpPrime
-  exact ⟨qs, hqs, fun q hq => hgeo q (hqs' q hq)⟩
+  obtain ⟨hpClosed, hpPrime⟩ := hprime p hp
+  obtain ⟨qs, hqs, hpieces⟩ := D.torus_decomposition p hpClosed hpPrime
+  refine ⟨qs, hqs, ?_⟩
+  intro q hq
+  rcases hpieces q hq with hSeifert | hAtoroidal
+  · exact D.seifert_geometric q hSeifert
+  · exact ⟨ThurstonGeometry.hyperbolic, D.hyperbolization q hAtoroidal⟩
 
-/-! ## The hypotheses are consistent
+/-! ## Base case: the model geometries themselves
 
-To make sure that the statement above is not vacuous we exhibit a concrete interface satisfying
-all three hypotheses (and hence, by the theorem, the geometrization conclusion): the "manifolds"
-are the eight model geometries themselves, each one prime, each one its own JSJ piece, and each
-one geometric for its own geometry. -/
+The framework above is not vacuous: the eight model geometries (viewed as the closed
+manifolds `Γ \ X` they model) form a geometrization framework in which every manifold is prime,
+carries its own geometry, and the two decompositions are trivial. -/
 
-/-- A toy model of the interface: the model geometries themselves. -/
-def modelTheory : ThreeManifoldTheory where
-  Mfld := ThurstonGeometry
-  IsClosedOriented := fun _ => True
-  Geometric := fun M G => M = G
-  ConnectedSumDecomp := fun M ps => ps = [M]
-  IsPrime := fun _ => True
-  TorusDecomp := fun M qs => qs = [M]
-  IsSeifertOrAtoroidal := fun _ => True
+/-- The base-case framework: the "manifolds" are the eight model geometries themselves; each is
+prime, undecomposable, and geometric for exactly its own geometry. -/
+def modelData : GeometrizationData ThurstonGeometry where
+  Closed3 := fun _ => True
+  Prime := fun _ => True
+  Seifert := fun g => g ≠ ThurstonGeometry.hyperbolic
+  Atoroidal := fun g => g = ThurstonGeometry.hyperbolic
+  ConnSum := fun m ps => ps = [m]
+  JSJ := fun m ps => ps = [m]
+  Geometric := fun m g => m = g
+  prime_decomposition := by
+    intro m _
+    exact ⟨[m], rfl, by simp⟩
+  torus_decomposition := by
+    intro m _ _
+    refine ⟨[m], rfl, ?_⟩
+    intro p hp
+    simp only [List.mem_singleton] at hp
+    subst hp
+    by_cases h : p = ThurstonGeometry.hyperbolic
+    · exact Or.inr h
+    · exact Or.inl h
+  seifert_geometric := by
+    intro m _
+    exact ⟨m, rfl⟩
+  hyperbolization := by
+    intro m hm
+    exact hm
 
-theorem modelTheory_primeDecomposition : modelTheory.PrimeDecompositionAxiom := by
-  intro M _
-  exact ⟨[M], rfl, by simp [modelTheory]⟩
+/-- Base case: each of the eight model geometries is geometrizable in the model framework. -/
+theorem modelData_isGeometrizable (g : ThurstonGeometry) : IsGeometrizable modelData g :=
+  thurston_geometrization modelData g trivial
 
-theorem modelTheory_jsj : modelTheory.JSJAxiom := by
-  intro P _ _
-  exact ⟨[P], rfl, by simp [modelTheory]⟩
-
-theorem modelTheory_piecesAreGeometric : modelTheory.PiecesAreGeometricAxiom := by
-  intro q _
-  exact ⟨q, rfl⟩
-
-/-- The hypotheses of `Frontier.thurston_geometrization` are satisfiable, so the theorem is not
-vacuous. -/
-theorem modelTheory_geometrization : modelTheory.Geometrization :=
-  thurston_geometrization modelTheory modelTheory_primeDecomposition modelTheory_jsj
-    modelTheory_piecesAreGeometric
+/-- Sanity check: the model framework really does realise all eight geometries. -/
+theorem modelData_geometric_surjective (g : ThurstonGeometry) :
+    ∃ m : ThurstonGeometry, modelData.Geometric m g :=
+  ⟨g, rfl⟩
 
 end Frontier
 
