@@ -23,59 +23,56 @@ set_option pp.piBinderTypes true
 
 set_option grind.warning false
 
+/-
+# Equidistribution Of Transitive Symmetry
+Category: Brockian (Literature Discharge)
+Target: Brockian.EquidistributionUniformity.equidistribution_of_transitive_symmetry
+Verification: pending
+Provenance: Aristotle theorem prover (Harmonic)
+-/
+
 import Mathlib
 
 /-!
-# Equidistribution from transitive symmetry
+# Equidistribution Of Transitive Symmetry
 
-A weight function on a finite set which is invariant under a group acting
-transitively on that set is necessarily constant; if moreover its total mass is
-`1`, then it is the uniform distribution.
-
-The main result `Brockian.EquidistributionUniformity.equidistribution_of_transitive_symmetry`
-is stated unconditionally: the equidistribution conclusion is *derived* from the
-transitivity and invariance hypotheses, rather than being assumed.
+If a group acts transitively on a finite nonempty set, then any invariant probability
+weight on that set is the uniform distribution.
 -/
 
-namespace Brockian
-namespace EquidistributionUniformity
+open scoped BigOperators
 
-open Finset
+namespace Brockian.EquidistributionUniformity
 
-variable {X : Type*} {G : Type*}
+/-- An invariant weight on a set carrying a transitive symmetry group is constant. -/
+theorem constant_of_transitive_symmetry
+    {G X : Type*} [Group G] [MulAction G X]
+    (htrans : ∀ x y : X, ∃ g : G, g • x = y)
+    (w : X → ℝ) (hinv : ∀ (g : G) (x : X), w (g • x) = w x) :
+    ∀ x y : X, w x = w y := by
+  intro x y
+  obtain ⟨g, hg⟩ := htrans x y
+  rw [← hg, hinv]
 
-/-- A function invariant under a transitive group action is constant. -/
-theorem const_of_transitive_invariant [Group G] [MulAction G X]
-    [MulAction.IsPretransitive G X] {M : Type*} (w : X → M)
-    (hinv : ∀ (g : G) (x : X), w (g • x) = w x) (x y : X) :
-    w x = w y := by
-  obtain ⟨g, rfl⟩ := MulAction.exists_smul_eq G x y
-  exact (hinv g x).symm
-
-/-- **Equidistribution from transitive symmetry.**
-
-If a group `G` acts transitively on a nonempty finite type `X` and `w : X → ℝ`
-is a `G`-invariant weight of total mass `1`, then `w` is the uniform
-distribution `x ↦ 1 / card X`. -/
-theorem equidistribution_of_transitive_symmetry [Fintype X] [Nonempty X]
-    [Group G] [MulAction G X] [MulAction.IsPretransitive G X] (w : X → ℝ)
-    (hinv : ∀ (g : G) (x : X), w (g • x) = w x)
-    (hsum : ∑ x : X, w x = 1) (x : X) :
-    w x = (Fintype.card X : ℝ)⁻¹ := by
-  have hconst : ∀ y : X, w y = w x := fun y =>
-    const_of_transitive_invariant (G := G) w hinv y x
-  have hcard : (Fintype.card X : ℝ) ≠ 0 := by
-    have h : 0 < Fintype.card X := Fintype.card_pos
-    positivity
-  have key : (Fintype.card X : ℝ) * w x = 1 := by
-    calc (Fintype.card X : ℝ) * w x
-        = ∑ _y : X, w x := by
-          rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
-      _ = ∑ y : X, w y := Finset.sum_congr rfl fun y _ => (hconst y).symm
-      _ = 1 := hsum
+/-- **Equidistribution from transitive symmetry.**  If a group `G` acts transitively on a
+finite nonempty set `X`, then every `G`-invariant probability weight `w : X → ℝ` is the
+uniform distribution: `w x = 1 / |X|` for every `x`. -/
+theorem equidistribution_of_transitive_symmetry
+    {G X : Type*} [Group G] [MulAction G X] [Fintype X] [Nonempty X]
+    (htrans : ∀ x y : X, ∃ g : G, g • x = y)
+    (w : X → ℝ) (hinv : ∀ (g : G) (x : X), w (g • x) = w x)
+    (hsum : ∑ x : X, w x = 1) :
+    ∀ x : X, w x = 1 / (Fintype.card X : ℝ) := by
+  intro x
+  have hconst : ∀ y : X, w y = w x :=
+    fun y => constant_of_transitive_symmetry htrans w hinv y x
+  have hcard : (Fintype.card X : ℝ) * w x = 1 := by
+    rw [← hsum, Finset.sum_congr rfl (fun y _ => hconst y), Finset.sum_const,
+      Finset.card_univ, nsmul_eq_mul]
+  have hpos : (0 : ℝ) < (Fintype.card X : ℝ) := by
+    exact_mod_cast Fintype.card_pos
   field_simp
-  linarith [key]
+  linarith [hcard]
 
-end EquidistributionUniformity
-end Brockian
+end Brockian.EquidistributionUniformity
 
