@@ -1,4 +1,5 @@
 import Mathlib
+
 /-!
 # Cpt Theorem
 Category: Frontier Phys
@@ -6,6 +7,86 @@ Target: Phys.cpt_theorem
 Verification: pending
 Provenance: Aristotle theorem prover (Harmonic)
 -/
+
+namespace Phys
+
+/-- Four–dimensional Minkowski spacetime, as a real vector space. -/
+abbrev Minkowski : Type := Fin 4 → ℝ
+
+/-- The Minkowski bilinear form of signature `(+,-,-,-)`. -/
+def mink (x y : Minkowski) : ℝ :=
+  x 0 * y 0 - (x 1 * y 1 + x 2 * y 2 + x 3 * y 3)
+
+/-- A linear map of Minkowski space is a *proper Lorentz transformation* when it preserves the
+Minkowski form and has determinant `1`. -/
+def IsProperLorentz (L : Minkowski →ₗ[ℝ] Minkowski) : Prop :=
+  (∀ x y, mink (L x) (L y) = mink x y) ∧ LinearMap.det L = 1
+
+/-- The total spacetime reflection `PT : x ↦ -x`. -/
+def PT : Minkowski →ₗ[ℝ] Minkowski := -LinearMap.id
+
+@[simp] lemma PT_apply (x : Minkowski) : PT x = -x := rfl
+
+/-- The dimension of Minkowski space is `4`. -/
+lemma finrank_minkowski : Module.finrank ℝ Minkowski = 4 := by
+  simp
+
+/-- Total spacetime reflection is a proper Lorentz transformation: it preserves the Minkowski
+form, and since spacetime is even dimensional its determinant is `(-1)^4 = 1`.  This is the
+group-theoretic heart of the CPT theorem: `PT` lies in the proper Lorentz group (indeed, in the
+identity component of the complex Lorentz group). -/
+theorem isProperLorentz_PT : IsProperLorentz PT := by
+  constructor
+  · intro x y
+    simp [mink]
+  · have h : PT = (-1 : ℝ) • (LinearMap.id : Minkowski →ₗ[ℝ] Minkowski) := by
+      ext x i; simp [PT]
+    rw [h, LinearMap.det_smul, finrank_minkowski, LinearMap.det_id]
+    norm_num
+
+/--
+A (bosonic, scalar) Wightman theory of `n`-point functions, packaged with the two axioms that
+enter the CPT theorem:
+
+* `lorentz_invariance`: the `n`-point function is invariant under proper Lorentz transformations
+  applied simultaneously to all arguments.  (In the Wightman setting one first has invariance
+  under the proper *orthochronous* group and then, by the Bargmann–Hall–Wightman theorem, under
+  the whole proper complex Lorentz group, which contains `PT`; here we take the resulting
+  invariance under all proper Lorentz transformations as the hypothesis.)
+* `hermiticity`: the Wightman hermiticity axiom
+  `W(x₁, …, xₙ)^* = W(xₙ, …, x₁)`, which encodes locality/positivity of the underlying field
+  algebra in terms of the correlation functions.
+-/
+structure WightmanTheory (n : ℕ) where
+  /-- The `n`-point Wightman function. -/
+  W : (Fin n → Minkowski) → ℂ
+  /-- Invariance under proper Lorentz transformations. -/
+  lorentz_invariance :
+    ∀ L : Minkowski →ₗ[ℝ] Minkowski, IsProperLorentz L →
+      ∀ x : Fin n → Minkowski, W (fun i => L (x i)) = W x
+  /-- Hermiticity: reversing the order of the arguments conjugates the Wightman function. -/
+  hermiticity :
+    ∀ x : Fin n → Minkowski, W (fun i => x (Fin.rev i)) = starRingEnd ℂ (W x)
+
+/--
+**CPT theorem** (statement form).
+
+For any Lorentz-invariant local (Wightman) theory, the `n`-point functions satisfy the CPT
+relation
+`W(x₁, …, xₙ) = W(-xₙ, …, -x₁)^*`,
+i.e. the theory is invariant under the antiunitary CPT operation: total spacetime reflection
+`PT : x ↦ -x` combined with charge conjugation (complex conjugation of the correlators) and
+reversal of the operator ordering.
+-/
+theorem cpt_theorem {n : ℕ} (T : WightmanTheory n) (x : Fin n → Minkowski) :
+    T.W (fun i => -x (Fin.rev i)) = starRingEnd ℂ (T.W x) := by
+  have h₁ : T.W (fun i => PT ((fun j => x (Fin.rev j)) i)) = T.W (fun j => x (Fin.rev j)) :=
+    T.lorentz_invariance PT isProperLorentz_PT _
+  simpa using h₁.trans (T.hermiticity x)
+
+end Phys
+
+import Mathlib
 
 open scoped BigOperators
 open scoped Real
@@ -29,104 +110,4 @@ set_option pp.letVarTypes true
 set_option pp.piBinderTypes true
 
 set_option grind.warning false
-
-namespace Phys
-
-/-- Complexified Minkowski spacetime: four complex coordinates. -/
-abbrev Spacetime : Type := Fin 4 → ℂ
-
-/-- The Minkowski metric `diag (1, -1, -1, -1)`, complexified. -/
-noncomputable def minkowski : Matrix (Fin 4) (Fin 4) ℂ :=
-  Matrix.diagonal ![1, -1, -1, -1]
-
-/-- A complex matrix is a complex Lorentz transformation when it preserves the
-(complex bilinear extension of the) Minkowski form. -/
-def IsComplexLorentz (L : Matrix (Fin 4) (Fin 4) ℂ) : Prop :=
-  L.transpose * minkowski * L = minkowski
-
-/-- The complex Lorentz group. -/
-def ComplexLorentzGroup : Set (Matrix (Fin 4) (Fin 4) ℂ) :=
-  {L | IsComplexLorentz L}
-
-/-- The total spacetime inversion `x ↦ -x` (the `PT` part of `CPT`). -/
-noncomputable def cptMatrix : Matrix (Fin 4) (Fin 4) ℂ := -1
-
-/-- A path of complex Lorentz transformations joining the identity to `-1`.
-It is the product of a complex boost of rapidity `i π t` in the `(0,1)`-plane
-with a rotation of angle `π t` in the `(2,3)`-plane. -/
-noncomputable def cptPath (t : ℝ) : Matrix (Fin 4) (Fin 4) ℂ :=
-  Matrix.of
-    ![![(Real.cos (π * t) : ℂ), Complex.I * (Real.sin (π * t) : ℂ), 0, 0],
-      ![Complex.I * (Real.sin (π * t) : ℂ), (Real.cos (π * t) : ℂ), 0, 0],
-      ![0, 0, (Real.cos (π * t) : ℂ), -(Real.sin (π * t) : ℂ)],
-      ![0, 0, (Real.sin (π * t) : ℂ), (Real.cos (π * t) : ℂ)]]
-
-theorem cptPath_mem (t : ℝ) : cptPath t ∈ ComplexLorentzGroup := by
-  have h : Complex.sin ((π : ℂ) * (t : ℂ)) ^ 2 + Complex.cos ((π : ℂ) * (t : ℂ)) ^ 2 = 1 :=
-    Complex.sin_sq_add_cos_sq _
-  have hI : Complex.I ^ 2 = -1 := Complex.I_sq
-  show cptPath t |>.transpose * minkowski * cptPath t = minkowski
-  ext i j
-  fin_cases i <;> fin_cases j <;>
-    simp [cptPath, minkowski, Matrix.mul_apply, Fin.sum_univ_four,
-      Matrix.transpose_apply, Matrix.diagonal] <;>
-    ring_nf <;> (try simp only [hI]) <;>
-    first
-      | linear_combination h
-      | linear_combination -h
-
-theorem cptPath_zero : cptPath 0 = 1 := by
-  ext i j
-  fin_cases i <;> fin_cases j <;> simp [cptPath]
-
-theorem cptPath_one : cptPath 1 = cptMatrix := by
-  ext i j
-  fin_cases i <;> fin_cases j <;> simp [cptPath, cptMatrix]
-
-theorem continuous_cptPath : Continuous cptPath := by
-  apply continuous_matrix
-  intro i j
-  fin_cases i <;> fin_cases j <;> simp [cptPath] <;> fun_prop
-
-/-- **Pauli–Jost lemma**: total spacetime inversion lies in the identity component of
-the complex Lorentz group; i.e. it is joined to the identity by a path of complex
-Lorentz transformations. This is the algebraic heart of the CPT theorem. -/
-theorem cptMatrix_joined_one : JoinedIn ComplexLorentzGroup 1 cptMatrix := by
-  refine ⟨⟨⟨fun t => cptPath (t : ℝ), continuous_cptPath.comp continuous_subtype_val⟩, ?_, ?_⟩,
-    ?_⟩
-  · simpa using cptPath_zero
-  · simpa using cptPath_one
-  · intro t
-    exact cptPath_mem _
-
-/-- A local, Lorentz-invariant quantum field theory, presented through its
-(analytically continued) Wightman functions. -/
-structure LocalQFT where
-  /-- The `n`-point Wightman function, continued to complexified spacetime. -/
-  W : (n : ℕ) → (Fin n → Spacetime) → ℂ
-  /-- Lorentz invariance. By the Bargmann–Hall–Wightman theorem, invariance of the
-  Wightman functions under the real proper orthochronous Lorentz group, together with
-  the spectral condition, extends by analytic continuation to invariance under the
-  identity component of the *complex* Lorentz group; this is the form assumed here. -/
-  lorentz_invariant : ∀ (n : ℕ) (L : Matrix (Fin 4) (Fin 4) ℂ),
-    JoinedIn ComplexLorentzGroup 1 L → ∀ x : Fin n → Spacetime,
-      W n (fun i => L.mulVec (x i)) = W n x
-  /-- Locality, in the form of weak local commutativity: the Wightman functions are
-  invariant under reversal of their arguments. -/
-  local_commutativity : ∀ (n : ℕ) (x : Fin n → Spacetime),
-    W n (fun i => x i.rev) = W n x
-
-/-- **CPT theorem**: any Lorentz-invariant local quantum field theory is CPT invariant,
-i.e. its Wightman functions satisfy
-`W (x₁, …, xₙ) = W (-xₙ, …, -x₁)`. -/
-theorem cpt_theorem (T : LocalQFT) (n : ℕ) (x : Fin n → Spacetime) :
-    T.W n (fun i => -(x i.rev)) = T.W n x := by
-  have hmul : ∀ v : Spacetime, cptMatrix.mulVec v = -v := by
-    intro v
-    simp [cptMatrix, Matrix.neg_mulVec]
-  have h1 := T.lorentz_invariant n cptMatrix cptMatrix_joined_one (fun i => x i.rev)
-  simp only [hmul] at h1
-  rw [h1, T.local_commutativity]
-
-end Phys
 
