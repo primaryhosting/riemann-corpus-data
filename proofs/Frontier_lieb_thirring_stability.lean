@@ -1,12 +1,12 @@
-import Mathlib
-
-/-!
+/-
 # Lieb Thirring Stability
 Category: Frontier Physics
 Target: Frontier.lieb_thirring_stability
 Verification: pending
 Provenance: Aristotle theorem prover (Harmonic)
 -/
+
+import Mathlib
 
 open scoped BigOperators
 open scoped Real
@@ -27,7 +27,6 @@ set_option pp.structureInstances true
 set_option pp.coercions.types true
 set_option pp.funBinderTypes true
 set_option pp.letVarTypes true
-set_option pp.piBinderTypes true
 
 set_option grind.warning false
 
@@ -35,123 +34,96 @@ namespace Frontier
 
 open MeasureTheory
 
-/-! ## Elementary optimisation step
+/-- Configuration space of one particle. -/
+abbrev Space : Type := EuclideanSpace ℝ (Fin 3)
 
-The Thomas–Fermi-type minimisation `t ↦ K t - A √t √N` used in the proof of stability of
-matter. -/
+/-- **Pointwise Young-type inequality behind stability of matter.**
 
-/-- If `K > 0` and `A ≥ 0`, then `K t - A √(t N) ≥ -(A²/(4K)) N` for `t, N ≥ 0`. -/
-theorem quadratic_lower_bound {K A t N : ℝ} (hK : 0 < K) (hA : 0 ≤ A)
-    (ht : 0 ≤ t) (hN : 0 ≤ N) :
-    -(A ^ 2 / (4 * K)) * N ≤ K * t - A * (Real.sqrt t * Real.sqrt N) := by
-  have hst : Real.sqrt t ^ 2 = t := Real.sq_sqrt ht
-  have hsN : Real.sqrt N ^ 2 = N := Real.sq_sqrt hN
-  have h0 : (0:ℝ) ≤ (2 * K * Real.sqrt t - A * Real.sqrt N) ^ 2 := sq_nonneg _
-  rw [div_mul_eq_mul_div, neg_div, neg_le_sub_iff_le_add, div_le_iff₀ (by linarith)]
-  nlinarith [Real.sqrt_nonneg t, Real.sqrt_nonneg N]
+For a nonnegative density value `a` and constants `K > 0`, `C`,
+`C * a ^ (4/3) ≤ K * a ^ (5/3) + (C ^ 2 / (4 * K)) * a`.
 
-/-! ## The interpolation (Hölder) step -/
+This is the elementary interpolation `ρ^{4/3} ≤ ε ρ^{5/3} + c_ε ρ` with the optimal
+constant `c_ε = C²/(4K)`: it is what converts a Lieb–Thirring kinetic-energy bound
+(`T ≥ K ∫ ρ^{5/3}`) together with a Coulomb (Baxter-type) potential bound
+(`V ≥ -C ∫ ρ^{4/3}`) into a lower bound proportional to the particle number `∫ ρ`. -/
+theorem rpow_four_thirds_le (K C a : ℝ) (ha : 0 ≤ a) (hK : 0 < K) :
+    C * a ^ ((4 : ℝ) / 3) ≤ K * a ^ ((5 : ℝ) / 3) + (C ^ 2 / (4 * K)) * a := by
+  set u : ℝ := a ^ ((1 : ℝ) / 3) with hu
+  have hu0 : 0 ≤ u := Real.rpow_nonneg ha _
+  have h4 : u ^ (4 : ℕ) = a ^ ((4 : ℝ) / 3) := by
+    rw [hu, ← Real.rpow_natCast (a ^ ((1 : ℝ) / 3)) 4, ← Real.rpow_mul ha]; norm_num
+  have h5 : u ^ (5 : ℕ) = a ^ ((5 : ℝ) / 3) := by
+    rw [hu, ← Real.rpow_natCast (a ^ ((1 : ℝ) / 3)) 5, ← Real.rpow_mul ha]; norm_num
+  have h3 : u ^ (3 : ℕ) = a := by
+    rw [hu, ← Real.rpow_natCast (a ^ ((1 : ℝ) / 3)) 3, ← Real.rpow_mul ha]; norm_num
+  rw [← h4, ← h5, ← h3, ← sub_nonneg]
+  have hid : K * u ^ 5 + C ^ 2 / (4 * K) * u ^ 3 - C * u ^ 4
+      = (2 * K * u - C) ^ 2 * u ^ 3 / (4 * K) := by
+    field_simp; ring
+  rw [hid]
+  positivity
 
-/-- Hölder/Cauchy–Schwarz interpolation: for a nonnegative density `ρ`,
-`∫ ρ^{4/3} ≤ (∫ ρ^{5/3})^{1/2} (∫ ρ)^{1/2}`. -/
-theorem integral_rpow_four_thirds_le {α : Type*} [MeasurableSpace α] {μ : Measure α}
-    {ρ : α → ℝ} (hρ0 : ∀ x, 0 ≤ ρ x) (hmeas : AEMeasurable ρ μ)
-    (h1 : Integrable ρ μ) (h53 : Integrable (fun x => ρ x ^ (5 / 3 : ℝ)) μ) :
-    ∫ x, ρ x ^ (4 / 3 : ℝ) ∂μ
-      ≤ Real.sqrt (∫ x, ρ x ^ (5 / 3 : ℝ) ∂μ) * Real.sqrt (∫ x, ρ x ∂μ) := by
-  have hfsm : AEStronglyMeasurable (fun x => ρ x ^ (5 / 6 : ℝ)) μ :=
-    (hmeas.rpow_const _).aestronglyMeasurable
-  have hgsm : AEStronglyMeasurable (fun x => ρ x ^ (1 / 2 : ℝ)) μ :=
-    (hmeas.rpow_const _).aestronglyMeasurable
-  have hf2 : ∀ x, (ρ x ^ (5 / 6 : ℝ)) ^ (2 : ℕ) = ρ x ^ (5 / 3 : ℝ) := by
+/-- Integrated form of `Frontier.rpow_four_thirds_le`: the Coulomb-type functional
+`C ∫ ρ^{4/3}` is dominated by the Thomas–Fermi kinetic functional `K ∫ ρ^{5/3}` plus a
+multiple of the particle number `∫ ρ`. -/
+theorem coulomb_le_kinetic_add_number
+    (ρ : Space → ℝ) (K C : ℝ)
+    (hρ : ∀ x, 0 ≤ ρ x) (hK : 0 < K)
+    (h53 : Integrable (fun x => ρ x ^ ((5 : ℝ) / 3)))
+    (h43 : Integrable (fun x => ρ x ^ ((4 : ℝ) / 3)))
+    (h1 : Integrable ρ) :
+    C * ∫ x, ρ x ^ ((4 : ℝ) / 3)
+      ≤ K * (∫ x, ρ x ^ ((5 : ℝ) / 3)) + (C ^ 2 / (4 * K)) * ∫ x, ρ x := by
+  have hmono : (∫ x, C * ρ x ^ ((4 : ℝ) / 3))
+      ≤ ∫ x, (K * ρ x ^ ((5 : ℝ) / 3) + (C ^ 2 / (4 * K)) * ρ x) := by
+    refine integral_mono (h43.const_mul C) ((h53.const_mul K).add (h1.const_mul _)) ?_
     intro x
-    rw [← Real.rpow_natCast (ρ x ^ (5 / 6 : ℝ)) 2, ← Real.rpow_mul (hρ0 x)]
-    norm_num
-  have hg2 : ∀ x, (ρ x ^ (1 / 2 : ℝ)) ^ (2 : ℕ) = ρ x := by
-    intro x
-    rw [← Real.rpow_natCast (ρ x ^ (1 / 2 : ℝ)) 2, ← Real.rpow_mul (hρ0 x)]
-    norm_num
-  have hf : MemLp (fun x => ρ x ^ (5 / 6 : ℝ)) 2 μ := by
-    rw [memLp_two_iff_integrable_sq hfsm]
-    simpa only [hf2] using h53
-  have hg : MemLp (fun x => ρ x ^ (1 / 2 : ℝ)) 2 μ := by
-    rw [memLp_two_iff_integrable_sq hgsm]
-    simpa only [hg2] using h1
-  have h2 : ENNReal.ofReal (2 : ℝ) = 2 := by simp
-  have key := MeasureTheory.integral_mul_le_Lp_mul_Lq_of_nonneg
-      (p := 2) (q := 2) Real.HolderConjugate.two_two
-      (f := fun x => ρ x ^ (5 / 6 : ℝ)) (g := fun x => ρ x ^ (1 / 2 : ℝ))
-      (Filter.Eventually.of_forall fun x => Real.rpow_nonneg (hρ0 x) _)
-      (Filter.Eventually.of_forall fun x => Real.rpow_nonneg (hρ0 x) _)
-      (by rwa [h2]) (by rwa [h2])
-  have e1 : ∀ x, ρ x ^ (5 / 6 : ℝ) * ρ x ^ (1 / 2 : ℝ) = ρ x ^ (4 / 3 : ℝ) := by
-    intro x
-    rw [← Real.rpow_add' (hρ0 x) (by norm_num)]
-    norm_num
-  have e2 : ∀ x, (ρ x ^ (5 / 6 : ℝ)) ^ (2 : ℝ) = ρ x ^ (5 / 3 : ℝ) := by
-    intro x; rw [← Real.rpow_mul (hρ0 x)]; norm_num
-  have e3 : ∀ x, (ρ x ^ (1 / 2 : ℝ)) ^ (2 : ℝ) = ρ x := by
-    intro x; rw [← Real.rpow_mul (hρ0 x)]; norm_num
-  simp only [e1, e2, e3] at key
-  rw [Real.sqrt_eq_rpow, Real.sqrt_eq_rpow]
-  convert key using 3 <;> norm_num
+    exact rpow_four_thirds_le K C (ρ x) (hρ x) hK
+  rwa [integral_const_mul, integral_add (h53.const_mul K) (h1.const_mul _),
+    integral_const_mul, integral_const_mul] at hmono
 
-/-! ## Stability of matter from the Lieb–Thirring kinetic energy inequality -/
+/-- **Lieb–Thirring stability of matter (reduction).**
 
-/-- **Stability of matter, reduced to the Lieb–Thirring kinetic energy inequality.**
+Let `ρ : ℝ³ → ℝ` be the (nonnegative, integrable) one-particle density of an `N`-particle
+state, so that `∫ ρ = N`.  Assume
 
-Let `ρ ≥ 0` be the one-particle density of a state of an `N`-particle system, i.e.
-`∫ ρ = N`.  Assume:
-
-* the *Lieb–Thirring kinetic energy inequality* `hLT`, which bounds the kinetic energy `T`
-  of the state from below by `K ∫ ρ^{5/3}` (`K > 0`);
-* an *electrostatic bound* `hCoul`, which bounds the total potential (Coulomb) energy `W`
-  from below by `-A ∫ ρ^{4/3} - B N` (`A ≥ 0`), as provided by the Baxter/Lieb–Yau type
-  electrostatic inequalities.
+* the **Lieb–Thirring kinetic energy inequality**: the kinetic energy `T` of the state
+  obeys `T ≥ K ∫ ρ^{5/3}` for some constant `K > 0` (this is the many-body form of the
+  Lieb–Thirring inequality, valid for fermionic states in three dimensions);
+* the **Coulomb energy bound**: the total (electron–nucleus, electron–electron,
+  nucleus–nucleus) potential energy `V` obeys `V ≥ -C ∫ ρ^{4/3}` for some constant `C`
+  (a Baxter/Lieb–Yau-type electrostatic estimate).
 
 Then the total energy is bounded below *linearly in the particle number*:
-`T + W ≥ -(A²/(4K) + B) N`, which is stability of matter of the second kind. -/
-theorem lieb_thirring_stability {α : Type*} [MeasurableSpace α] {μ : Measure α}
-    {ρ : α → ℝ} {K A B N T W : ℝ}
-    (hK : 0 < K) (hA : 0 ≤ A)
-    (hρ0 : ∀ x, 0 ≤ ρ x) (hmeas : AEMeasurable ρ μ)
-    (h1 : Integrable ρ μ) (h53 : Integrable (fun x => ρ x ^ (5 / 3 : ℝ)) μ)
-    (hN : ∫ x, ρ x ∂μ = N)
-    (hLT : K * ∫ x, ρ x ^ (5 / 3 : ℝ) ∂μ ≤ T)
-    (hCoul : -(A * ∫ x, ρ x ^ (4 / 3 : ℝ) ∂μ) - B * N ≤ W) :
-    -(A ^ 2 / (4 * K) + B) * N ≤ T + W := by
-  set t : ℝ := ∫ x, ρ x ^ (5 / 3 : ℝ) ∂μ with ht_def
-  have ht0 : 0 ≤ t := integral_nonneg fun x => Real.rpow_nonneg (hρ0 x) _
-  have hN0 : 0 ≤ N := hN ▸ integral_nonneg hρ0
-  have hholder : ∫ x, ρ x ^ (4 / 3 : ℝ) ∂μ ≤ Real.sqrt t * Real.sqrt N := by
-    have := integral_rpow_four_thirds_le hρ0 hmeas h1 h53
-    rwa [hN] at this
-  have hmain := quadratic_lower_bound (K := K) (A := A) (t := t) (N := N) hK hA ht0 hN0
-  nlinarith [mul_le_mul_of_nonneg_left hholder hA]
+`T + V ≥ -(C² / (4K)) * N`, i.e. matter is stable of the second kind.
 
-/-! ## A base case: the classical (phase-space) Lieb–Thirring constant in dimension one
+The proof is the Lean-checked reduction of stability of matter to the two inputs above,
+via the sharp interpolation `C ρ^{4/3} ≤ K ρ^{5/3} + (C²/(4K)) ρ`. -/
+theorem lieb_thirring_stability
+    (ρ : Space → ℝ) (N K C T V : ℝ)
+    (hρ : ∀ x, 0 ≤ ρ x) (hK : 0 < K)
+    (h53 : Integrable (fun x => ρ x ^ ((5 : ℝ) / 3)))
+    (h43 : Integrable (fun x => ρ x ^ ((4 : ℝ) / 3)))
+    (h1 : Integrable ρ)
+    (hN : ∫ x, ρ x = N)
+    (hT : K * ∫ x, ρ x ^ ((5 : ℝ) / 3) ≤ T)
+    (hV : -(C * ∫ x, ρ x ^ ((4 : ℝ) / 3)) ≤ V) :
+    -(C ^ 2 / (4 * K)) * N ≤ T + V := by
+  have key := coulomb_le_kinetic_add_number ρ K C hρ hK h53 h43 h1
+  rw [hN] at key
+  linarith
 
-For `γ = 1`, `d = 1` the semiclassical phase-space integral is
-`(2π)⁻¹ ∫_{ℝ} (p² - λ)_- dp = (2/(3π)) λ^{3/2}`, i.e. `L^cl_{1,1} = 2/(3π)`. -/
-theorem classical_lieb_thirring_constant_one_dim {lam : ℝ} (hlam : 0 ≤ lam) :
-    (1 / (2 * Real.pi)) *
-        ∫ p in (-Real.sqrt lam)..(Real.sqrt lam), (lam - p ^ 2)
-      = (2 / (3 * Real.pi)) * lam ^ (3 / 2 : ℝ) := by
-  have hs : Real.sqrt lam ^ 2 = lam := Real.sq_sqrt hlam
-  have hint : ∫ p in (-Real.sqrt lam)..(Real.sqrt lam), (lam - p ^ 2)
-      = (4 / 3) * lam * Real.sqrt lam := by
-    rw [intervalIntegral.integral_sub intervalIntegrable_const
-      (Continuous.intervalIntegrable (by fun_prop) _)]
-    rw [integral_const, integral_pow]
-    simp only [smul_eq_mul]
-    ring_nf
-    nlinarith [hs, Real.sqrt_nonneg lam]
-  rw [hint]
-  have hpow : lam ^ (3 / 2 : ℝ) = lam * Real.sqrt lam := by
-    rw [show (3 / 2 : ℝ) = 1 + 1 / 2 by norm_num, Real.rpow_add' hlam (by norm_num),
-      Real.rpow_one, ← Real.sqrt_eq_rpow]
-  rw [hpow]
-  ring
+/-- Sanity check (non-vacuity): the hypotheses of `Frontier.lieb_thirring_stability` are
+satisfiable, e.g. by the vacuum state `ρ = 0`, `N = 0`. -/
+example (K : ℝ) (hK : 0 < K) (T V : ℝ) (hT : 0 ≤ T) (hV : 0 ≤ V) :
+    -((1 : ℝ) ^ 2 / (4 * K)) * 0 ≤ T + V := by
+  refine lieb_thirring_stability (fun _ => (0 : ℝ)) 0 K 1 T V (fun _ => le_rfl) hK ?_ ?_ ?_ ?_ ?_ ?_
+  · simp [Real.zero_rpow]
+  · simp [Real.zero_rpow]
+  · exact integrable_zero Space ℝ volume
+  · simp
+  · simp [hT]
+  · simp [hV]
 
 end Frontier
 
