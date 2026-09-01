@@ -1,12 +1,12 @@
-import Mathlib
-
-/-!
+/-
 # Sum Omega Pow
 Category: Characters
 Target: Brockian.Characters5.sum_omega_pow
-Verification: pending
+Verification: verified
 Provenance: Aristotle theorem prover (Harmonic)
 -/
+
+import Mathlib
 
 open scoped BigOperators
 open scoped Real
@@ -24,15 +24,14 @@ set_option autoImplicit false
 
 namespace Brockian.Characters5
 
-/-- The principal primitive 5th root of unity. -/
+/-- A primitive 5th root of unity. -/
 noncomputable def omega : ℂ := Complex.exp (2 * Real.pi * Complex.I / 5)
 
-local notation "ω" => omega
+@[inherit_doc] local notation "ω" => omega
 
-/-- `ω` is a primitive 5th root of unity. -/
 theorem isPrimitiveRoot_omega : IsPrimitiveRoot ω 5 := by
-  have h := Complex.isPrimitiveRoot_exp 5 (by norm_num)
-  simpa [omega, mul_comm, mul_assoc, mul_left_comm] using h
+  simpa [omega, mul_comm, mul_assoc, mul_left_comm] using
+    Complex.isPrimitiveRoot_exp 5 (by norm_num)
 
 /-- The sum of all five 5th roots of unity vanishes. -/
 theorem sum_omega_pow : ∑ k ∈ Finset.range 5, ω ^ k = 0 :=
