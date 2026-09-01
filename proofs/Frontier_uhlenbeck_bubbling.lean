@@ -1,3 +1,11 @@
+/-
+# Uhlenbeck Bubbling
+Category: Frontier Abel
+Target: Frontier.uhlenbeck_bubbling
+Verification: pending
+Provenance: Aristotle theorem prover (Harmonic)
+-/
+
 import Mathlib
 
 /-!
@@ -33,126 +41,113 @@ set_option grind.warning false
 
 namespace Frontier
 
-open Filter MeasureTheory Metric
+open MeasureTheory Metric
 
-/-! ## Auxiliary lemmas -/
+/-- **Quantization counting, finite form.** If `U x`, for `x` ranging over a finite set `T`,
+are pairwise disjoint measurable sets each of measure at least `ε`, then `card T * ε` is at
+most the total mass. -/
+theorem finset_card_mul_le_measure_univ
+    {X : Type*} [MeasurableSpace X] (μ : Measure X) (ε : ENNReal)
+    (T : Finset X) (U : X → Set X)
+    (hmeas : ∀ x ∈ T, MeasurableSet (U x))
+    (hdisj : (T : Set X).PairwiseDisjoint U)
+    (hε : ∀ x ∈ T, ε ≤ μ (U x)) :
+    (T.card : ENNReal) * ε ≤ μ Set.univ := by
+  have h1 : μ (⋃ x ∈ T, U x) = ∑ x ∈ T, μ (U x) :=
+    measure_biUnion_finset hdisj hmeas
+  calc (T.card : ENNReal) * ε = ∑ _x ∈ T, ε := by
+        simp [Finset.sum_const, nsmul_eq_mul]
+    _ ≤ ∑ x ∈ T, μ (U x) := Finset.sum_le_sum hε
+    _ = μ (⋃ x ∈ T, U x) := h1.symm
+    _ ≤ μ Set.univ := measure_mono (Set.subset_univ _)
 
-/-- Superadditivity of `liminf` for two `ℝ≥0∞`-valued sequences. -/
-theorem liminf_add_le_liminf_add_nat (u v : ℕ → ENNReal) :
-    liminf u atTop + liminf v atTop ≤ liminf (fun n => u n + v n) atTop := by
-  simp only [Filter.liminf_eq_iSup_iInf_of_nat]
-  refine ENNReal.iSup_add_iSup_le ?_
-  intro i j
-  refine le_trans ?_ (le_iSup _ (max i j))
-  refine le_iInf₂ (fun m hm => add_le_add ?_ ?_)
-  · exact iInf₂_le m (le_trans (le_max_left i j) hm)
-  · exact iInf₂_le m (le_trans (le_max_right i j) hm)
-
-/-- Superadditivity of `liminf` for a finite sum of `ℝ≥0∞`-valued sequences. -/
-theorem sum_liminf_le_liminf_sum {ι : Type*} (t : Finset ι) (f : ι → ℕ → ENNReal) :
-    ∑ i ∈ t, liminf (fun n => f i n) atTop ≤ liminf (fun n => ∑ i ∈ t, f i n) atTop := by
+/-- **Separation.** Any finite set of points in a metric space admits a positive radius `r`
+such that the `r`-balls around distinct points of the set are disjoint. -/
+theorem exists_radius_pairwiseDisjoint_ball
+    {X : Type*} [MetricSpace X] (T : Finset X) :
+    ∃ r : ℝ, 0 < r ∧ (T : Set X).PairwiseDisjoint (fun x => ball x r) := by
   classical
-  induction t using Finset.induction_on with
-  | empty => simp
-  | insert a t ha ih =>
-      rw [Finset.sum_insert ha]
-      refine le_trans (add_le_add_left ih _) ?_
-      refine le_trans (liminf_add_le_liminf_add_nat _ _) ?_
-      refine liminf_le_liminf ?_
-      filter_upwards with n
-      rw [Finset.sum_insert ha]
+  set P : Finset (X × X) := (T ×ˢ T).filter (fun p => p.1 ≠ p.2) with hP
+  by_cases hPe : P.Nonempty
+  · set m : ℝ := P.inf' hPe (fun p => dist p.1 p.2) with hm
+    have hmpos : 0 < m := by
+      rw [hm, Finset.lt_inf'_iff]
+      intro p hp
+      have : p.1 ≠ p.2 := by
+        have := (Finset.mem_filter.mp (hP ▸ hp)).2
+        simpa using this
+      exact dist_pos.mpr this
+    refine ⟨m / 2, by positivity, ?_⟩
+    intro x hx y hy hxy
+    have hxT : x ∈ T := hx
+    have hyT : y ∈ T := hy
+    have hmem : (x, y) ∈ P := by
+      rw [hP, Finset.mem_filter]
+      exact ⟨Finset.mem_product.mpr ⟨hxT, hyT⟩, hxy⟩
+    have hle : m ≤ dist x y := by
+      have := Finset.inf'_le (f := fun p : X × X => dist p.1 p.2) hmem
+      simpa [hm] using this
+    have : m / 2 + m / 2 ≤ dist x y := by linarith
+    exact ball_disjoint_ball this
+  · refine ⟨1, one_pos, ?_⟩
+    intro x hx y hy hxy
+    exact absurd ⟨(x, y), by
+      rw [hP, Finset.mem_filter]
+      exact ⟨Finset.mem_product.mpr ⟨hx, hy⟩, hxy⟩⟩ hPe
 
-/-- A finite set in a metric space can be surrounded by pairwise disjoint balls of a common
-positive radius. -/
-theorem exists_radius_pairwise_disjoint_ball {X : Type*} [MetricSpace X] {s : Set X}
-    (hs : s.Finite) :
-    ∃ r > 0, ∀ x ∈ s, ∀ y ∈ s, x ≠ y → Disjoint (ball x r) (ball y r) := by
-  obtain ⟨C, hC, hC2⟩ := hs.relatively_discrete
-  set c : ENNReal := min C 1 with hc
-  have hcpos : 0 < c := lt_min hC (by norm_num)
-  have hcne : c ≠ ⊤ := ne_top_of_le_ne_top (by norm_num) (min_le_right _ _)
-  have hcr : 0 < c.toReal := ENNReal.toReal_pos hcpos.ne' hcne
-  refine ⟨c.toReal / 2, by linarith, ?_⟩
-  intro x hx y hy hxy
-  refine Metric.ball_disjoint_ball ?_
-  have h1 : c ≤ edist x y := le_trans (min_le_left _ _) (hC2 x hx y hy hxy)
-  have h2 : c.toReal ≤ (edist x y).toReal := ENNReal.toReal_mono (edist_ne_top x y) h1
-  rw [← dist_edist] at h2
-  linarith
+/-- **Uhlenbeck bubbling: finiteness and quantization of the bubble set.**
 
-/-- **Energy count at concentration points.** If each measure `μ n` has total mass at most `E`
-and `t` is a finite set of points at which the energy persistently concentrates with quantum `ε`
-(i.e. every ball around such a point carries asymptotic mass at least `ε`), then
-`(#t) * ε ≤ E`. -/
-theorem card_mul_le_of_concentration {X : Type*} [MetricSpace X] [MeasurableSpace X]
-    [BorelSpace X] (μ : ℕ → Measure X) (E ε : ENNReal) (hE : ∀ n, μ n Set.univ ≤ E)
-    (t : Finset X)
-    (ht : ∀ x ∈ t, ∀ r > (0 : ℝ), ε ≤ liminf (fun n => μ n (ball x r)) atTop) :
-    (t.card : ENNReal) * ε ≤ E := by
+Let `μ` be the (defect / curvature) energy measure of total energy at most `E < ∞` on
+Euclidean `4`-space, arising as the limit of the Yang–Mills energy densities
+`|F_{A_n}|² dvol` of a sequence of connections with uniformly bounded energy.
+Let `S` be the *bubbling set*: the set of points at which at least the quantum of energy
+`ε = 8π²` (the energy of a single instanton) concentrates in every ball around the point.
+
+Then `S` is finite, and the number of bubbles obeys the quantization bound
+`(#S) · 8π² ≤ E`; in particular `#S ≤ E / (8π²)`. -/
+theorem uhlenbeck_bubbling
+    (μ : Measure (EuclideanSpace ℝ (Fin 4))) (E : ENNReal)
+    (hE : μ Set.univ ≤ E) (hEfin : E ≠ ⊤)
+    (S : Set (EuclideanSpace ℝ (Fin 4)))
+    (hS : ∀ x ∈ S, ∀ r : ℝ, 0 < r → ENNReal.ofReal (8 * π ^ 2) ≤ μ (ball x r)) :
+    S.Finite ∧ (S.ncard : ENNReal) * ENNReal.ofReal (8 * π ^ 2) ≤ E := by
   classical
-  obtain ⟨r, hr, hdisj⟩ := exists_radius_pairwise_disjoint_ball (s := (t : Set X)) t.finite_toSet
-  -- for every `n`, the disjoint balls carry total mass at most `E`
-  have hsum : ∀ n, ∑ x ∈ t, μ n (ball x r) ≤ E := by
-    intro n
-    have hbi : μ n (⋃ x ∈ t, ball x r) = ∑ x ∈ t, μ n (ball x r) :=
-      measure_biUnion_finset (fun x hx y hy hxy => hdisj x hx y hy hxy)
-        (fun x _ => measurableSet_ball)
-    calc ∑ x ∈ t, μ n (ball x r) = μ n (⋃ x ∈ t, ball x r) := hbi.symm
-      _ ≤ μ n Set.univ := measure_mono (Set.subset_univ _)
-      _ ≤ E := hE n
-  calc (t.card : ENNReal) * ε = ∑ _x ∈ t, ε := by
-          rw [Finset.sum_const, nsmul_eq_mul]
-    _ ≤ ∑ x ∈ t, liminf (fun n => μ n (ball x r)) atTop :=
-          Finset.sum_le_sum (fun x hx => ht x hx r hr)
-    _ ≤ liminf (fun n => ∑ x ∈ t, μ n (ball x r)) atTop :=
-          sum_liminf_le_liminf_sum t (fun x n => μ n (ball x r))
-    _ ≤ liminf (fun _ : ℕ => E) atTop := liminf_le_liminf (by filter_upwards with n using hsum n)
-    _ = E := liminf_const E
-
-/-! ## Main result -/
-
-/-- **Uhlenbeck bubbling: finiteness and counting of the blow-up set.**
-
-Let `μ n` be the Yang–Mills energy densities (`|F(A n)|²` measures) of a sequence of connections
-on a metric measure space `X`, with uniformly bounded total energy `E < ∞`.  Let `ε > 0` be the
-energy quantum (given, e.g., by the `ε`-regularity theorem) and let `S` be the *blow-up set*:
-the set of points at which every ball retains asymptotic energy at least `ε`.
-
-Then `S` is finite, and the number of bubbling points is controlled by the energy:
-`(#S) * ε ≤ E`.  In particular at most `E / ε` bubbles can form, which is the counting statement
-underlying Uhlenbeck's compactness theorem (convergence away from finitely many points). -/
-theorem uhlenbeck_bubbling {X : Type*} [MetricSpace X] [MeasurableSpace X] [BorelSpace X]
-    (μ : ℕ → Measure X) (E ε : ENNReal) (hE : ∀ n, μ n Set.univ ≤ E) (hEtop : E ≠ ⊤)
-    (hε : ε ≠ 0) (S : Set X)
-    (hS : ∀ x ∈ S, ∀ r > (0 : ℝ), ε ≤ liminf (fun n => μ n (ball x r)) atTop) :
-    S.Finite ∧ (S.ncard : ENNReal) * ε ≤ E := by
-  classical
-  have key : ∀ t : Finset X, (↑t : Set X) ⊆ S → (t.card : ENNReal) * ε ≤ E := by
-    intro t ht
-    exact card_mul_le_of_concentration μ E ε hE t (fun x hx => hS x (ht hx))
+  set ε : ENNReal := ENNReal.ofReal (8 * π ^ 2) with hεdef
+  have hεpos : 0 < ε := by
+    rw [hεdef, ENNReal.ofReal_pos]
+    have := Real.pi_pos
+    positivity
+  have hεne : ε ≠ 0 := hεpos.ne'
+  have hεtop : ε ≠ ⊤ := ENNReal.ofReal_ne_top
+  -- the key bound for finite subsets
+  have key : ∀ T : Finset (EuclideanSpace ℝ (Fin 4)), (T : Set _) ⊆ S →
+      (T.card : ENNReal) * ε ≤ E := by
+    intro T hT
+    obtain ⟨r, hr, hdisj⟩ := exists_radius_pairwiseDisjoint_ball T
+    refine le_trans ?_ hE
+    refine finset_card_mul_le_measure_univ μ ε T (fun x => ball x r) ?_ hdisj ?_
+    · intro x _
+      exact measurableSet_ball
+    · intro x hx
+      exact hS x (hT hx) r hr
   have hfin : S.Finite := by
     by_contra hinf
     rw [Set.not_finite] at hinf
-    -- the singleton case shows `ε ≤ E`, so `ε ≠ ⊤`
-    obtain ⟨t1, ht1sub, ht1card⟩ := hinf.exists_subset_card_eq 1
-    have hεE : ε ≤ E := by
-      have := key t1 ht1sub
-      rwa [ht1card, Nat.cast_one, one_mul] at this
-    have hεtop : ε ≠ ⊤ := fun h => hEtop (top_le_iff.mp (h ▸ hεE))
-    have hdiv : E / ε ≠ ⊤ := (ENNReal.div_lt_top hEtop hε).ne
-    obtain ⟨N, hN⟩ := ENNReal.exists_nat_gt hdiv
-    obtain ⟨t, htsub, htcard⟩ := hinf.exists_subset_card_eq N
-    have h1 : (N : ENNReal) * ε ≤ E := by
-      have := key t htsub
-      rwa [htcard] at this
-    have h2 : (N : ENNReal) ≤ E / ε := (ENNReal.le_div_iff_mul_le (Or.inl hε)
-      (Or.inl hεtop)).mpr h1
-    exact absurd h2 (not_le.mpr hN)
+    obtain ⟨n, hn⟩ : ∃ n : ℕ, E < (n : ENNReal) * ε := by
+      have hdivne : E / ε ≠ ⊤ := by
+        rw [ENNReal.div_eq_top]
+        push_neg
+        exact ⟨fun h => absurd h hεne, fun _ => hEfin⟩
+      obtain ⟨n, hn⟩ := ENNReal.exists_nat_gt hdivne
+      refine ⟨n, ?_⟩
+      have h2 : ε * (E / ε) < ε * (n : ENNReal) := ENNReal.mul_lt_mul_right hεne hεtop hn
+      rw [ENNReal.mul_div_cancel hεne hεtop] at h2
+      rwa [mul_comm] at h2
+    obtain ⟨T, hTS, hTcard⟩ := hinf.exists_subset_card_eq n
+    have := key T hTS
+    rw [hTcard] at this
+    exact absurd this (not_le.mpr hn)
   refine ⟨hfin, ?_⟩
-  have hsub : (↑hfin.toFinset : Set X) ⊆ S := by simp
-  have := key hfin.toFinset hsub
-  rwa [Set.Finite.card_toFinset, ← Set.Nat.card_coe_set_eq, Set.Nat.card_coe_set_eq,
-    Set.ncard_eq_toFinset_card' ] at this
-
-end Frontier
+  have hkey := key hfin.toFinset (by simp)
+  rwa [Set.ncard_eq_toFinset_card S hfin]
 

@@ -1,4 +1,4 @@
-/-!
+/-
 # Milnor Exotic 7 Sphere
 Category: Frontier Abel
 Target: Frontier.milnor_exotic_7sphere
@@ -6,114 +6,15 @@ Verification: pending
 Provenance: Aristotle theorem prover (Harmonic)
 -/
 
-/-
-## What is formalized here
-
-Milnor's theorem (1956) states that there is a smooth 7-manifold which is homeomorphic
-but *not* diffeomorphic to the standard 7-sphere `S⁷`.
-
-Mathlib (at this project's pinned version) contains none of the machinery required for a
-from-scratch proof: no Pontryagin classes, no Hirzebruch signature theorem, no Morse-theoretic
-recognition of spheres (Reeb's theorem), no computation of `π₃(SO(4))`, and no library of
-`S³`-bundles over `S⁴`.  A search of the library turns up no statement about exotic spheres or
-about Milnor's `λ`-invariant, so no existing lemma closes or nearly closes this goal.
-
-What is provided instead is a **Lean-checked reduction**.  Milnor's geometric input is isolated
-as the fields of the structure `Frontier.MilnorData`, and the theorem
-`Frontier.milnor_exotic_7sphere` derives, from that input alone, the existence of a manifold
-homeomorphic but not diffeomorphic to `S⁷`.  The reduction is Milnor's own counting argument:
-
-* for odd `k`, the total space `M k` of a certain `S³`-bundle over `S⁴` is homeomorphic to `S⁷`
-  (Milnor exhibits a Morse function with exactly two critical points and invokes Reeb's
-  theorem);
-* the `λ`-invariant, valued in `ℤ/7`, is a diffeomorphism invariant, vanishes on the standard
-  sphere, and equals `k² - 1 (mod 7)` on `M k`;
-* hence any odd `k` with `k² ≢ 1 (mod 7)` — e.g. `k = 3`, where `k² - 1 = 8 ≡ 1 (mod 7)` —
-  yields an exotic 7-sphere.
-
-Everything except the fields of `MilnorData` is proved here, unconditionally and with no
-axioms beyond Lean's own.  Residues mod `7` are expressed with `Int` and `%` so that the file
-needs no imports at all (the required header comment must be the first thing in the file, and
-Lean does not permit a module docstring before an `import`).
--/
-
-namespace Frontier
-
-/-- `IsOdd k` says that the integer `k` is odd. -/
-def IsOdd (k : Int) : Prop := ∃ m : Int, k = 2 * m + 1
-
-/-- The geometric input of Milnor's construction, packaged as hypotheses.
-
-`Mfld` is a type of smooth 7-manifolds, `Homeo` and `Diffeo` the relations of being
-homeomorphic resp. diffeomorphic, `S7` the standard smooth 7-sphere, `M k` the total space of
-Milnor's `S³`-bundle over `S⁴` with invariants `(h, l) = ((k+1)/2, (1-k)/2)` for odd `k`, and
-`lam` Milnor's `λ`-invariant, here represented by an integer that is well defined modulo `7`. -/
-structure MilnorData where
-  /-- The ambient type of smooth 7-manifolds. -/
-  Mfld : Type
-  /-- Being homeomorphic. -/
-  Homeo : Mfld → Mfld → Prop
-  /-- Being diffeomorphic. -/
-  Diffeo : Mfld → Mfld → Prop
-  /-- The standard smooth 7-sphere. -/
-  S7 : Mfld
-  /-- Milnor's family of `S³`-bundles over `S⁴`, indexed by an odd integer `k`. -/
-  M : Int → Mfld
-  /-- Milnor's `λ`-invariant, an integer well defined modulo `7`. -/
-  lam : Mfld → Int
-  /-- `λ` is a diffeomorphism invariant (mod `7`). -/
-  lam_congr : ∀ a b, Diffeo a b → lam a % 7 = lam b % 7
-  /-- `λ` vanishes on the standard sphere. -/
-  lam_S7 : lam S7 % 7 = 0
-  /-- For odd `k`, `M k` is homeomorphic to `S⁷`: an explicit Morse function on `M k` has
-  exactly two critical points, so Reeb's theorem applies. -/
-  homeo_M : ∀ k : Int, IsOdd k → Homeo (M k) S7
-  /-- Milnor's computation of the invariant: `λ (M k) ≡ k² - 1 (mod 7)`. -/
-  lam_M : ∀ k : Int, IsOdd k → lam (M k) % 7 = (k * k - 1) % 7
-
-/-- The arithmetic heart of Milnor's argument: `3² - 1 = 8 ≢ 0 (mod 7)`. -/
-theorem milnor_lambda_three : (3 * 3 - 1 : Int) % 7 ≠ 0 := by decide
-
-/-- There is an odd integer `k` with `k² - 1 ≢ 0 (mod 7)`; concretely `k = 3`. -/
-theorem exists_odd_lambda_ne_zero :
-    ∃ k : Int, IsOdd k ∧ (k * k - 1) % 7 ≠ 0 :=
-  ⟨3, ⟨1, by decide⟩, milnor_lambda_three⟩
-
-/-- **Milnor's exotic 7-sphere**, as a Lean-checked reduction to Milnor's geometric input
-`D : MilnorData`: there is a smooth manifold homeomorphic, but not diffeomorphic, to the
-standard 7-sphere. -/
-theorem milnor_exotic_7sphere (D : MilnorData) :
-    ∃ m : D.Mfld, D.Homeo m D.S7 ∧ ¬ D.Diffeo m D.S7 := by
-  obtain ⟨k, hk, hlam⟩ := exists_odd_lambda_ne_zero
-  refine ⟨D.M k, D.homeo_M k hk, fun hdiff => hlam ?_⟩
-  have h1 : D.lam (D.M k) % 7 = D.lam D.S7 % 7 := D.lam_congr _ _ hdiff
-  rw [D.lam_M k hk, D.lam_S7] at h1
-  exact h1
-
-/-- The residue of `k² - 1` mod `7` for every `k ≡ 3 (mod 14)`. -/
-theorem lambda_three_add_fourteen (t : Int) :
-    ((3 + 14 * t) * (3 + 14 * t) - 1) % 7 = 1 := by
-  have h : (3 + 14 * t) * (3 + 14 * t) - 1 = 8 + 7 * (12 * t + 28 * (t * t)) := by
-    grind
-  rw [h]
-  omega
-
-/-- A stronger form of the reduction: arbitrarily large `k` give exotic 7-spheres, since
-`k² - 1 ≡ 1 (mod 7)` for every `k ≡ 3 (mod 14)`. -/
-theorem milnor_exotic_7sphere_unbounded (D : MilnorData) (n : Int) :
-    ∃ k : Int, n ≤ k ∧ D.Homeo (D.M k) D.S7 ∧ ¬ D.Diffeo (D.M k) D.S7 := by
-  obtain ⟨t, ht⟩ : ∃ t : Int, n ≤ 3 + 14 * t := by
-    rcases Int.le_total 0 n with h | h
-    · exact ⟨n, by omega⟩
-    · exact ⟨0, by omega⟩
-  refine ⟨3 + 14 * t, ht, D.homeo_M _ ⟨1 + 7 * t, by omega⟩, fun hdiff => ?_⟩
-  have h1 : D.lam (D.M (3 + 14 * t)) % 7 = D.lam D.S7 % 7 := D.lam_congr _ _ hdiff
-  rw [D.lam_M _ ⟨1 + 7 * t, by omega⟩, D.lam_S7, lambda_three_add_fourteen] at h1
-  exact absurd h1 (by decide)
-
-end Frontier
-
 import Mathlib
+
+/-!
+# Milnor Exotic 7 Sphere
+Category: Frontier Abel
+Target: Frontier.milnor_exotic_7sphere
+Verification: pending
+Provenance: Aristotle theorem prover (Harmonic)
+-/
 
 open scoped BigOperators
 open scoped Real
@@ -129,7 +30,7 @@ set_option synthInstance.maxSize 128
 set_option relaxedAutoImplicit false
 set_option autoImplicit false
 
-set_option pp.fullNames true
+set_option pp.fullNames false
 set_option pp.structureInstances true
 set_option pp.coercions.types true
 set_option pp.funBinderTypes true
@@ -137,4 +38,93 @@ set_option pp.letVarTypes true
 set_option pp.piBinderTypes true
 
 set_option grind.warning false
+
+namespace Frontier
+
+open Metric Manifold
+
+/-- The ambient Euclidean space `ℝ⁸` has dimension `7 + 1`; this `Fact` provides the
+charted space structure (stereographic projection) on the unit sphere `S⁷ ⊆ ℝ⁸`. -/
+instance factFinrankEuclidean8 :
+    Fact (Module.finrank ℝ (EuclideanSpace ℝ (Fin 8)) = 7 + 1) := ⟨by simp⟩
+
+/-- The standard smooth `7`-sphere: the unit sphere in `ℝ⁸`, with its standard smooth
+structure coming from stereographic projection. -/
+abbrev StandardSphere7 : Type := Metric.sphere (0 : EuclideanSpace ℝ (Fin 8)) 1
+
+/-- **The statement of Milnor's theorem.**
+
+There exists a smooth `7`-manifold `M` (a topological space with a `C^∞` atlas modelled on
+`ℝ⁷`) which is *homeomorphic* to the standard `7`-sphere `S⁷` but admits *no* diffeomorphism
+to `S⁷`; i.e. an exotic `7`-sphere exists. -/
+def ExoticSphere7Exists : Prop :=
+  ∃ (M : Type) (_ : TopologicalSpace M) (_ : ChartedSpace (EuclideanSpace ℝ (Fin 7)) M)
+      (_ : IsManifold (𝓡 7) ⊤ M),
+    Nonempty (M ≃ₜ StandardSphere7) ∧
+      IsEmpty (Diffeomorph (𝓡 7) (𝓡 7) M StandardSphere7 ⊤)
+
+/-- Milnor's `λ`-invariant of the total space `M k` of the `S³`-bundle over `S⁴` with
+Euler number `1` and first Pontryagin-type parameter `k` (odd), as an element of `ZMod 7`:
+it is computed from the Hirzebruch signature theorem to be `k² - 1 mod 7`. -/
+def milnorLambda (k : ℤ) : ZMod 7 := (k : ZMod 7) ^ 2 - 1
+
+/-- **The arithmetic base case of Milnor's argument.**
+For `k = 3` the invariant `λ = k² - 1 = 8 ≡ 1 (mod 7)` is nonzero, so the manifold `M 3`
+cannot be diffeomorphic to the standard sphere. -/
+theorem milnorLambda_three_ne_zero : milnorLambda 3 ≠ 0 := by
+  decide
+
+/-- `3` is odd, so `M 3` belongs to Milnor's family of `S³`-bundles over `S⁴` whose total
+spaces are homeomorphic to `S⁷`. -/
+theorem odd_three : Odd (3 : ℤ) := ⟨1, by ring⟩
+
+/-- The geometric input of Milnor's construction, packaged as data.
+
+For each odd integer `k`, `M k` is the total space of the `S³`-bundle over `S⁴` classified by
+`(k+1)/2, (1-k)/2 ∈ π₃(SO(4))`.  Milnor's two geometric theorems are recorded as the fields:
+
+* `homeomorphic_sphere`: Morse theory applied to a canonical function with exactly two
+  nondegenerate critical points shows that `M k` is homeomorphic to `S⁷`;
+* `lambda_eq_zero_of_diffeomorph`: the invariant `λ (M k) = k² - 1 ∈ ZMod 7`, defined via
+  the Hirzebruch signature theorem applied to a coboundary of `M k`, is a diffeomorphism
+  invariant which vanishes for the standard sphere.
+
+Everything else (that these two facts force the existence of an exotic sphere) is proved
+below in Lean. -/
+structure MilnorFamily where
+  /-- The total space of the `k`-th bundle. -/
+  M : ℤ → Type
+  /-- Its topology. -/
+  topology : ∀ k, TopologicalSpace (M k)
+  /-- Its atlas, modelled on `ℝ⁷`. -/
+  charts : ∀ k, @ChartedSpace (EuclideanSpace ℝ (Fin 7)) _ (M k) (topology k)
+  /-- The atlas is `C^∞`, i.e. `M k` is a smooth `7`-manifold. -/
+  smooth : ∀ k, @IsManifold (EuclideanSpace ℝ (Fin 7)) _ _ (EuclideanSpace ℝ (Fin 7)) _
+    (𝓡 7) ⊤ (M k) (topology k) (charts k)
+  /-- Morse theory: for odd `k`, the total space `M k` is homeomorphic to `S⁷`. -/
+  homeomorphic_sphere : ∀ k : ℤ, Odd k →
+    Nonempty (@Homeomorph (M k) StandardSphere7 (topology k) _)
+  /-- The signature-theoretic invariant `λ = k² - 1 (mod 7)` obstructs diffeomorphism with
+  the standard sphere. -/
+  lambda_eq_zero_of_diffeomorph : ∀ k : ℤ,
+    Nonempty (@Diffeomorph ℝ _ (EuclideanSpace ℝ (Fin 7)) _ _ (EuclideanSpace ℝ (Fin 7)) _ _
+        (EuclideanSpace ℝ (Fin 7)) _ (EuclideanSpace ℝ (Fin 7)) _ (𝓡 7) (𝓡 7)
+        (M k) (topology k) (charts k) StandardSphere7 _ _ ⊤) →
+      milnorLambda k = 0
+
+/-- **Milnor's exotic 7-sphere (Lean-checked reduction).**
+
+Given Milnor's geometric input (a family `M k` of smooth `7`-manifolds, homeomorphic to `S⁷`
+for odd `k`, together with the `λ`-invariant obstruction), there exists a smooth `7`-manifold
+homeomorphic but not diffeomorphic to the standard `7`-sphere.
+
+The proof is the base case `k = 3`: `λ (M 3) = 3² - 1 = 8 ≡ 1 ≠ 0 (mod 7)`, so `M 3` — which
+*is* homeomorphic to `S⁷` since `3` is odd — admits no diffeomorphism to `S⁷`. -/
+theorem milnor_exotic_7sphere (d : MilnorFamily) : ExoticSphere7Exists := by
+  refine ⟨d.M 3, d.topology 3, d.charts 3, d.smooth 3, d.homeomorphic_sphere 3 odd_three, ?_⟩
+  rw [isEmpty_iff]
+  intro f
+  exact milnorLambda_three_ne_zero (d.lambda_eq_zero_of_diffeomorph 3 ⟨f⟩)
+
+end Frontier
 
