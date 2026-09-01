@@ -1,34 +1,36 @@
 {
  "generated_from": "scripts/classify_corpus.py",
  "fields": {
-  "Mathematics": 804,
-  "Physics": 209,
-  "Brockian Program": 145,
-  "Computer Science": 75,
-  "Frontier": 47,
-  "Chemistry": 37
+  "Mathematics": 822,
+  "Physics": 262,
+  "Brockian Program": 88,
+  "Computer Science": 88,
+  "Chemistry": 45,
+  "Frontier": 12
  },
  "field_concepts": {
-  "Mathematics › Mathematics (general)": 288,
-  "Mathematics › Number Theory": 244,
-  "Brockian Program › Core / Other": 125,
-  "Mathematics › Riemann / Zeta": 105,
-  "Physics › Physics": 85,
-  "Mathematics › Algebra / Group Theory": 60,
-  "Computer Science › Theory of Computation": 49,
-  "Mathematics › Analysis / Topology": 48,
-  "Mathematics › Set Theory": 39,
-  "Frontier › Frontier (unsorted)": 39,
-  "Physics › Quantum Information": 38,
-  "Chemistry › Chemistry": 37,
-  "Physics › Quantum Computing": 36,
+  "Mathematics › Number Theory": 364,
+  "Mathematics › Riemann / Zeta": 108,
+  "Mathematics › Analysis / Topology": 98,
+  "Physics › Physics": 96,
+  "Mathematics › Algebra / Group Theory": 94,
+  "Mathematics › Mathematics (general)": 55,
+  "Mathematics › Combinatorics": 54,
+  "Computer Science › Theory of Computation": 53,
+  "Physics › Quantum Physics": 51,
+  "Chemistry › Chemistry": 45,
+  "Physics › Quantum Information": 44,
+  "Physics › Quantum Computing": 44,
+  "Mathematics › Set Theory": 43,
+  "Brockian Program › Pentagon / Admissibility": 42,
+  "Computer Science › Proof-Carrying / Formal Methods": 35,
+  "Brockian Program › Spectral / Operator": 30,
   "Physics › Quantum": 27,
-  "Computer Science › Proof-Carrying / Formal Methods": 26,
-  "Physics › Quantum Physics": 23,
-  "Brockian Program › Pentagon / Admissibility": 20,
-  "Mathematics › Combinatorics": 14,
+  "Brockian Program › Core / Other": 15,
   "Frontier › Foundations / Mind": 8,
-  "Mathematics › Moonshine / Modular": 6
+  "Mathematics › Moonshine / Modular": 6,
+  "Frontier › Frontier (unsorted)": 4,
+  "Brockian Program › Riemann / Zeta": 1
  },
  "source_programs": {
   "Other": 324,
@@ -47,36 +49,38 @@
  },
  "tree": {
   "Mathematics": {
-   "Mathematics (general)": 288,
-   "Number Theory": 244,
-   "Riemann / Zeta": 105,
-   "Algebra / Group Theory": 60,
-   "Analysis / Topology": 48,
-   "Set Theory": 39,
-   "Combinatorics": 14,
+   "Number Theory": 364,
+   "Riemann / Zeta": 108,
+   "Analysis / Topology": 98,
+   "Algebra / Group Theory": 94,
+   "Mathematics (general)": 55,
+   "Combinatorics": 54,
+   "Set Theory": 43,
    "Moonshine / Modular": 6
   },
   "Physics": {
-   "Physics": 85,
-   "Quantum Information": 38,
-   "Quantum Computing": 36,
-   "Quantum": 27,
-   "Quantum Physics": 23
+   "Physics": 96,
+   "Quantum Physics": 51,
+   "Quantum Information": 44,
+   "Quantum Computing": 44,
+   "Quantum": 27
   },
   "Brockian Program": {
-   "Core / Other": 125,
-   "Pentagon / Admissibility": 20
+   "Pentagon / Admissibility": 42,
+   "Spectral / Operator": 30,
+   "Core / Other": 15,
+   "Riemann / Zeta": 1
   },
   "Computer Science": {
-   "Theory of Computation": 49,
-   "Proof-Carrying / Formal Methods": 26
-  },
-  "Frontier": {
-   "Frontier (unsorted)": 39,
-   "Foundations / Mind": 8
+   "Theory of Computation": 53,
+   "Proof-Carrying / Formal Methods": 35
   },
   "Chemistry": {
-   "Chemistry": 37
+   "Chemistry": 45
+  },
+  "Frontier": {
+   "Foundations / Mind": 8,
+   "Frontier (unsorted)": 4
   }
  }
 }
