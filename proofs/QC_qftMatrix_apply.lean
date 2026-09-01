@@ -1,123 +1,109 @@
-/-
-# Qft Unitary 7
+import Mathlib
+
+/-!
+# Qft Unitary 8
 Category: Quantum Computing
-Target: QC.qft_unitary_7
+Target: QC.qft_unitary_8
 Verification: pending
 Provenance: Aristotle theorem prover (Harmonic)
 -/
 
-import Mathlib
-
 namespace QC
 
-open Complex Finset
+open Complex Matrix
 
-/-- The primitive `N`-th root of unity `exp (2πi/N)`. -/
-noncomputable def omega (N : ℕ) : ℂ := Complex.exp (2 * Real.pi * Complex.I / N)
-
-/-- The `N × N` discrete Fourier transform (QFT) matrix:
-`F j k = exp (2πi·j·k/N) / √N`. -/
+/-- The `N × N` discrete Fourier transform (quantum Fourier transform) matrix:
+`F j k = (1/√N) * exp(2πi·jk/N)`. -/
 noncomputable def qftMatrix (N : ℕ) : Matrix (Fin N) (Fin N) ℂ :=
-  Matrix.of fun j k => Complex.exp (2 * Real.pi * Complex.I * (j : ℕ) * (k : ℕ) / N) /
-    (Real.sqrt N : ℝ)
+  Matrix.of fun j k =>
+    ((Real.sqrt N : ℝ) : ℂ)⁻¹ * Complex.exp (2 * (Real.pi : ℂ) * Complex.I * ((j : ℕ) * (k : ℕ)) / N)
 
-/-- The QFT matrix on `n` qubits, of size `2^n × 2^n`. -/
-noncomputable def qft (n : ℕ) : Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ := qftMatrix (2 ^ n)
+/-- The quantum Fourier transform on `n` qubits, a `2^n × 2^n` matrix. -/
+noncomputable def qftQubits (n : ℕ) : Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ :=
+  qftMatrix (2 ^ n)
 
 lemma qftMatrix_apply (N : ℕ) (j k : Fin N) :
-    qftMatrix N j k = omega N ^ ((j : ℕ) * (k : ℕ)) / (Real.sqrt N : ℝ) := by
-  unfold qftMatrix omega
+    qftMatrix N j k =
+      ((Real.sqrt N : ℝ) : ℂ)⁻¹ *
+        Complex.exp (2 * (Real.pi : ℂ) * Complex.I / N) ^ ((j : ℕ) * (k : ℕ)) := by
+  rw [qftMatrix]
+  simp only [Matrix.of_apply]
   rw [← Complex.exp_nat_mul]
-  norm_num
-  ring_nf
+  congr 2
+  push_cast
+  ring
 
-/-- Conjugating a power of `omega N` inverts the exponent. -/
-lemma conj_omega_pow (N : ℕ) (m : ℕ) :
-    (starRingEnd ℂ) (omega N ^ m) = omega N ^ (-(m : ℤ)) := by
-  have h : (starRingEnd ℂ) (omega N) = (omega N)⁻¹ := by
-    unfold omega
-    rw [← Complex.exp_conj, ← Complex.exp_neg]
-    congr 1
-    simp [Complex.ext_iff]
-    ring
-  rw [map_pow, h, zpow_neg, zpow_natCast, ← inv_pow]
-
-/-- **Key lemma**: orthogonality of the rows of the DFT matrix, i.e. the geometric
-sum of powers of a primitive `N`-th root of unity. -/
-lemma sum_omega_orthogonality (N : ℕ) (hN : N ≠ 0) (a b : Fin N) :
-    ∑ k : Fin N, omega N ^ ((a : ℕ) * (k : ℕ)) *
-      (starRingEnd ℂ) (omega N ^ ((b : ℕ) * (k : ℕ))) = if a = b then (N : ℂ) else 0 := by
-  have hprim : IsPrimitiveRoot (omega N) N := Complex.isPrimitiveRoot_exp N hN
-  have hne : omega N ≠ 0 := hprim.ne_zero hN
-  set x : ℂ := omega N ^ ((a : ℤ) - (b : ℤ)) with hx
-  have hterm : ∀ k : Fin N, omega N ^ ((a : ℕ) * (k : ℕ)) *
-      (starRingEnd ℂ) (omega N ^ ((b : ℕ) * (k : ℕ))) = x ^ (k : ℕ) := by
-    intro k
-    rw [conj_omega_pow, hx, ← zpow_natCast (omega N) ((a : ℕ) * (k : ℕ)), ← zpow_add₀ hne,
-      ← zpow_natCast (omega N ^ ((a : ℤ) - (b : ℤ))) (k : ℕ), ← zpow_mul]
-    congr 1
-    push_cast
-    ring
-  rw [Finset.sum_congr rfl (fun k _ => hterm k)]
-  rw [Fin.sum_univ_eq_sum_range (fun k => x ^ k) N]
-  by_cases hab : a = b
-  · subst hab
-    simp [hx]
-  · have hx1 : x ≠ 1 := by
-      rw [hx]
-      intro hone
-      rw [hprim.zpow_eq_one_iff_dvd] at hone
-      apply hab
-      have h1 : (a : ℕ) < N := a.isLt
-      have h2 : (b : ℕ) < N := b.isLt
-      have habs : |((a : ℕ) : ℤ) - ((b : ℕ) : ℤ)| < (N : ℤ) := by
-        rw [abs_lt]
-        omega
-      have := Int.eq_zero_of_abs_lt_dvd hone habs
-      have : ((a : ℕ) : ℤ) = ((b : ℕ) : ℤ) := by omega
-      exact Fin.ext (by exact_mod_cast this)
-    have hxN : x ^ N = 1 := by
-      rw [hx, ← zpow_natCast (omega N ^ ((a : ℤ) - (b : ℤ))) N, ← zpow_mul, mul_comm,
-        zpow_mul, zpow_natCast, hprim.pow_eq_one, one_zpow]
-    rw [geom_sum_eq hx1, hxN, if_neg hab]
+/-- The DFT matrix satisfies `F * Fᴴ = 1`. -/
+lemma qftMatrix_mul_conjTranspose (N : ℕ) (hN : N ≠ 0) :
+    qftMatrix N * (qftMatrix N)ᴴ = 1 := by
+  have hz := Complex.isPrimitiveRoot_exp N hN
+  set z : ℂ := Complex.exp (2 * (Real.pi : ℂ) * Complex.I / N) with hzdef
+  have hzN : z ^ N = 1 := hz.pow_eq_one
+  have hz0 : z ≠ 0 := Complex.exp_ne_zero _
+  have hsq : ((Real.sqrt N : ℝ) : ℂ) ^ 2 = (N : ℂ) := by
+    rw [← Complex.ofReal_pow, Real.sq_sqrt (by positivity)]
     simp
-
-/-- The DFT / QFT matrix of any positive size is unitary. -/
-theorem qftMatrix_unitary (N : ℕ) (hN : N ≠ 0) :
-    qftMatrix N ∈ Matrix.unitaryGroup (Fin N) ℂ := by
-  rw [Matrix.mem_unitaryGroup_iff]
-  ext a b
-  have hNpos : (0 : ℝ) < N := by positivity
-  have hsq2 : ((Real.sqrt N : ℝ) : ℂ) * ((Real.sqrt N : ℝ) : ℂ) = (N : ℂ) := by
-    rw [← Complex.ofReal_mul, Real.mul_self_sqrt (le_of_lt hNpos)]
-    simp
-  simp only [Matrix.mul_apply, Matrix.star_apply, Matrix.one_apply, star_def]
-  have : ∀ k : Fin N, qftMatrix N a k * (starRingEnd ℂ) (qftMatrix N b k) =
-      (omega N ^ ((a : ℕ) * (k : ℕ)) *
-        (starRingEnd ℂ) (omega N ^ ((b : ℕ) * (k : ℕ)))) / (N : ℂ) := by
+  have hcsq : (((Real.sqrt N : ℝ) : ℂ)⁻¹) ^ 2 = ((N : ℂ))⁻¹ := by
+    rw [inv_pow, hsq]
+  ext j l
+  rw [Matrix.mul_apply, Matrix.one_apply]
+  set w : ℂ := z ^ (j : ℕ) * (z ^ (l : ℕ))⁻¹ with hw
+  have hterm : ∀ k : Fin N,
+      qftMatrix N j k * (qftMatrix N)ᴴ k l = ((N : ℂ))⁻¹ * w ^ (k : ℕ) := by
     intro k
-    rw [qftMatrix_apply, qftMatrix_apply, map_div₀, Complex.conj_ofReal,
-      div_mul_div_comm, hsq2]
-  rw [Finset.sum_congr rfl (fun k _ => this k), ← Finset.sum_div,
-    sum_omega_orthogonality N hN a b]
-  by_cases hab : a = b
-  · simp [hab, Nat.cast_ne_zero.mpr hN]
-  · simp [hab]
+    rw [Matrix.conjTranspose_apply, qftMatrix_apply, qftMatrix_apply, ← hzdef,
+      Complex.star_def]
+    have hcz : (starRingEnd ℂ) (z ^ ((l : ℕ) * (k : ℕ))) = (z ^ ((l : ℕ) * (k : ℕ)))⁻¹ := by
+      rw [← Complex.inv_eq_conj]
+      rw [norm_pow]
+      have : ‖z‖ = 1 := by
+        rw [hzdef, Complex.norm_exp]
+        norm_num
+      rw [this, one_pow]
+    rw [map_mul, hcz, map_inv₀, Complex.conj_ofReal, hw]
+    rw [mul_pow, pow_mul, pow_mul, ← inv_pow]
+    rw [← hcsq]
+    ring
+  rw [Finset.sum_congr rfl (fun k _ => hterm k), ← Finset.mul_sum]
+  rw [Fin.sum_univ_eq_sum_range (fun k => w ^ k) N]
+  by_cases hjl : j = l
+  · subst hjl
+    have hw1 : w = 1 := by
+      rw [hw]
+      field_simp
+    rw [hw1, if_pos rfl]
+    simp only [one_pow, Finset.sum_const, Finset.card_range, nsmul_eq_mul, mul_one]
+    exact inv_mul_cancel₀ (Nat.cast_ne_zero.mpr hN)
+  · have hwne : w ≠ 1 := by
+      intro h
+      apply hjl
+      have h' : z ^ (j : ℕ) * (z ^ (l : ℕ))⁻¹ = 1 := h
+      have hzl : (z ^ (l : ℕ)) ≠ 0 := pow_ne_zero _ hz0
+      field_simp at h'
+      exact Fin.ext (hz.pow_inj j.isLt l.isLt h')
+    have hwN : w ^ N = 1 := by
+      have h1 : (z ^ (j : ℕ)) ^ N = 1 := by
+        rw [← pow_mul, mul_comm, pow_mul, hzN, one_pow]
+      have h2 : (z ^ (l : ℕ)) ^ N = 1 := by
+        rw [← pow_mul, mul_comm, pow_mul, hzN, one_pow]
+      rw [hw, mul_pow, inv_pow, h1, h2]
+      simp
+    rw [geom_sum_eq hwne, hwN]
+    simp [hjl]
 
-/-- The 7-qubit QFT matrix (of size `2^7 = 128`) is unitary. -/
-theorem qft_unitary_7 : qft 7 ∈ Matrix.unitaryGroup (Fin (2 ^ 7)) ℂ :=
-  qftMatrix_unitary (2 ^ 7) (by norm_num)
+/-- The DFT matrix is unitary. -/
+theorem qftMatrix_unitary (N : ℕ) (hN : N ≠ 0) : qftMatrix N ∈ Matrix.unitaryGroup (Fin N) ℂ :=
+  Matrix.mem_unitaryGroup_iff.mpr (qftMatrix_mul_conjTranspose N hN)
 
-/-- Explicit form of unitarity of the 7-qubit QFT: `F * Fᴴ = 1`. -/
-theorem qft_mul_conjTranspose_7 : qft 7 * (qft 7).conjTranspose = 1 :=
-  (Matrix.mem_unitaryGroup_iff).mp qft_unitary_7
+/-- **The 8-qubit quantum Fourier transform matrix is unitary.** -/
+theorem qft_unitary_8 : qftQubits 8 ∈ Matrix.unitaryGroup (Fin (2 ^ 8)) ℂ :=
+  qftMatrix_unitary (2 ^ 8) (by norm_num)
 
-/-- Explicit form of unitarity of the 7-qubit QFT: `Fᴴ * F = 1`. -/
-theorem conjTranspose_mul_qft_7 : (qft 7).conjTranspose * qft 7 = 1 :=
-  (Matrix.mem_unitaryGroup_iff').mp qft_unitary_7
+/-- The `8 × 8` quantum Fourier transform matrix (3 qubits) is unitary. -/
+theorem qft_unitary_dim8 : qftMatrix 8 ∈ Matrix.unitaryGroup (Fin 8) ℂ :=
+  qftMatrix_unitary 8 (by norm_num)
 
 end QC
-
 import Mathlib
 
 open scoped BigOperators
