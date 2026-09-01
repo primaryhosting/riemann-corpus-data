@@ -1,4 +1,4 @@
-/-
+/-!
 # Halls Marriage
 Category: Pure Mathematics
 Target: Math.halls_marriage
@@ -8,45 +8,40 @@ Provenance: Aristotle theorem prover (Harmonic)
 
 import Mathlib
 
-open Finset
+set_option autoImplicit false
 
 namespace Math
 
-variable {α β : Type*}
+variable {V W : Type*}
 
-/-- The neighbourhood of a left vertex `a` in the bipartite graph with adjacency
-relation `Adj : α → β → Prop`: the finset of right vertices adjacent to `a`. -/
-def neighbors [Fintype β] [DecidableEq β] (Adj : α → β → Prop)
-    [∀ a, DecidablePred (Adj a)] (a : α) : Finset β :=
-  univ.filter (fun b => Adj a b)
+/-- The neighbourhood, inside the second vertex class `W`, of a finite set `A` of vertices of the
+first vertex class `V`, in the bipartite graph whose adjacency relation is `adj`. -/
+def hallNeighbors [Fintype W] (adj : V → W → Prop) [DecidableRel adj] (A : Finset V) : Finset W :=
+  {w | ∃ v ∈ A, adj v w}
 
 @[simp]
-theorem mem_neighbors [Fintype β] [DecidableEq β] (Adj : α → β → Prop)
-    [∀ a, DecidablePred (Adj a)] {a : α} {b : β} :
-    b ∈ neighbors Adj a ↔ Adj a b := by
-  simp [neighbors]
+theorem mem_hallNeighbors [Fintype W] (adj : V → W → Prop) [DecidableRel adj] {A : Finset V}
+    {w : W} : w ∈ hallNeighbors adj A ↔ ∃ v ∈ A, adj v w := by
+  simp [hallNeighbors]
 
-/-- **Hall's marriage theorem**. For a bipartite graph with left vertex set `α`, right
-vertex set `β` and adjacency relation `Adj`, there is a matching saturating `α`
-(an injective choice `f` of a neighbour for each left vertex) if and only if Hall's
-condition holds: every finite set `s` of left vertices has at least `#s` neighbours. -/
-theorem halls_marriage [Fintype α] [Fintype β] [DecidableEq β] (Adj : α → β → Prop)
-    [∀ a, DecidablePred (Adj a)] :
-    (∃ f : α → β, Function.Injective f ∧ ∀ a, Adj a (f a)) ↔
-      ∀ s : Finset α, #s ≤ #(s.biUnion (neighbors Adj)) := by
-  have h := (Finset.all_card_le_biUnion_card_iff_exists_injective (neighbors Adj)).symm
-  simpa using h
+/-- **Hall's marriage theorem**, matching form: for a bipartite graph with vertex classes `V` and
+`W` (`W` finite) and adjacency relation `adj`, there is a matching saturating `V` — that is, an
+injective map `f : V → W` with every vertex `v` adjacent to `f v` — if and only if Hall's
+condition holds: every finite set `A` of vertices of `V` has at least `#A` neighbours. -/
+theorem halls_marriage_saturating [Fintype W] (adj : V → W → Prop) [DecidableRel adj] :
+    (∃ f : V → W, Function.Injective f ∧ ∀ v : V, adj v (f v)) ↔
+      ∀ A : Finset V, A.card ≤ (hallNeighbors adj A).card :=
+  (Fintype.all_card_le_filter_rel_iff_exists_injective adj).symm
 
-/-- **Hall's marriage theorem, perfect matching form**. If the two sides of a bipartite
-graph have the same (finite) cardinality, then the graph admits a perfect matching -- a
-bijection `f : α → β` pairing each left vertex with an adjacent right vertex -- if and only
-if Hall's condition holds. -/
-theorem halls_marriage_perfect [Fintype α] [Fintype β] [DecidableEq β]
-    (hcard : Fintype.card α = Fintype.card β) (Adj : α → β → Prop)
-    [∀ a, DecidablePred (Adj a)] :
-    (∃ f : α → β, Function.Bijective f ∧ ∀ a, Adj a (f a)) ↔
-      ∀ s : Finset α, #s ≤ #(s.biUnion (neighbors Adj)) := by
-  rw [← halls_marriage Adj]
+/-- **Hall's marriage theorem**: a bipartite graph with vertex classes `V` and `W` of the same
+(finite) cardinality and adjacency relation `adj` has a perfect matching — a bijection
+`f : V → W` with each vertex `v` adjacent to `f v` — if and only if Hall's condition holds:
+for every set `A` of vertices of `V`, the set of neighbours of `A` has at least `#A` elements. -/
+theorem halls_marriage [Fintype V] [Fintype W] (adj : V → W → Prop) [DecidableRel adj]
+    (hcard : Fintype.card V = Fintype.card W) :
+    (∃ f : V → W, Function.Bijective f ∧ ∀ v : V, adj v (f v)) ↔
+      ∀ A : Finset V, A.card ≤ (hallNeighbors adj A).card := by
+  rw [← halls_marriage_saturating adj]
   constructor
   · rintro ⟨f, hf, hadj⟩
     exact ⟨f, hf.injective, hadj⟩
