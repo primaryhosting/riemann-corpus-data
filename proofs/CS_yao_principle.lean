@@ -1,11 +1,3 @@
-/-
-# Yao Principle
-Category: Frontier Cs
-Target: CS.yao_principle
-Verification: pending
-Provenance: Aristotle theorem prover (Harmonic)
--/
-
 import Mathlib
 
 /-!
@@ -14,11 +6,28 @@ Category: Frontier Cs
 Target: CS.yao_principle
 Verification: pending
 Provenance: Aristotle theorem prover (Harmonic)
+
+(Lean requires `import` to be the very first command of a file, so this header
+module docstring appears immediately after it.)
+
+## Contents
+
+Yao's minimax principle: for a finite set `A` of deterministic algorithms, a finite set `I` of
+inputs, and a cost function `c : A → I → ℝ`, the optimal randomized complexity
+(minimum over distributions `p` on `A` of the worst case over inputs of the expected cost)
+equals the optimal distributional complexity (maximum over distributions `q` on `I` of the best
+over deterministic algorithms of the expected cost).
+
+The easy direction, `CS.distCost_le_randCost`, is the inequality that is actually used to prove
+randomized lower bounds.  The converse uses the minimax theorem for finite two-player zero-sum
+games, which is proved here from the geometric Hahn–Banach separation theorem
+(`geometric_hahn_banach_open`) together with compactness of the standard simplex.
 -/
 
 open scoped BigOperators
 open scoped Real
 open scoped Nat
+open scoped Classical
 open scoped Pointwise
 
 set_option maxHeartbeats 8000000
@@ -29,226 +38,211 @@ set_option synthInstance.maxSize 128
 set_option relaxedAutoImplicit false
 set_option autoImplicit false
 
+set_option pp.fullNames true
+set_option pp.structureInstances true
+set_option pp.coercions.types true
+set_option pp.funBinderTypes true
+set_option pp.letVarTypes true
+set_option pp.piBinderTypes true
+
 set_option grind.warning false
 
 namespace CS
 
-variable {ι κ : Type*} [Fintype ι] [Fintype κ]
+variable {A I : Type*} [Fintype A] [Fintype I] [Nonempty A] [Nonempty I]
 
 /-- The expected cost of the randomized algorithm given by the distribution `p` over
-deterministic algorithms, on the (deterministic) input `j`. -/
-def algCost (A : ι → κ → ℝ) (p : ι → ℝ) (j : κ) : ℝ := ∑ i, p i * A i j
+deterministic algorithms, run on the input `i`. -/
+def randCostOn (c : A → I → ℝ) (p : A → ℝ) (i : I) : ℝ := ∑ a, p a * c a i
 
-/-- The expected cost of the deterministic algorithm `i` on a random input drawn from the
-distribution `q` over inputs. -/
-def inpCost (A : ι → κ → ℝ) (q : κ → ℝ) (i : ι) : ℝ := ∑ j, A i j * q j
+/-- The expected cost of the deterministic algorithm `a` on a random input drawn from `q`. -/
+def distCostOn (c : A → I → ℝ) (q : I → ℝ) (a : A) : ℝ := ∑ i, q i * c a i
 
-/-- The worst-case expected cost of the randomized algorithm `p`: the *randomized cost*. -/
-noncomputable def randCost [Nonempty κ] (A : ι → κ → ℝ) (p : ι → ℝ) : ℝ :=
-  Finset.univ.sup' Finset.univ_nonempty (algCost A p)
+/-- The randomized complexity of the randomized algorithm `p`: the worst case over inputs of
+the expected cost. -/
+noncomputable def randCost (c : A → I → ℝ) (p : A → ℝ) : ℝ :=
+  Finset.univ.sup' Finset.univ_nonempty (randCostOn c p)
 
-/-- The best expected cost achievable by a deterministic algorithm against the input
-distribution `q`: the *distributional cost*. -/
-noncomputable def distCost [Nonempty ι] (A : ι → κ → ℝ) (q : κ → ℝ) : ℝ :=
-  Finset.univ.inf' Finset.univ_nonempty (inpCost A q)
+/-- The distributional complexity of the input distribution `q`: the least expected cost of a
+deterministic algorithm against `q`. -/
+noncomputable def distCost (c : A → I → ℝ) (q : I → ℝ) : ℝ :=
+  Finset.univ.inf' Finset.univ_nonempty (distCostOn c q)
 
-/-- A convex combination is at most the maximum. -/
-lemma sum_smul_le_sup' [Nonempty ι] {p x : ι → ℝ} (hp : p ∈ stdSimplex ℝ ι) :
-    ∑ i, p i * x i ≤ Finset.univ.sup' Finset.univ_nonempty x := by
-  obtain ⟨h0, h1⟩ := hp
-  calc ∑ i, p i * x i ≤ ∑ i, p i * Finset.univ.sup' Finset.univ_nonempty x :=
-        Finset.sum_le_sum fun i _ =>
-          mul_le_mul_of_nonneg_left (Finset.le_sup' x (Finset.mem_univ i)) (h0 i)
-    _ = 1 * Finset.univ.sup' Finset.univ_nonempty x := by rw [← Finset.sum_mul, h1]
-    _ = _ := one_mul _
+omit [Nonempty A] [Fintype I] [Nonempty I] in
+lemma sum_le_of_mem_stdSimplex {p : A → ℝ} (hp : p ∈ stdSimplex ℝ A) (g : A → ℝ) (M : ℝ)
+    (h : ∀ a, g a ≤ M) : ∑ a, p a * g a ≤ M := by
+  calc ∑ a, p a * g a ≤ ∑ a, p a * M :=
+        Finset.sum_le_sum fun a _ => mul_le_mul_of_nonneg_left (h a) (hp.1 a)
+    _ = M := by rw [← Finset.sum_mul, hp.2, one_mul]
 
-/-- The minimum is at most a convex combination. -/
-lemma inf'_le_sum_smul [Nonempty ι] {p x : ι → ℝ} (hp : p ∈ stdSimplex ℝ ι) :
-    Finset.univ.inf' Finset.univ_nonempty x ≤ ∑ i, p i * x i := by
-  obtain ⟨h0, h1⟩ := hp
-  calc Finset.univ.inf' Finset.univ_nonempty x
-      = 1 * Finset.univ.inf' Finset.univ_nonempty x := (one_mul _).symm
-    _ = ∑ i, p i * Finset.univ.inf' Finset.univ_nonempty x := by rw [← Finset.sum_mul, h1]
-    _ ≤ ∑ i, p i * x i :=
-        Finset.sum_le_sum fun i _ =>
-          mul_le_mul_of_nonneg_left (Finset.inf'_le x (Finset.mem_univ i)) (h0 i)
+omit [Nonempty A] [Fintype I] [Nonempty I] in
+lemma le_sum_of_mem_stdSimplex {p : A → ℝ} (hp : p ∈ stdSimplex ℝ A) (g : A → ℝ) (m : ℝ)
+    (h : ∀ a, m ≤ g a) : m ≤ ∑ a, p a * g a := by
+  calc m = ∑ a, p a * m := by rw [← Finset.sum_mul, hp.2, one_mul]
+    _ ≤ ∑ a, p a * g a :=
+        Finset.sum_le_sum fun a _ => mul_le_mul_of_nonneg_left (h a) (hp.1 a)
 
-/-- Both ways of computing the expected cost of `p` against `q` agree. -/
-lemma sum_inpCost_eq_sum_algCost (A : ι → κ → ℝ) (p : ι → ℝ) (q : κ → ℝ) :
-    ∑ i, p i * inpCost A q i = ∑ j, algCost A p j * q j := by
-  simp only [inpCost, algCost, Finset.mul_sum, Finset.sum_mul, mul_assoc]
-  exact Finset.sum_comm
+variable (c : A → I → ℝ)
 
-/-- The easy direction of Yao's principle: any distributional cost is a lower bound for any
-randomized cost. -/
-lemma distCost_le_randCost [Nonempty ι] [Nonempty κ] (A : ι → κ → ℝ) {p : ι → ℝ} {q : κ → ℝ}
-    (hp : p ∈ stdSimplex ℝ ι) (hq : q ∈ stdSimplex ℝ κ) :
-    distCost A q ≤ randCost A p := by
-  calc distCost A q ≤ ∑ i, p i * inpCost A q i := inf'_le_sum_smul hp
-    _ = ∑ j, algCost A p j * q j := sum_inpCost_eq_sum_algCost A p q
-    _ = ∑ j, q j * algCost A p j := by
-        exact Finset.sum_congr rfl fun j _ => mul_comm _ _
-    _ ≤ randCost A p := sum_smul_le_sup' hq
-
-/-- **Ville's theorem of the alternative**, the key intermediate lemma.  If the column player
-cannot make every entry of `A q` positive, then the row player has a mixed strategy `p` making
-every entry of `pᵀ A` nonpositive. -/
-theorem ville [Nonempty ι] [Nonempty κ] (A : ι → κ → ℝ)
-    (h : ∀ q ∈ stdSimplex ℝ κ, ∃ i, inpCost A q i ≤ 0) :
-    ∃ p ∈ stdSimplex ℝ ι, ∀ j, algCost A p j ≤ 0 := by
-  classical
-  -- The convex set of expected-cost vectors achievable by the column player, and the open
-  -- positive orthant.
-  set K : Set (ι → ℝ) := (fun q => inpCost A q) '' stdSimplex ℝ κ with hK
-  set P : Set (ι → ℝ) := {x | ∀ i, 0 < x i} with hP
-  have hPpi : P = Set.pi Set.univ fun _ : ι => Set.Ioi (0 : ℝ) := by ext x; simp [hP]
-  have hPopen : IsOpen P := by
-    rw [hPpi]; exact isOpen_set_pi Set.finite_univ fun i _ => isOpen_Ioi
-  have hPconv : Convex ℝ P := by rw [hPpi]; exact convex_pi fun i _ => convex_Ioi 0
-  have hKconv : Convex ℝ K := by
-    rintro x ⟨q, hq, rfl⟩ y ⟨q', hq', rfl⟩ a b ha hb hab
-    refine ⟨a • q + b • q', convex_stdSimplex ℝ κ hq hq' ha hb hab, ?_⟩
-    funext i
-    simp only [inpCost, Pi.add_apply, Pi.smul_apply, smul_eq_mul, Finset.mul_sum,
-      ← Finset.sum_add_distrib]
-    exact Finset.sum_congr rfl fun j _ => by ring
-  have hdisj : Disjoint P K := by
-    rw [Set.disjoint_left]
-    rintro x hxP ⟨q, hq, rfl⟩
-    obtain ⟨i, hi⟩ := h q hq
-    exact absurd (hxP i) (not_lt.mpr hi)
-  -- Separate them by a continuous linear functional.
-  obtain ⟨f, u, hfP, hfK⟩ := geometric_hahn_banach_open hPconv hPopen hKconv hdisj
-  set c : ι → ℝ := fun i => f (Pi.single i (1 : ℝ)) with hc
-  have hf : ∀ x : ι → ℝ, f x = ∑ i, x i * c i := by
-    intro x
-    have hx : x = ∑ i, x i • (Pi.single i (1 : ℝ) : ι → ℝ) := by
-      funext k; simp [Finset.sum_apply, Pi.single_apply]
-    conv_lhs => rw [hx]
-    rw [map_sum]
-    exact Finset.sum_congr rfl fun i _ => by rw [map_smul]; simp [hc]
-  have hfP' : ∀ x : ι → ℝ, (∀ i, 0 < x i) → ∑ i, x i * c i < u := by
-    intro x hx; rw [← hf]; exact hfP x hx
-  have hfK' : ∀ q ∈ stdSimplex ℝ κ, u ≤ ∑ i, inpCost A q i * c i := by
-    intro q hq; rw [← hf]; exact hfK _ ⟨q, hq, rfl⟩
-  set S : ℝ := ∑ i, c i with hS
-  -- Step 1: all coefficients of the separating functional are nonpositive.
-  have hcnp : ∀ i, c i ≤ 0 := by
-    by_contra hcon
-    push_neg at hcon
-    obtain ⟨i₀, hi₀⟩ := hcon
-    set t : ℝ := max 1 ((u - S + 1) / c i₀) with ht
-    have ht1 : (1 : ℝ) ≤ t := le_max_left _ _
-    have ht2 : (u - S + 1) / c i₀ ≤ t := le_max_right _ _
-    have ht3 : u - S + 1 ≤ t * c i₀ := by rw [div_le_iff₀ hi₀] at ht2; linarith
-    have hx : ∀ i, 0 < (fun i => 1 + if i = i₀ then t else 0) i := by
-      intro i
-      by_cases hi : i = i₀ <;> simp [hi] <;> linarith
-    have hlt := hfP' _ hx
-    have hsum : ∑ i, (1 + if i = i₀ then t else 0) * c i = S + t * c i₀ := by
-      simp only [add_mul, Finset.sum_add_distrib, one_mul, ite_mul, zero_mul,
-        Finset.sum_ite_eq' Finset.univ i₀]
-      simp [hS]
-    rw [hsum] at hlt
-    linarith
-  have hSnp : S ≤ 0 := Finset.sum_nonpos fun i _ => hcnp i
-  -- Step 2: the separating constant is nonnegative.
-  have hu : 0 ≤ u := by
-    rcases eq_or_lt_of_le hSnp with hS0 | hSneg
-    · have hlt := hfP' (fun _ => 1) fun i => zero_lt_one
-      simp only [one_mul] at hlt
-      rw [← hS] at hlt
-      linarith
-    · by_contra hu
-      push_neg at hu
-      set e : ℝ := u / (2 * S) with he
-      have hepos : 0 < e := div_pos_of_neg_of_neg hu (by linarith)
-      have hlt := hfP' (fun _ => e) fun i => hepos
-      rw [show ∑ i : ι, e * c i = e * S by rw [← Finset.mul_sum], he, div_mul_eq_mul_div,
-        mul_comm, show S * u / (2 * S) = u / 2 by field_simp] at hlt
-      linarith
-  -- Step 3: some coefficient is strictly negative.
-  have hneg : ∃ i, c i < 0 := by
-    by_contra hcon
-    push_neg at hcon
-    have hc0 : ∀ i, c i = 0 := fun i => le_antisymm (hcnp i) (hcon i)
-    have h1 : (0 : ℝ) < u := by
-      have := hfP' (fun _ => 1) fun i => zero_lt_one
-      simpa [hc0] using this
-    obtain ⟨q₀, hq₀⟩ : (stdSimplex ℝ κ).Nonempty := Set.Nonempty.of_subtype
-    have h2 := hfK' q₀ hq₀
-    simp only [hc0, mul_zero, Finset.sum_const_zero] at h2
-    linarith
-  -- Step 4: normalize `-c` into a mixed strategy for the row player.
-  obtain ⟨i₁, hi₁⟩ := hneg
-  set S' : ℝ := ∑ i, -c i with hS'
-  have hS'pos : 0 < S' :=
-    Finset.sum_pos' (fun i _ => neg_nonneg.mpr (hcnp i)) ⟨i₁, Finset.mem_univ _, by linarith⟩
-  refine ⟨fun i => (-c i) / S', ⟨fun i => div_nonneg (neg_nonneg.mpr (hcnp i)) hS'pos.le, ?_⟩, ?_⟩
-  · rw [← Finset.sum_div, ← hS', div_self hS'pos.ne']
-  · intro j
-    have hq : (Pi.single j (1 : ℝ) : κ → ℝ) ∈ stdSimplex ℝ κ := by
-      refine ⟨fun k => ?_, by simp⟩
-      rw [Pi.single_apply]; split <;> norm_num
-    have hmain := hfK' _ hq
-    have heval : ∀ i, inpCost A (Pi.single j (1 : ℝ) : κ → ℝ) i = A i j := by
-      intro i; simp [inpCost, Pi.single_apply]
-    simp only [heval] at hmain
-    have hrw : algCost A (fun i => (-c i) / S') j = (-(∑ i, A i j * c i)) / S' := by
-      simp only [algCost]
-      rw [eq_div_iff hS'pos.ne', Finset.sum_mul, ← Finset.sum_neg_distrib]
-      exact Finset.sum_congr rfl fun i _ => by field_simp
-    rw [hrw]
-    exact div_nonpos_of_nonpos_of_nonneg (by linarith) hS'pos.le
-
-/-- **Yao's minimax principle**: for a finite cost matrix `A` indexed by deterministic
-algorithms `ι` and inputs `κ`, the least worst-case expected cost of a randomized algorithm
-equals the greatest, over input distributions, expected cost of the best deterministic
-algorithm. -/
-theorem yao_principle [Nonempty ι] [Nonempty κ] (A : ι → κ → ℝ) :
-    sInf (randCost A '' stdSimplex ℝ ι) = sSup (distCost A '' stdSimplex ℝ κ) := by
-  obtain ⟨p₀, hp₀⟩ : (stdSimplex ℝ ι).Nonempty := Set.Nonempty.of_subtype
-  obtain ⟨q₀, hq₀⟩ : (stdSimplex ℝ κ).Nonempty := Set.Nonempty.of_subtype
-  have hLne : (randCost A '' stdSimplex ℝ ι).Nonempty := ⟨_, ⟨p₀, hp₀, rfl⟩⟩
-  have hRne : (distCost A '' stdSimplex ℝ κ).Nonempty := ⟨_, ⟨q₀, hq₀, rfl⟩⟩
-  have hbb : BddBelow (randCost A '' stdSimplex ℝ ι) :=
-    ⟨distCost A q₀, by rintro x ⟨p, hp, rfl⟩; exact distCost_le_randCost A hp hq₀⟩
-  have hba : BddAbove (distCost A '' stdSimplex ℝ κ) :=
-    ⟨randCost A p₀, by rintro x ⟨q, hq, rfl⟩; exact distCost_le_randCost A hp₀ hq⟩
-  have hRL : sSup (distCost A '' stdSimplex ℝ κ) ≤ sInf (randCost A '' stdSimplex ℝ ι) := by
-    refine csSup_le hRne ?_
-    rintro x ⟨q, hq, rfl⟩
-    refine le_csInf hLne ?_
-    rintro y ⟨p, hp, rfl⟩
-    exact distCost_le_randCost A hp hq
-  refine le_antisymm ?_ hRL
-  by_contra hlt
-  push_neg at hlt
-  set R := sSup (distCost A '' stdSimplex ℝ κ) with hR
-  set L := sInf (randCost A '' stdSimplex ℝ ι) with hL
-  set c : ℝ := (R + L) / 2 with hc
-  have hRc : R < c := by simp only [hc]; linarith
-  have hcL : c < L := by simp only [hc]; linarith
-  have key : ∀ q ∈ stdSimplex ℝ κ, ∃ i, inpCost (fun i j => A i j - c) q i ≤ 0 := by
-    intro q hq
-    obtain ⟨i, -, hi⟩ := Finset.exists_mem_eq_inf' (Finset.univ_nonempty (α := ι)) (inpCost A q)
-    refine ⟨i, ?_⟩
-    have hdq : distCost A q ≤ R := le_csSup hba ⟨q, hq, rfl⟩
-    have h1 : inpCost A q i ≤ R := by rw [← hi]; exact hdq
-    have h2 : inpCost (fun i j => A i j - c) q i = inpCost A q i - c := by
-      simp only [inpCost, sub_mul, Finset.sum_sub_distrib, ← Finset.mul_sum, hq.2, mul_one]
-    rw [h2]
-    linarith
-  obtain ⟨p, hp, hple⟩ := ville _ key
-  have hpc : randCost A p ≤ c := by
-    refine Finset.sup'_le _ _ fun j _ => ?_
-    have := hple j
-    have h2 : algCost (fun i j => A i j - c) p j = algCost A p j - c := by
-      simp only [algCost, mul_sub, Finset.sum_sub_distrib, ← Finset.sum_mul, hp.2, one_mul]
-    rw [h2] at this
-    linarith
-  have hLp : L ≤ randCost A p := csInf_le hbb ⟨p, hp, rfl⟩
+/-- The easy direction of Yao's principle: the distributional complexity of any input
+distribution is a lower bound for the randomized complexity of any randomized algorithm. -/
+theorem distCost_le_randCost {p : A → ℝ} (hp : p ∈ stdSimplex ℝ A)
+    {q : I → ℝ} (hq : q ∈ stdSimplex ℝ I) : distCost c q ≤ randCost c p := by
+  have h1 : distCost c q ≤ ∑ a, p a * distCostOn c q a :=
+    le_sum_of_mem_stdSimplex hp _ _ fun a => Finset.inf'_le _ (Finset.mem_univ a)
+  have h2 : ∑ a, p a * distCostOn c q a = ∑ i, q i * randCostOn c p i := by
+    simp only [distCostOn, randCostOn, Finset.mul_sum]
+    rw [Finset.sum_comm]
+    exact Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun a _ => by ring
+  have h3 : ∑ i, q i * randCostOn c p i ≤ randCost c p :=
+    sum_le_of_mem_stdSimplex hq _ _ fun i => Finset.le_sup' _ (Finset.mem_univ i)
   linarith
+
+omit [Nonempty A] in
+lemma continuous_randCost : Continuous (randCost c) := by
+  apply Continuous.finset_sup'_apply Finset.univ_nonempty
+  intro i _
+  unfold randCostOn
+  exact continuous_finset_sum _ fun a _ => (continuous_apply a).mul continuous_const
+
+/-- An optimal randomized algorithm exists, by compactness of the simplex. -/
+lemma exists_isMinOn_randCost :
+    ∃ p ∈ stdSimplex ℝ A, ∀ p' ∈ stdSimplex ℝ A, randCost c p ≤ randCost c p' := by
+  obtain ⟨p, hp, hmin⟩ := (isCompact_stdSimplex A).exists_isMinOn
+    ⟨Pi.single (Classical.arbitrary A) 1, single_mem_stdSimplex ℝ _⟩
+    (continuous_randCost c).continuousOn
+  exact ⟨p, hp, fun p' hp' => hmin hp'⟩
+
+omit [Fintype I] [Nonempty A] [Nonempty I] in
+lemma isLinearMap_randCostOn : IsLinearMap ℝ (fun p : A → ℝ => randCostOn c p) := by
+  constructor
+  · intro p p'; funext i; simp [randCostOn, add_mul, Finset.sum_add_distrib]
+  · intro r p; funext i; simp [randCostOn, Finset.mul_sum, mul_assoc]
+
+omit [Fintype I] [Nonempty A] [Nonempty I] in
+lemma randCostOn_single (a : A) : randCostOn c (Pi.single a 1) = fun i => c a i := by
+  funext i; simp [randCostOn, Pi.single_apply, Finset.sum_ite_eq']
+
+/-- The minimax step: if no randomized algorithm has cost below `v`, then there is an input
+distribution against which every deterministic algorithm costs at least `v`. -/
+lemma exists_hard_distribution (v : ℝ)
+    (hv : ∀ p ∈ stdSimplex ℝ A, v ≤ randCost c p) :
+    ∃ q ∈ stdSimplex ℝ I, v ≤ distCost c q := by
+  -- the compact convex set of achievable cost vectors, and the open convex "cheap" orthant
+  set K : Set (I → ℝ) := (fun p : A → ℝ => randCostOn c p) '' (stdSimplex ℝ A) with hKdef
+  set C : Set (I → ℝ) := Set.pi Set.univ (fun _ : I => Set.Iio v) with hCdef
+  have hCopen : IsOpen C := isOpen_set_pi Set.finite_univ fun _ _ => isOpen_Iio
+  have hCconv : Convex ℝ C := convex_pi fun _ _ => convex_Iio v
+  have hKconv : Convex ℝ K := (convex_stdSimplex ℝ A).is_linear_image (isLinearMap_randCostOn c)
+  have hdisj : Disjoint C K := by
+    rw [Set.disjoint_left]
+    rintro y hy ⟨p, hp, rfl⟩
+    have h1 : v ≤ Finset.univ.sup' Finset.univ_nonempty (randCostOn c p) := hv p hp
+    have h2 : Finset.univ.sup' Finset.univ_nonempty (randCostOn c p) < v := by
+      rw [Finset.sup'_lt_iff]
+      exact fun i _ => hy i (Set.mem_univ i)
+    linarith
+  obtain ⟨f, u, hfC, hfK⟩ := geometric_hahn_banach_open hCconv hCopen hKconv hdisj
+  -- coordinates of the separating functional
+  set q : I → ℝ := fun i => f (Pi.single i 1) with hqdef
+  have hf : ∀ y : I → ℝ, f y = ∑ i, y i * q i := by
+    intro y
+    conv_lhs => rw [← Finset.univ_sum_single y]
+    rw [map_sum]
+    refine Finset.sum_congr rfl fun i _ => ?_
+    have hsi : (Pi.single i (y i) : I → ℝ) = y i • (Pi.single i 1 : I → ℝ) := by
+      funext j; by_cases h : j = i <;> simp [Pi.single_apply, h]
+    rw [hsi, map_smul]
+    simp [hqdef]
+  have hK0 : ∀ a : A, (fun i => c a i) ∈ K :=
+    fun a => ⟨Pi.single a 1, single_mem_stdSimplex ℝ a, randCostOn_single c a⟩
+  have hlow : ∀ w : ℝ, w < v → f (fun _ : I => w) < u :=
+    fun w hw => hfC _ fun i _ => hw
+  have hhigh : ∀ a : A, u ≤ f (fun i => c a i) := fun a => hfK _ (hK0 a)
+  -- the separating functional has nonnegative coefficients
+  have hqnn : ∀ i, 0 ≤ q i := by
+    intro i
+    by_contra hneg
+    push_neg at hneg
+    have hS : f (fun _ : I => v - 1) < u := hlow (v - 1) (by linarith)
+    set S := f (fun _ : I => v - 1) with hSdef
+    set d : ℝ := -q i with hddef
+    have hd : 0 < d := by rw [hddef]; linarith
+    set t : ℝ := (u - S) / d + 1 with htdef
+    have ht : 0 < t := by
+      have : 0 < (u - S) / d := div_pos (by linarith) hd
+      rw [htdef]; linarith
+    have hy : ((fun _ : I => v - 1) - t • (Pi.single i 1 : I → ℝ)) ∈ C := by
+      intro j _
+      by_cases h : j = i
+      · simp [h]; linarith
+      · simp [h]
+    have hlt := hfC _ hy
+    rw [map_sub, map_smul] at hlt
+    have hqi : f (Pi.single i 1 : I → ℝ) = q i := rfl
+    rw [hqi] at hlt
+    have htd : t * d = (u - S) + d := by rw [htdef]; field_simp
+    simp only [smul_eq_mul] at hlt
+    have hrw : S - t * q i = S + t * d := by rw [hddef]; ring
+    linarith [hlt, htd]
+  -- normalize the coefficients to an input distribution
+  have hsnn : 0 ≤ ∑ i, q i := Finset.sum_nonneg fun i _ => hqnn i
+  have hs : 0 < ∑ i, q i := by
+    rcases eq_or_lt_of_le hsnn with heq | hlt
+    · exfalso
+      have hz : ∀ i, q i = 0 := fun i =>
+        (Finset.sum_eq_zero_iff_of_nonneg fun j _ => hqnn j).mp heq.symm i (Finset.mem_univ i)
+      have hf0 : ∀ y : I → ℝ, f y = 0 := fun y => by rw [hf y]; simp [hz]
+      have h1 : (0:ℝ) < u := by have := hlow (v - 1) (by linarith); rwa [hf0] at this
+      have h2 : u ≤ 0 := by have := hhigh (Classical.arbitrary A); rwa [hf0] at this
+      linarith
+    · exact hlt
+  set s := ∑ i, q i with hsdef
+  have hvu : v * s ≤ u := by
+    by_contra hcon
+    push_neg at hcon
+    set e := (v * s - u) / s with hedef
+    have he : 0 < e := div_pos (by linarith) hs
+    have h1 := hlow (v - e) (by linarith)
+    rw [hf] at h1
+    have h2 : ∑ i, (v - e) * q i = (v - e) * s := by rw [hsdef, Finset.mul_sum]
+    rw [h2] at h1
+    have h3 : e * s = v * s - u := by rw [hedef]; field_simp
+    nlinarith [h1, h3]
+  refine ⟨fun i => q i / s, ⟨fun i => div_nonneg (hqnn i) hs.le, ?_⟩, ?_⟩
+  · rw [← Finset.sum_div, ← hsdef]; field_simp
+  · apply Finset.le_inf'
+    intro a _
+    have h1 : u ≤ ∑ i, c a i * q i := by have := hhigh a; rwa [hf] at this
+    have h2 : distCostOn c (fun i => q i / s) a = (∑ i, c a i * q i) / s := by
+      rw [distCostOn, Finset.sum_div]
+      exact Finset.sum_congr rfl fun i _ => by ring
+    rw [h2, le_div_iff₀ hs]
+    linarith
+
+/-- The finite zero-sum game determined by `c` has a value: some real number `v` is
+simultaneously the least randomized complexity and the greatest distributional complexity. -/
+theorem exists_game_value :
+    ∃ v : ℝ, IsLeast (randCost c '' stdSimplex ℝ A) v ∧
+      IsGreatest (distCost c '' stdSimplex ℝ I) v := by
+  obtain ⟨p₀, hp₀, hmin⟩ := exists_isMinOn_randCost c
+  obtain ⟨q₀, hq₀, hge⟩ := exists_hard_distribution c (randCost c p₀) hmin
+  refine ⟨randCost c p₀, ⟨⟨p₀, hp₀, rfl⟩, ?_⟩, ⟨⟨q₀, hq₀, ?_⟩, ?_⟩⟩
+  · rintro w ⟨p, hp, rfl⟩
+    exact hmin p hp
+  · exact le_antisymm (distCost_le_randCost c hp₀ hq₀) hge
+  · rintro w ⟨q, hq, rfl⟩
+    exact distCost_le_randCost c hp₀ hq
+
+/-- **Yao's minimax principle**.  For a finite set `A` of deterministic algorithms, a finite set
+`I` of inputs and a cost function `c : A → I → ℝ`, the optimal randomized complexity — the
+infimum over distributions `p` on algorithms of the worst-case expected cost — equals the optimal
+distributional complexity — the supremum over distributions `q` on inputs of the least expected
+cost of a deterministic algorithm.  Both are attained (see `CS.exists_game_value`). -/
+theorem yao_principle (c : A → I → ℝ) :
+    sInf (randCost c '' stdSimplex ℝ A) = sSup (distCost c '' stdSimplex ℝ I) := by
+  obtain ⟨v, hleast, hgreatest⟩ := exists_game_value c
+  rw [hleast.csInf_eq, hgreatest.csSup_eq]
 
 end CS
 

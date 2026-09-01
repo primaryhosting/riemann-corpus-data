@@ -8,20 +8,11 @@ Provenance: Aristotle theorem prover (Harmonic)
 
 import Mathlib
 
-/-!
-# Wigner Eckart
-Category: Frontier Phys
-Target: Phys.wigner_eckart
-Verification: pending
-Provenance: Aristotle theorem prover (Harmonic)
--/
-
 open scoped BigOperators
 open scoped Real
 open scoped Nat
 open scoped Classical
 open scoped Pointwise
-open scoped TensorProduct
 
 set_option maxHeartbeats 8000000
 set_option maxRecDepth 4000
@@ -44,152 +35,128 @@ namespace Phys
 
 section
 
-variable {G : Type*} [Group G]
-variable {V W : Type*} [AddCommGroup V] [Module ℂ V] [AddCommGroup W] [Module ℂ W]
+variable {k : Type*} [Field k] {G : Type*} [Monoid G]
+  {A B : Type*} [AddCommGroup A] [Module k A] [AddCommGroup B] [Module k B]
 
-/-- A complex representation is *irreducible* if the space is nontrivial and the only
-subspaces invariant under the group action are `⊥` and `⊤`. -/
-def IsIrrep (ρ : Representation ℂ G V) : Prop :=
-  Nontrivial V ∧
-    ∀ p : Submodule ℂ V, (∀ g : G, ∀ v ∈ p, ρ g v ∈ p) → p = ⊥ ∨ p = ⊤
+/-- `f` intertwines the representations `ρ` and `σ`. -/
+def Intertwines (ρ : Representation k G A) (σ : Representation k G B) (f : A →ₗ[k] B) : Prop :=
+  ∀ (g : G) (a : A), f (ρ g a) = σ g (f a)
 
-/-- A linear map intertwines two representations (it is *equivariant*). -/
-def Intertwines (ρ : Representation ℂ G V) (σ : Representation ℂ G W)
-    (T : V →ₗ[ℂ] W) : Prop :=
-  ∀ (g : G) (v : V), T (ρ g v) = σ g (T v)
+/-- A representation is irreducible when the only invariant subspaces are `⊥` and `⊤`. -/
+def IsIrreducible (σ : Representation k G B) : Prop :=
+  ∀ W : Submodule k B, (∀ (g : G), ∀ x ∈ W, σ g x ∈ W) → W = ⊥ ∨ W = ⊤
 
-/-- A nonzero intertwiner between irreducible representations is bijective (Schur). -/
-theorem bijective_of_intertwines_of_ne_zero {ρ : Representation ℂ G V}
-    {σ : Representation ℂ G W} (hρ : IsIrrep ρ) (hσ : IsIrrep σ)
-    {S : V →ₗ[ℂ] W} (hS : Intertwines ρ σ S) (hS0 : S ≠ 0) :
-    Function.Bijective S := by
-  have hker : LinearMap.ker S = ⊥ := by
-    rcases hρ.2 (LinearMap.ker S) (by
-      intro g v hv
-      simp only [LinearMap.mem_ker] at hv ⊢
-      rw [hS g v, hv, map_zero]) with h | h
-    · exact h
-    · exact absurd (LinearMap.ker_eq_top.mp h) hS0
-  have hran : LinearMap.range S = ⊤ := by
-    rcases hσ.2 (LinearMap.range S) (by
-      rintro g _ ⟨v, rfl⟩
-      exact ⟨ρ g v, hS g v⟩) with h | h
-    · exact absurd (LinearMap.range_eq_bot.mp h) hS0
-    · exact h
-  exact ⟨LinearMap.ker_eq_bot.mp hker, LinearMap.range_eq_top.mp hran⟩
-
-/-- **Schur's lemma, quantitative form.**  Over `ℂ`, any two intertwiners between
-finite-dimensional irreducible representations are proportional: if `S ≠ 0`, then
-`T = c • S` for a unique scalar `c` (the *reduced matrix element*). -/
-theorem exists_smul_of_intertwines [FiniteDimensional ℂ V] {ρ : Representation ℂ G V}
-    {σ : Representation ℂ G W} (hρ : IsIrrep ρ) (hσ : IsIrrep σ)
-    {T S : V →ₗ[ℂ] W} (hT : Intertwines ρ σ T) (hS : Intertwines ρ σ S) (hS0 : S ≠ 0) :
-    ∃ c : ℂ, T = c • S := by
-  haveI : Nontrivial V := hρ.1
-  -- `S` is an isomorphism of representations.
-  obtain ⟨hinj, hsurj⟩ := bijective_of_intertwines_of_ne_zero hρ hσ hS hS0
-  let e : V ≃ₗ[ℂ] W := LinearEquiv.ofBijective S ⟨hinj, hsurj⟩
-  have he : ∀ v : V, e v = S v := fun _ => rfl
-  have hsymm : ∀ (g : G) (w : W), e.symm (σ g w) = ρ g (e.symm w) := by
-    intro g w
-    apply e.injective
-    have h1 : e (ρ g (e.symm w)) = S (ρ g (e.symm w)) := rfl
-    rw [e.apply_symm_apply, h1, hS g (e.symm w)]
-    congr 1
-    exact (e.apply_symm_apply w).symm
-  -- The endomorphism `E = S⁻¹ ∘ T` of `V` is equivariant.
-  let E : Module.End ℂ V := (e.symm : W →ₗ[ℂ] V) ∘ₗ T
-  have hE : ∀ (g : G) (v : V), E (ρ g v) = ρ g (E v) := by
-    intro g v
-    show e.symm (T (ρ g v)) = ρ g (e.symm (T v))
-    rw [hT g v, hsymm g (T v)]
-  -- `E` has an eigenvalue since `ℂ` is algebraically closed.
-  obtain ⟨c, hc⟩ := Module.End.exists_eigenvalue E
+/-- **Schur's lemma** (algebraically closed field, finite dimensions): every self-intertwiner of
+an irreducible representation is a scalar. -/
+theorem schur_scalar [IsAlgClosed k] [FiniteDimensional k B] [Nontrivial B]
+    (σ : Representation k G B) (hσ : IsIrreducible σ)
+    (f : B →ₗ[k] B) (hf : Intertwines σ σ f) :
+    ∃ c : k, f = c • LinearMap.id := by
+  obtain ⟨c, hc⟩ := Module.End.exists_eigenvalue (K := k) (V := B) f
   refine ⟨c, ?_⟩
-  have hspace : Module.End.eigenspace E c = ⊤ := by
-    rcases hρ.2 (Module.End.eigenspace E c) (by
-      intro g v hv
-      rw [Module.End.mem_eigenspace_iff] at hv ⊢
-      rw [hE g v, hv, map_smul]) with h | h
-    · exact absurd h hc
-    · exact h
-  ext v
-  have hv : E v = c • v := by
-    rw [← Module.End.mem_eigenspace_iff, hspace]
-    trivial
-  have : T v = e (E v) := by
-    show T v = e (e.symm (T v))
-    rw [e.apply_symm_apply]
-  rw [this, hv, map_smul, he]
-  rfl
-
-/-- **Wigner–Eckart theorem (abstract form).**
-
-Let `ρ` (acting on `V`) and `σ` (acting on `W`) be irreducible complex representations of a
-group `G`, with `V` finite-dimensional.  Let `S : V →ₗ[ℂ] W` be a fixed nonzero intertwiner
-(the *Clebsch–Gordan map*) and let `T : V →ₗ[ℂ] W` be any intertwiner (a *tensor operator*).
-Then every matrix element of `T` factors as a single scalar `c` — the *reduced matrix
-element*, independent of the states involved — times the corresponding matrix element of the
-Clebsch–Gordan map:
-`⟨f, T v⟩ = c * ⟨f, S v⟩` for all states `v` and all linear functionals `f` on `W`. -/
-theorem wigner_eckart [FiniteDimensional ℂ V] {ρ : Representation ℂ G V}
-    {σ : Representation ℂ G W} (hρ : IsIrrep ρ) (hσ : IsIrrep σ)
-    {T S : V →ₗ[ℂ] W} (hT : Intertwines ρ σ T) (hS : Intertwines ρ σ S) (hS0 : S ≠ 0) :
-    ∃ c : ℂ, ∀ (f : W →ₗ[ℂ] ℂ) (v : V), f (T v) = c * f (S v) := by
-  obtain ⟨c, hc⟩ := exists_smul_of_intertwines hρ hσ hT hS hS0
-  refine ⟨c, fun f v => ?_⟩
-  rw [hc]
-  simp
+  have hinv : ∀ (g : G), ∀ x ∈ Module.End.eigenspace f c, σ g x ∈ Module.End.eigenspace f c := by
+    intro g x hx
+    rw [Module.End.mem_eigenspace_iff] at hx ⊢
+    rw [hf g x, hx, map_smul]
+  rcases hσ (Module.End.eigenspace f c) hinv with h | h
+  · exact absurd h hc
+  · ext b
+    have hb : b ∈ Module.End.eigenspace f c := h ▸ Submodule.mem_top
+    rw [Module.End.mem_eigenspace_iff] at hb
+    simp [hb]
 
 end
 
-section TensorOperator
+section
 
-variable {G : Type*} [Group G]
-variable {Vj Vk W : Type*}
-variable [AddCommGroup Vj] [Module ℂ Vj] [AddCommGroup Vk] [Module ℂ Vk]
-variable [AddCommGroup W] [Module ℂ W]
+variable {k : Type*} [Field k] [IsAlgClosed k] {G : Type*} [Monoid G]
+  {A B : Type*} [AddCommGroup A] [Module k A] [AddCommGroup B] [Module k B]
+  [FiniteDimensional k B] [Nontrivial B]
 
-/-- **Wigner–Eckart theorem for tensor operators, in coordinates.**
+/--
+**Wigner–Eckart theorem.**
 
-Here `Vj` carries the representation `ρ` of the "state" multiplet (basis vectors `bj m`,
-labelled by magnetic quantum numbers `m`), `Vk` carries the representation `τ` of the tensor
-operator's multiplet (basis `bk q`), and `W` carries the final irreducible representation `σ`
-(basis `bW m'`).  A tensor operator is an intertwiner `T : Vj ⊗ Vk →ₗ[ℂ] W`, and the
-Clebsch–Gordan map is a fixed nonzero intertwiner `S`.
+`ρ` is a representation on the "source" space `A` (physically: the tensor product of the space
+carrying the rank-`k` tensor operator with the space of initial states), and `σ` is an
+*irreducible* representation on the "target" space `B` (the space of final states).
 
-The conclusion is the physicists' statement: there is a single reduced matrix element `c`,
-independent of `m`, `q` and `m'`, with
-`⟨m'| T^k_q |j m⟩ = c * ⟨j m ; k q | m'⟩`. -/
-theorem wigner_eckart_tensor_operator
-    [FiniteDimensional ℂ Vj] [FiniteDimensional ℂ Vk]
-    {ρ : Representation ℂ G Vj} {τ : Representation ℂ G Vk} {σ : Representation ℂ G W}
-    (hρτ : IsIrrep (Representation.tprod ρ τ)) (hσ : IsIrrep σ)
-    {T S : Vj ⊗[ℂ] Vk →ₗ[ℂ] W}
-    (hT : Intertwines (Representation.tprod ρ τ) σ T)
-    (hS : Intertwines (Representation.tprod ρ τ) σ S) (hS0 : S ≠ 0)
-    {M Q M' : Type*} (bj : Module.Basis M ℂ Vj) (bk : Module.Basis Q ℂ Vk) (bW : Module.Basis M' ℂ W) :
-    ∃ c : ℂ, ∀ (m : M) (q : Q) (m' : M'),
-      bW.repr (T (bj m ⊗ₜ[ℂ] bk q)) m' = c * bW.repr (S (bj m ⊗ₜ[ℂ] bk q)) m' := by
-  obtain ⟨c, hc⟩ := wigner_eckart hρτ hσ hT hS hS0
-  exact ⟨c, fun m q m' =>
-    hc ((Finsupp.lapply m').comp (bW.repr : W →ₗ[ℂ] (M' →₀ ℂ))) (bj m ⊗ₜ[ℂ] bk q)⟩
+* `CG` is the Clebsch–Gordan intertwiner `A → B`,
+* `s` is an intertwining section of `CG`, exhibiting a copy of `B` inside `A`,
+* `hmult` is the multiplicity-one hypothesis: `B` occurs only once inside `A`, i.e. every
+  intertwiner `A → B` vanishing on that copy is zero.
 
-/-- Sanity check (non-vacuity): the hypotheses of `Phys.wigner_eckart` are satisfiable —
-the one-dimensional trivial representation of any group is irreducible and the identity is a
-nonzero intertwiner of it with itself. -/
-theorem wigner_eckart_hypotheses_satisfiable {G : Type*} [Group G] :
-    ∃ (ρ : Representation ℂ G ℂ) (S : ℂ →ₗ[ℂ] ℂ),
-      IsIrrep ρ ∧ Intertwines ρ ρ S ∧ S ≠ 0 := by
-  refine ⟨Representation.trivial ℂ G ℂ, LinearMap.id, ⟨inferInstance, ?_⟩, ?_, ?_⟩
-  · intro p _
-    exact Ideal.eq_bot_or_top p
-  · intro g v; rfl
-  · intro h
-    have h1 := LinearMap.congr_fun h (1 : ℂ)
-    simp at h1
+Then for *any* tensor operator `T` (i.e. any intertwiner `A → B`) there is a single scalar `c`
+— the *reduced matrix element* — such that all matrix elements of `T` are `c` times the
+corresponding Clebsch–Gordan coefficient. In particular the dependence of the matrix elements on
+the magnetic quantum numbers is entirely carried by `CG`.
+-/
+theorem wigner_eckart
+    (ρ : Representation k G A) (σ : Representation k G B) (hσ : IsIrreducible σ)
+    (CG : A →ₗ[k] B) (hCG : Intertwines ρ σ CG)
+    (s : B →ₗ[k] A) (hs : Intertwines σ ρ s) (hsec : ∀ b : B, CG (s b) = b)
+    (hmult : ∀ u : A →ₗ[k] B, Intertwines ρ σ u → (∀ b : B, u (s b) = 0) → u = 0)
+    (T : A →ₗ[k] B) (hT : Intertwines ρ σ T) :
+    ∃ c : k, T = c • CG ∧ ∀ (bra : B →ₗ[k] k) (a : A), bra (T a) = c * bra (CG a) := by
+  -- The composition `T ∘ s` is a self-intertwiner of the irreducible `σ`, hence a scalar `c`
+  -- by Schur's lemma.  This scalar is the reduced matrix element.
+  have hTs : Intertwines σ σ (T ∘ₗ s) := by
+    intro g b
+    simp only [LinearMap.comp_apply]
+    rw [hs g b, hT g (s b)]
+  obtain ⟨c, hc⟩ := schur_scalar σ hσ (T ∘ₗ s) hTs
+  have hTsb : ∀ b : B, T (s b) = c • b := by
+    intro b
+    have := congrArg (fun F : B →ₗ[k] B => F b) hc
+    simpa using this
+  -- `T - c • CG` is an intertwiner killing the distinguished copy of `B` inside `A`,
+  -- hence zero by multiplicity one.
+  have hzero : T - c • CG = 0 := by
+    refine hmult _ ?_ ?_
+    · intro g a
+      simp only [LinearMap.sub_apply, LinearMap.smul_apply, hT g a, hCG g a, map_sub, map_smul]
+    · intro b
+      simp [hTsb b, hsec b]
+  have hmain : T = c • CG := sub_eq_zero.mp hzero
+  refine ⟨c, hmain, ?_⟩
+  intro bra a
+  rw [hmain]
+  simp [smul_eq_mul]
 
-end TensorOperator
+/--
+Matrix-element form of the Wigner–Eckart theorem.  Given any family of "kets" `ket i` in `A`
+(labelled e.g. by a magnetic quantum number of the initial state together with the component of
+the tensor operator) and any family of "bras" `bra j` on `B`, there is a *single* reduced matrix
+element `c` such that every matrix element of `T` is `c` times the corresponding
+Clebsch–Gordan coefficient `bra j (CG (ket i))`.
+-/
+theorem wigner_eckart_matrix_elements
+    (ρ : Representation k G A) (σ : Representation k G B) (hσ : IsIrreducible σ)
+    (CG : A →ₗ[k] B) (hCG : Intertwines ρ σ CG)
+    (s : B →ₗ[k] A) (hs : Intertwines σ ρ s) (hsec : ∀ b : B, CG (s b) = b)
+    (hmult : ∀ u : A →ₗ[k] B, Intertwines ρ σ u → (∀ b : B, u (s b) = 0) → u = 0)
+    (T : A →ₗ[k] B) (hT : Intertwines ρ σ T)
+    {ιA ιB : Type*} (ket : ιA → A) (bra : ιB → (B →ₗ[k] k)) :
+    ∃ c : k, ∀ (j : ιB) (i : ιA), bra j (T (ket i)) = c * bra j (CG (ket i)) := by
+  obtain ⟨c, -, hc⟩ := wigner_eckart ρ σ hσ CG hCG s hs hsec hmult T hT
+  exact ⟨c, fun j i => hc (bra j) (ket i)⟩
+
+end
+
+/-- Sanity check: the hypotheses of `Phys.wigner_eckart` are simultaneously satisfiable, so the
+theorem is not vacuous. -/
+example :
+    ∃ (ρ : Representation ℂ Unit ℂ) (σ : Representation ℂ Unit ℂ) (CG s : ℂ →ₗ[ℂ] ℂ),
+      IsIrreducible σ ∧ Intertwines ρ σ CG ∧ Intertwines σ ρ s ∧ (∀ b : ℂ, CG (s b) = b) ∧
+      (∀ u : ℂ →ₗ[ℂ] ℂ, Intertwines ρ σ u → (∀ b : ℂ, u (s b) = 0) → u = 0) := by
+  refine ⟨1, 1, LinearMap.id, LinearMap.id, ?_, ?_, ?_, ?_, ?_⟩
+  · intro W _
+    exact IsSimpleOrder.eq_bot_or_eq_top W
+  · intro g a; rfl
+  · intro g a; rfl
+  · intro b; rfl
+  · intro u _ hu
+    ext
+    simpa using hu 1
 
 end Phys
 
