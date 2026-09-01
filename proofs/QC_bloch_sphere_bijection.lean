@@ -23,196 +23,184 @@ set_option pp.piBinderTypes true
 
 set_option grind.warning false
 
+import Mathlib
+
 /-!
 # Bloch Sphere Bijection
 Category: Quantum Computing
 Target: QC.bloch_sphere_bijection
 Verification: pending
 Provenance: Aristotle theorem prover (Harmonic)
--/
 
-import Mathlib
+(Note: Lean 4 requires `import` lines to precede any module documentation, so the
+header comment above is placed immediately after the single `import Mathlib`.)
+
+Pure qubit states (unit vectors in `ℂ²`) modulo global phase are in bijection with
+the points of the unit 2-sphere `S² ⊆ ℝ³`, via the Bloch vector
+`(2 Re(conj a * b), 2 Im(conj a * b), |a|² - |b|²)`.
+-/
 
 namespace QC
 
 open Complex
 
-/-- A pure qubit state: a unit vector in `ℂ²`. -/
+/-- A (normalized) pure qubit state: a unit vector in `ℂ²`. -/
 def Qubit : Type := {v : ℂ × ℂ // normSq v.1 + normSq v.2 = 1}
 
-namespace Qubit
-
-/-- The first amplitude of a qubit state. -/
-def fst (v : Qubit) : ℂ := v.1.1
-
-/-- The second amplitude of a qubit state. -/
-def snd (v : Qubit) : ℂ := v.1.2
-
-theorem norm_eq (v : Qubit) : normSq v.fst + normSq v.snd = 1 := v.2
-
-@[ext] theorem ext {v w : Qubit} (h1 : v.fst = w.fst) (h2 : v.snd = w.snd) : v = w := by
-  cases v; cases w
-  simp only [Subtype.mk.injEq, Prod.ext_iff]
-  exact ⟨h1, h2⟩
-
 /-- Two qubit states are equivalent when they differ by a global phase. -/
-instance setoid : Setoid Qubit where
-  r v w := ∃ c : ℂ, ‖c‖ = 1 ∧ w.fst = c * v.fst ∧ w.snd = c * v.snd
-  iseqv := by
-    refine ⟨fun v => ⟨1, by simp⟩, ?_, ?_⟩
-    · rintro v w ⟨c, hc, h1, h2⟩
-      have hc0 : c ≠ 0 := by
-        intro h; rw [h] at hc; simp at hc
-      exact ⟨c⁻¹, by simp [hc], by rw [h1]; field_simp, by rw [h2]; field_simp⟩
-    · rintro u v w ⟨c, hc, h1, h2⟩ ⟨d, hd, h3, h4⟩
-      exact ⟨d * c, by simp [hd, hc], by rw [h3, h1]; ring, by rw [h4, h2]; ring⟩
+def phaseRel (v w : Qubit) : Prop :=
+  ∃ z : ℂ, normSq z = 1 ∧ w.val.1 = z * v.val.1 ∧ w.val.2 = z * v.val.2
 
-end Qubit
+theorem phaseRel_refl (v : Qubit) : phaseRel v v :=
+  ⟨1, by simp, by ring, by ring⟩
+
+theorem phaseRel_symm {v w : Qubit} (h : phaseRel v w) : phaseRel w v := by
+  obtain ⟨z, hz, h1, h2⟩ := h
+  have hz0 : z ≠ 0 := by
+    intro h0; rw [h0] at hz; simp at hz
+  refine ⟨z⁻¹, ?_, ?_, ?_⟩
+  · rw [normSq_inv, hz]; norm_num
+  · rw [h1]; field_simp
+  · rw [h2]; field_simp
+
+theorem phaseRel_trans {u v w : Qubit} (h1 : phaseRel u v) (h2 : phaseRel v w) :
+    phaseRel u w := by
+  obtain ⟨z, hz, hz1, hz2⟩ := h1
+  obtain ⟨y, hy, hy1, hy2⟩ := h2
+  exact ⟨y * z, by rw [map_mul, hy, hz]; ring, by rw [hy1, hz1]; ring, by rw [hy2, hz2]; ring⟩
+
+/-- The setoid identifying qubit states that differ by a global phase. -/
+def phaseSetoid : Setoid Qubit where
+  r := phaseRel
+  iseqv := ⟨phaseRel_refl, phaseRel_symm, phaseRel_trans⟩
 
 /-- Pure qubit states modulo global phase. -/
-def PureState : Type := Quotient Qubit.setoid
+def PureState : Type := Quotient phaseSetoid
 
-/-- The two-sphere `S² ⊆ ℝ³`. -/
+/-- The unit 2-sphere in `ℝ³`. -/
 def Sphere2 : Type := {p : ℝ × ℝ × ℝ // p.1 ^ 2 + p.2.1 ^ 2 + p.2.2 ^ 2 = 1}
 
-/-- The Bloch vector of a qubit state:
-`(2 Re(conj a * b), 2 Im(conj a * b), |a|² - |b|²)`. -/
-def bloch (v : Qubit) : Sphere2 :=
-  ⟨(2 * ((starRingEnd ℂ) v.fst * v.snd).re,
-    2 * ((starRingEnd ℂ) v.fst * v.snd).im,
-    normSq v.fst - normSq v.snd), by
-    have h := v.norm_eq
-    simp only [Complex.mul_re, Complex.mul_im, Complex.conj_re, Complex.conj_im,
-      Complex.normSq_apply] at *
-    nlinarith [h, sq_nonneg (v.fst.re * v.snd.re), sq_nonneg (v.fst.im * v.snd.im)]⟩
+/-- The Bloch vector of a pair of complex amplitudes. -/
+def blochVec (v : ℂ × ℂ) : ℝ × ℝ × ℝ :=
+  (2 * ((starRingEnd ℂ) v.1 * v.2).re, 2 * ((starRingEnd ℂ) v.1 * v.2).im,
+    normSq v.1 - normSq v.2)
 
-theorem bloch_phase_invariant {v w : Qubit} (h : v ≈ w) : bloch v = bloch w := by
-  obtain ⟨c, hc, h1, h2⟩ := h
-  have hcn : normSq c = 1 := by
-    rw [Complex.normSq_eq_norm_sq, hc]; norm_num
-  have hcn' : c.re ^ 2 + c.im ^ 2 = 1 := by
-    simpa [Complex.normSq_apply, sq] using hcn
-  simp only [bloch, Subtype.mk.injEq, Prod.mk.injEq, h1, h2]
-  refine ⟨?_, ?_, ?_⟩ <;>
-    simp only [Complex.mul_re, Complex.mul_im, Complex.conj_re, Complex.conj_im,
-      Complex.normSq_apply] <;> nlinarith [hcn']
+theorem blochVec_mem (v : Qubit) :
+    (blochVec v.val).1 ^ 2 + (blochVec v.val).2.1 ^ 2 + (blochVec v.val).2.2 ^ 2 = 1 := by
+  obtain ⟨⟨a, b⟩, h⟩ := v
+  simp only [normSq_apply] at h
+  simp only [blochVec, normSq_apply, Complex.mul_re, Complex.mul_im, conj_re, conj_im]
+  linear_combination (a.re * a.re + a.im * a.im + b.re * b.re + b.im * b.im + 1) * h
 
-/-- The Bloch map descended to states modulo global phase. -/
+/-- The Bloch map on normalized states. -/
+def bloch (v : Qubit) : Sphere2 := ⟨blochVec v.val, blochVec_mem v⟩
+
+theorem bloch_phase_invariant {v w : Qubit} (h : phaseRel v w) : bloch v = bloch w := by
+  obtain ⟨z, hz, h1, h2⟩ := h
+  obtain ⟨⟨a, b⟩, hv⟩ := v
+  obtain ⟨⟨c, d⟩, hw⟩ := w
+  simp only at h1 h2
+  subst h1
+  subst h2
+  apply Subtype.ext
+  simp only [normSq_apply] at hz
+  simp only [bloch, blochVec, normSq_apply, Complex.mul_re, Complex.mul_im, conj_re, conj_im,
+    Prod.mk.injEq]
+  refine ⟨?_, ?_, ?_⟩
+  · linear_combination (-(2 * (a.re * b.re + a.im * b.im))) * hz
+  · linear_combination (-(2 * (a.re * b.im - a.im * b.re))) * hz
+  · linear_combination (-(a.re * a.re + a.im * a.im - b.re * b.re - b.im * b.im)) * hz
+
+/-- The induced map from pure states modulo phase to the sphere. -/
 def blochQuot : PureState → Sphere2 :=
-  Quotient.lift bloch fun _ _ h => bloch_phase_invariant h
+  Quotient.lift bloch (fun _ _ h => bloch_phase_invariant h)
+
+/-- Injectivity at the level of representatives: equal Bloch vectors force a global phase. -/
+theorem bloch_inj_aux {v w : Qubit} (h : bloch v = bloch w) : phaseRel v w := by
+  obtain ⟨⟨a, b⟩, hv⟩ := v
+  obtain ⟨⟨c, d⟩, hw⟩ := w
+  have h' := congrArg Subtype.val h
+  simp only [bloch, blochVec, Prod.mk.injEq] at h'
+  obtain ⟨h1, h2, h3⟩ := h'
+  simp only [normSq_apply] at hv hw
+  have hna : normSq a = normSq c := by
+    simp only [normSq_apply] at h3 ⊢; linarith
+  have hnb : normSq b = normSq d := by
+    simp only [normSq_apply] at h3 ⊢; linarith
+  have hcd : (starRingEnd ℂ) a * b = (starRingEnd ℂ) c * d := by
+    apply Complex.ext <;> linarith
+  by_cases ha : a = 0
+  · subst ha
+    have hc : c = 0 := by
+      have h0 : normSq c = 0 := by simpa using hna.symm
+      exact normSq_eq_zero.mp h0
+    have hnb1 : normSq b = 1 := by simpa using hv
+    have hb : b ≠ 0 := by
+      intro h0
+      rw [h0] at hnb1
+      simp at hnb1
+    refine ⟨d / b, ?_, by simp [hc], ?_⟩
+    · rw [map_div₀, ← hnb, hnb1]; norm_num
+    · field_simp
+  · have hane : (starRingEnd ℂ) a ≠ 0 := by simpa using ha
+    have key : (starRingEnd ℂ) a * (c * b) = (starRingEnd ℂ) a * (a * d) := by
+      have e1 : (starRingEnd ℂ) a * (c * b) = c * ((starRingEnd ℂ) c * d) := by
+        rw [← hcd]; ring
+      have e2 : c * ((starRingEnd ℂ) c * d) = (normSq c : ℂ) * d := by
+        rw [← Complex.mul_conj]; ring
+      have e3 : (starRingEnd ℂ) a * (a * d) = (normSq a : ℂ) * d := by
+        rw [← Complex.mul_conj]; ring
+      rw [e1, e2, e3, hna]
+    have hcb : c * b = a * d := mul_left_cancel₀ hane key
+    refine ⟨c / a, ?_, ?_, ?_⟩
+    · rw [map_div₀, ← hna]
+      have : normSq a ≠ 0 := by simpa using ha
+      field_simp
+    · field_simp
+    · field_simp
+      linear_combination -hcb
 
 theorem blochQuot_injective : Function.Injective blochQuot := by
-  refine fun x y => Quotient.inductionOn₂ x y ?_
-  rintro v w h
-  simp only [blochQuot, Quotient.lift_mk] at h
-  -- extract the three coordinate equations
-  have h1 : ((starRingEnd ℂ) v.fst * v.snd) = ((starRingEnd ℂ) w.fst * w.snd) := by
-    have hre := congrArg (fun p => p.1.1) h
-    have him := congrArg (fun p => p.1.2.1) h
-    simp only [bloch] at hre him
-    apply Complex.ext <;> linarith
-  have h2 : normSq v.fst - normSq v.snd = normSq w.fst - normSq w.snd := by
-    have := congrArg (fun p => p.1.2.2) h
-    simpa [bloch] using this
-  have hv := v.norm_eq
-  have hw := w.norm_eq
-  have ha : normSq v.fst = normSq w.fst := by linarith
-  have hb : normSq v.snd = normSq w.snd := by linarith
-  apply Quotient.sound
-  by_cases hvz : v.fst = 0
-  · have hwz : w.fst = 0 := by
-      have : normSq w.fst = 0 := by rw [← ha, hvz]; simp
-      simpa [Complex.normSq_eq_zero] using this
-    have hvs : normSq v.snd = 1 := by
-      rw [hvz] at hv; simpa using hv
-    have hvs0 : v.snd ≠ 0 := by
-      intro hz; rw [hz] at hvs; simp at hvs
-    refine ⟨w.snd / v.snd, ?_, ?_, ?_⟩
-    · have hws : normSq w.snd = 1 := by rw [← hb, hvs]
-      have h1 : ‖w.snd‖ = 1 := by
-        have := Complex.normSq_eq_norm_sq w.snd
-        rw [hws] at this
-        nlinarith [norm_nonneg w.snd]
-      have h2 : ‖v.snd‖ = 1 := by
-        have := Complex.normSq_eq_norm_sq v.snd
-        rw [hvs] at this
-        nlinarith [norm_nonneg v.snd]
-      rw [norm_div, h1, h2]; norm_num
-    · rw [hvz, hwz]; ring
-    · field_simp
-  · have hwz : w.fst ≠ 0 := by
-      intro hz
-      apply hvz
-      have : normSq v.fst = 0 := by rw [ha, hz]; simp
-      simpa [Complex.normSq_eq_zero] using this
-    refine ⟨w.fst / v.fst, ?_, ?_, ?_⟩
-    · have hvn : ‖v.fst‖ ^ 2 = ‖w.fst‖ ^ 2 := by
-        rw [← Complex.normSq_eq_norm_sq, ← Complex.normSq_eq_norm_sq, ha]
-      have : ‖v.fst‖ = ‖w.fst‖ := by
-        nlinarith [norm_nonneg v.fst, norm_nonneg w.fst]
-      rw [norm_div, ← this]
-      field_simp
-      simpa [Complex.norm_eq_zero] using hvz
-    · field_simp
-    · -- w.snd = (w.fst / v.fst) * v.snd, i.e. v.fst * w.snd = w.fst * v.snd
-      have key : v.fst * w.snd = w.fst * v.snd := by
-        have hc : (starRingEnd ℂ) w.fst * (v.fst * w.snd)
-            = (starRingEnd ℂ) w.fst * (w.fst * v.snd) := by
-          calc (starRingEnd ℂ) w.fst * (v.fst * w.snd)
-              = v.fst * ((starRingEnd ℂ) w.fst * w.snd) := by ring
-            _ = v.fst * ((starRingEnd ℂ) v.fst * v.snd) := by rw [h1]
-            _ = ((normSq v.fst : ℂ)) * v.snd := by
-                  rw [← Complex.normSq_eq_conj_mul_self]; ring
-            _ = ((normSq w.fst : ℂ)) * v.snd := by rw [ha]
-            _ = (starRingEnd ℂ) w.fst * (w.fst * v.snd) := by
-                  rw [← Complex.normSq_eq_conj_mul_self]; ring
-        have hne : (starRingEnd ℂ) w.fst ≠ 0 := by
-          simpa using hwz
-        exact mul_left_cancel₀ hne hc
-      field_simp
-      linear_combination -key
+  intro x y h
+  induction x using Quotient.inductionOn with
+  | _ v =>
+    induction y using Quotient.inductionOn with
+    | _ w =>
+      exact Quotient.sound (bloch_inj_aux h)
 
 theorem blochQuot_surjective : Function.Surjective blochQuot := by
-  rintro ⟨⟨x, y, z⟩, hp⟩
+  rintro ⟨⟨x, y, zc⟩, hp⟩
   simp only at hp
-  by_cases hz : z = -1
-  · refine ⟨Quotient.mk _ ⟨(0, 1), by simp⟩, ?_⟩
+  by_cases hz : zc = -1
+  · subst hz
     have hx : x = 0 := by nlinarith [sq_nonneg x, sq_nonneg y]
     have hy : y = 0 := by nlinarith [sq_nonneg x, sq_nonneg y]
-    simp only [blochQuot, Quotient.lift_mk, bloch, Qubit.fst, Qubit.snd, Subtype.mk.injEq,
-      Prod.mk.injEq]
-    refine ⟨by simp [hx], by simp [hy], by simp [hz]⟩
-  · have hz1 : (1 : ℝ) + z > 0 := by
-      rcases lt_trichotomy z (-1) with h | h | h
-      · nlinarith [sq_nonneg x, sq_nonneg y]
-      · exact absurd h hz
-      · linarith
-    set a : ℝ := Real.sqrt ((1 + z) / 2) with ha
-    have ha2 : a ^ 2 = (1 + z) / 2 := Real.sq_sqrt (by linarith)
-    have hapos : 0 < a := Real.sqrt_pos.mpr (by linarith)
-    refine ⟨Quotient.mk _ ⟨((a : ℂ), (x / (2 * a) : ℝ) + (y / (2 * a) : ℝ) * Complex.I), ?_⟩, ?_⟩
-    · simp only [Complex.normSq_apply, Complex.add_re, Complex.add_im, Complex.ofReal_re,
-        Complex.ofReal_im, Complex.mul_re, Complex.mul_im, Complex.I_re, Complex.I_im]
-      have hane : a ≠ 0 := ne_of_gt hapos
+    refine ⟨Quotient.mk phaseSetoid ⟨(0, 1), by simp⟩, ?_⟩
+    apply Subtype.ext
+    simp [blochQuot, bloch, blochVec, hx, hy]
+  · have hle : -1 ≤ zc := by nlinarith [sq_nonneg x, sq_nonneg y]
+    have hzlt : -1 < zc := lt_of_le_of_ne hle (fun h => hz h.symm)
+    have hpos : (0:ℝ) < (1 + zc) / 2 := by linarith
+    set r : ℝ := Real.sqrt ((1 + zc) / 2) with hrdef
+    have hrpos : 0 < r := Real.sqrt_pos.mpr hpos
+    have hr2 : r ^ 2 = (1 + zc) / 2 := Real.sq_sqrt hpos.le
+    have hrne : r ≠ 0 := ne_of_gt hrpos
+    have hnorm : normSq ((r : ℂ)) + normSq (⟨x / (2 * r), y / (2 * r)⟩ : ℂ) = 1 := by
+      simp only [normSq_apply, Complex.ofReal_re, Complex.ofReal_im]
       field_simp
-      nlinarith [ha2, hp]
-    · simp only [blochQuot, Quotient.lift_mk, bloch, Qubit.fst, Qubit.snd, Subtype.mk.injEq,
-        Prod.mk.injEq, Complex.mul_re, Complex.mul_im, Complex.conj_re, Complex.conj_im,
-        Complex.add_re, Complex.add_im, Complex.ofReal_re, Complex.ofReal_im, Complex.I_re,
-        Complex.I_im, Complex.normSq_apply]
-      have hane : a ≠ 0 := ne_of_gt hapos
-      refine ⟨by field_simp; ring, by field_simp; ring, ?_⟩
-      field_simp
-      nlinarith [ha2, hp]
+      nlinarith [hr2, hp]
+    refine ⟨Quotient.mk phaseSetoid ⟨((r : ℂ), (⟨x / (2 * r), y / (2 * r)⟩ : ℂ)), hnorm⟩, ?_⟩
+    apply Subtype.ext
+    simp only [blochQuot, Quotient.lift_mk, bloch, blochVec, normSq_apply, Complex.mul_re,
+      Complex.mul_im, conj_re, conj_im, Complex.ofReal_re, Complex.ofReal_im, Prod.mk.injEq]
+    refine ⟨by field_simp; ring, by field_simp; ring, ?_⟩
+    field_simp
+    nlinarith [hr2, hp]
 
-/-- **Bloch sphere bijection**: pure qubit states modulo global phase are in bijection with
-the points of the two-sphere `S²`. -/
+/-- **Bloch sphere bijection**: pure qubit states modulo global phase are in bijection
+with the points of the 2-sphere `S²`. -/
 theorem bloch_sphere_bijection : Function.Bijective blochQuot :=
   ⟨blochQuot_injective, blochQuot_surjective⟩
-
-/-- The Bloch sphere bijection packaged as an equivalence. -/
-noncomputable def blochEquiv : PureState ≃ Sphere2 :=
-  Equiv.ofBijective blochQuot bloch_sphere_bijection
 
 end QC
 
