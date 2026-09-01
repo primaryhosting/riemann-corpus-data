@@ -23,6 +23,14 @@ set_option pp.piBinderTypes true
 
 set_option grind.warning false
 
+/-
+# Equidistribution Of BV Uniform
+Category: Brockian (Literature Discharge)
+Target: Brockian.EquidistributionBVReduction.equidistribution_of_BV_uniform
+Verification: pending
+Provenance: Aristotle theorem prover (Harmonic)
+-/
+
 import Mathlib
 
 /-!
@@ -33,96 +41,82 @@ Verification: pending
 Provenance: Aristotle theorem prover (Harmonic)
 -/
 
-open Set MeasureTheory Filter Topology
+open scoped BigOperators
+open MeasureTheory Filter Topology Set
 
-namespace Brockian.EquidistributionBVReduction
+namespace Brockian
+namespace EquidistributionBVReduction
 
-/-- The monotone step function `t ↦ 𝟙[c ≤ t]`, a function of bounded variation which is used as
-a test function to extract equidistribution from convergence of averages along BV functions. -/
-noncomputable def stepGe (c : ℝ) : ℝ → ℝ := fun t => if c ≤ t then 1 else 0
+/-- The indicator function of the ray `(-∞, a)`, viewed as a real valued function on `ℝ`.
+Restricted to `[0,1]` this is the indicator of the interval `[0, a)`. -/
+noncomputable def indicatorIio (a : ℝ) : ℝ → ℝ := fun t => if t < a then 1 else 0
 
-lemma monotoneOn_stepGe (c : ℝ) (s : Set ℝ) : MonotoneOn (stepGe c) s := by
-  intro p _ q _ hpq
-  simp only [stepGe]
-  split <;> split <;> simp_all; linarith
+/-- The indicator of a ray is a function of bounded variation on `[0,1]`
+(it is the negative of a monotone function). -/
+theorem boundedVariationOn_indicatorIio (a : ℝ) :
+    BoundedVariationOn (indicatorIio a) (Set.Icc 0 1) := by
+  have hmono : MonotoneOn (fun t : ℝ => -(indicatorIio a t)) (Set.Icc 0 1) := by
+    intro p _ q _ hpq
+    simp only [indicatorIio]
+    split_ifs with h1 h2 h2
+    · exact le_rfl
+    · linarith
+    · push_neg at h1; linarith
+    · exact le_rfl
+  have hle := hmono.eVariationOn_le (a := (0 : ℝ)) (b := 1) (by norm_num) (by norm_num)
+  have hEq : eVariationOn (fun t : ℝ => -(indicatorIio a t)) (Set.Icc 0 1)
+      = eVariationOn (indicatorIio a) (Set.Icc 0 1) := by
+    unfold eVariationOn
+    simp [edist_neg_neg]
+  rw [Set.inter_eq_left.2 (fun t ht => ht), hEq] at hle
+  exact ne_top_of_le_ne_top ENNReal.ofReal_ne_top hle
 
-/-- The step function `stepGe c` has bounded variation on `[0, 1]`. -/
-lemma boundedVariationOn_stepGe (c : ℝ) : BoundedVariationOn (stepGe c) (Icc 0 1) := by
-  have h := (monotoneOn_stepGe c (Icc (0:ℝ) 1)).eVariationOn_le (a := 0) (b := 1)
-    (by norm_num) (by norm_num)
-  rw [Set.inter_self] at h
-  exact ne_top_of_le_ne_top (by simp) h
+/-- The integral of the indicator of `[0, a)` over `[0,1]` is `a`, for `a ∈ [0,1]`. -/
+theorem integral_indicatorIio {a : ℝ} (ha : a ∈ Set.Icc (0 : ℝ) 1) :
+    ∫ t in (0 : ℝ)..1, indicatorIio a t = a := by
+  obtain ⟨h0, h1⟩ := ha
+  rw [intervalIntegral.integral_of_le (by norm_num)]
+  rw [show (fun t : ℝ => indicatorIio a t)
+      = Set.indicator (Set.Iio a) (fun _ => (1 : ℝ)) from by
+    funext t; simp [indicatorIio, Set.indicator_apply]]
+  rw [MeasureTheory.integral_indicator measurableSet_Iio,
+    Measure.restrict_restrict measurableSet_Iio]
+  have hset : Set.Iio a ∩ Set.Ioc (0 : ℝ) 1 = Set.Ioo 0 a := by
+    ext t
+    simp only [Set.mem_inter_iff, Set.mem_Iio, Set.mem_Ioc, Set.mem_Ioo]
+    exact ⟨fun ⟨h, h2, _⟩ => ⟨h2, h⟩, fun ⟨h2, h3⟩ => ⟨h3, h2, h3.le.trans h1⟩⟩
+  rw [hset]
+  simp [h0]
 
-lemma intervalIntegrable_stepGe (c a b : ℝ) :
-    IntervalIntegrable (stepGe c) volume a b :=
-  (monotoneOn_stepGe c (uIcc a b)).intervalIntegrable
-
-/-- The integral of the step function over `[0, 1]` is `1 - c`, for `c ∈ [0, 1]`. -/
-lemma integral_stepGe {c : ℝ} (hc : c ∈ Icc (0:ℝ) 1) :
-    (∫ t in (0:ℝ)..1, stepGe c t) = 1 - c := by
-  obtain ⟨h0, h1⟩ := hc
-  rw [← intervalIntegral.integral_add_adjacent_intervals (b := c)
-    (intervalIntegrable_stepGe c 0 c) (intervalIntegrable_stepGe c c 1)]
-  have e1 : (∫ t in (0:ℝ)..c, stepGe c t) = 0 := by
-    rw [intervalIntegral.integral_congr_ae (g := fun _ => (0:ℝ)) ?_]
-    · simp
-    · have hne : ∀ᵐ x : ℝ, x ≠ c := by simp [ae_iff]
-      filter_upwards [hne] with y hy hymem
-      rcases le_or_gt c y with h | h
-      · rw [Set.uIoc_of_le h0] at hymem
-        exact absurd (le_antisymm hymem.2 h) hy
-      · simp [stepGe, not_le.mpr h]
-  have e2 : (∫ t in c..(1:ℝ), stepGe c t) = 1 - c := by
-    rw [intervalIntegral.integral_congr (g := fun _ => (1:ℝ)) ?_]
-    · simp
-    · intro y hy
-      rw [Set.uIcc_of_le h1] at hy
-      simp [stepGe, hy.1]
-  rw [e1, e2, zero_add]
-
-/-- Counting the points of a sequence lying in `[c, 1]` as a sum of step-function values. -/
-lemma sum_stepGe_eq_card (x : ℕ → ℝ) (c : ℝ) (N : ℕ) :
-    (∑ n ∈ Finset.range N, stepGe c (x n))
-      = (({n ∈ Finset.range N | c ≤ x n}).card : ℝ) := by
-  simp [stepGe]
-
-lemma card_lt_add_card_le (x : ℕ → ℝ) (c : ℝ) (N : ℕ) :
-    ({n ∈ Finset.range N | x n < c}).card + ({n ∈ Finset.range N | c ≤ x n}).card = N := by
+/-- Sums of the indicator of `[0, a)` along a sequence count the terms that are `< a`. -/
+theorem sum_indicatorIio (x : ℕ → ℝ) (a : ℝ) (N : ℕ) :
+    ∑ n ∈ Finset.range N, indicatorIio a (x n)
+      = (({n ∈ Finset.range N | x n < a} : Finset ℕ).card : ℝ) := by
   classical
-  have h := Finset.card_filter_add_card_filter_not
-    (s := Finset.range N) (p := fun n => x n < c)
-  simp only [not_lt, Finset.card_range] at h
-  exact h
+  simp [indicatorIio, Finset.sum_boole (p := fun n => x n < a) (s := Finset.range N) (R := ℝ)]
 
-/-- **Equidistribution from convergence of averages along functions of bounded variation.**
+/-- **Equidistribution from the bounded-variation criterion.**
 
-If, for every real-valued function `f` of bounded variation on `[0, 1]`, the Cesàro averages
-`(1/N) ∑_{n < N} f (x n)` converge to `∫₀¹ f`, then the sequence `x` is equidistributed:
-for every `c ∈ [0, 1]` the proportion of indices `n < N` with `x n < c` converges to `c`.
+If the Birkhoff averages of a sequence `x : ℕ → ℝ` converge to the integral over `[0,1]`
+for *every* function of bounded variation on `[0,1]`, then the sequence is equidistributed
+in `[0,1]`: for every `a ∈ [0,1]`, the proportion of the first `N` terms lying in `[0, a)`
+tends to `a`.
 
-This is the reduction step of the classical BV (Koksma) criterion for uniform distribution;
-the hypothesis is applied to the bounded-variation test functions `t ↦ 𝟙[c ≤ t]`. -/
+The named hypothesis is discharged by testing the assumption against the (bounded variation)
+indicator functions of the intervals `[0, a)`. -/
 theorem equidistribution_of_BV_uniform (x : ℕ → ℝ)
-    (hBV : ∀ f : ℝ → ℝ, BoundedVariationOn f (Icc 0 1) →
+    (hBV : ∀ f : ℝ → ℝ, BoundedVariationOn f (Set.Icc 0 1) →
       Tendsto (fun N : ℕ => (∑ n ∈ Finset.range N, f (x n)) / (N : ℝ)) atTop
-        (𝓝 (∫ t in (0:ℝ)..1, f t)))
-    {c : ℝ} (hc : c ∈ Icc (0:ℝ) 1) :
-    Tendsto (fun N : ℕ => ((({n ∈ Finset.range N | x n < c}).card : ℝ)) / (N : ℝ)) atTop (𝓝 c) := by
-  have hstep := hBV (stepGe c) (boundedVariationOn_stepGe c)
-  rw [integral_stepGe hc] at hstep
-  simp only [sum_stepGe_eq_card x c] at hstep
-  have hmain : Tendsto
-      (fun N : ℕ => 1 - ((({n ∈ Finset.range N | c ≤ x n}).card : ℝ)) / (N : ℝ)) atTop
-      (𝓝 (1 - (1 - c))) := (tendsto_const_nhds (x := (1:ℝ))).sub hstep
-  rw [sub_sub_cancel] at hmain
-  refine hmain.congr' ?_
-  filter_upwards [eventually_gt_atTop 0] with N hN
-  have hN' : (N : ℝ) ≠ 0 := Nat.cast_ne_zero.mpr hN.ne'
-  have hcard : ((({n ∈ Finset.range N | x n < c}).card : ℝ))
-      + ((({n ∈ Finset.range N | c ≤ x n}).card : ℝ)) = (N : ℝ) := by
-    exact_mod_cast congrArg (Nat.cast : ℕ → ℝ) (card_lt_add_card_le x c N)
-  field_simp
-  linarith
+        (𝓝 (∫ t in (0 : ℝ)..1, f t))) :
+    ∀ a ∈ Set.Icc (0 : ℝ) 1,
+      Tendsto (fun N : ℕ => (({n ∈ Finset.range N | x n < a} : Finset ℕ).card : ℝ) / (N : ℝ))
+        atTop (𝓝 a) := by
+  classical
+  intro a ha
+  have h := hBV (indicatorIio a) (boundedVariationOn_indicatorIio a)
+  rw [integral_indicatorIio ha] at h
+  simpa [sum_indicatorIio x a] using h
 
-end Brockian.EquidistributionBVReduction
+end EquidistributionBVReduction
+end Brockian
 
