@@ -1,0 +1,2315 @@
+[
+{
+"slug": "turing",
+"title": "On Computable Numbers, with an Application to the Entscheidungsproblem",
+"year": 1936,
+"url": "https://archive.org/download/pdfy-Zc8HeJshvCrCGg1N/Turing_Paper_1936.pdf",
+"license": "public domain",
+"kind": "paper",
+"thinker_id": "b98a1621-f8d3-4854-88aa-5cb7d7517de3"
+},
+{
+"slug": "turing",
+"title": "Computing Machinery and Intelligence",
+"year": 1950,
+"url": "https://redirect.cs.umbc.edu/courses/471/papers/turing.pdf",
+"license": "public domain",
+"kind": "paper",
+"thinker_id": "b98a1621-f8d3-4854-88aa-5cb7d7517de3"
+},
+{
+"slug": "turing",
+"title": "The Chemical Basis of Morphogenesis",
+"year": 1952,
+"url": "https://www.dna.caltech.edu/courses/cs191/paperscs191/turing.pdf",
+"license": "public domain",
+"kind": "paper",
+"thinker_id": "b98a1621-f8d3-4854-88aa-5cb7d7517de3"
+},
+{
+"slug": "einstein",
+"title": "Relativity: The Special and General Theory",
+"year": 1916,
+"url": "https://www.gutenberg.org/files/36114/36114-pdf.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "a3c28325-fd85-4216-8d21-16490e5a7393"
+},
+{
+"slug": "einstein",
+"title": "Relativity: The Special and General Theory (Lawson translation)",
+"year": 1920,
+"url": "https://archive.org/download/cu31924011804774/cu31924011804774.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "a3c28325-fd85-4216-8d21-16490e5a7393"
+},
+{
+"slug": "einstein",
+"title": "On the Electrodynamics of Moving Bodies",
+"year": 1905,
+"url": "https://users.physics.ox.ac.uk/~rtaylor/teaching/specrel.pdf",
+"license": "public domain",
+"kind": "paper",
+"thinker_id": "a3c28325-fd85-4216-8d21-16490e5a7393"
+},
+{
+"slug": "grothendieck",
+"title": "Sur quelques points d'algebre homologique (Tohoku)",
+"year": 1957,
+"url": "https://www.jstage.jst.go.jp/article/tmj1949/9/2/9_2_119/_pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "e266a556-6440-4e6b-bf42-820824dd8863"
+},
+{
+"slug": "grothendieck",
+"title": "Elements de geometrie algebrique I (EGA I)",
+"year": 1960,
+"url": "http://www.numdam.org/item/PMIHES_1960__4__5_0.pdf",
+"license": "open access",
+"kind": "book",
+"thinker_id": "e266a556-6440-4e6b-bf42-820824dd8863"
+},
+{
+"slug": "grothendieck",
+"title": "Elements de geometrie algebrique II (EGA II)",
+"year": 1961,
+"url": "http://www.numdam.org/item/PMIHES_1961__8__5_0.pdf",
+"license": "open access",
+"kind": "book",
+"thinker_id": "e266a556-6440-4e6b-bf42-820824dd8863"
+},
+{
+"slug": "grothendieck",
+"title": "Elements de geometrie algebrique IV, Premiere partie (EGA IV.1)",
+"year": 1964,
+"url": "http://www.numdam.org/item/PMIHES_1964__20__5_0.pdf",
+"license": "open access",
+"kind": "book",
+"thinker_id": "e266a556-6440-4e6b-bf42-820824dd8863"
+},
+{
+"slug": "grothendieck",
+"title": "Revetements etales et groupe fondamental (SGA 1)",
+"year": 1971,
+"url": "https://arxiv.org/pdf/math/0206203",
+"license": "arXiv",
+"kind": "book",
+"thinker_id": "e266a556-6440-4e6b-bf42-820824dd8863"
+},
+{
+"slug": "wiles",
+"title": "Modular Elliptic Curves and Fermat's Last Theorem",
+"year": 1995,
+"url": "https://sites.math.rutgers.edu/~zeilberg/EM22/AW1995.pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "2fb95ca7-4c84-43f7-b450-eb215cb9412b"
+},
+{
+"slug": "wiles",
+"title": "Modular Elliptic Curves and Fermat's Last Theorem (alt copy)",
+"year": 1995,
+"url": "https://jontallen.ece.illinois.edu/Public/Wiles-Fermat.95.pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "2fb95ca7-4c84-43f7-b450-eb215cb9412b"
+},
+{
+"slug": "selberg",
+"title": "An Elementary Proof of the Prime-Number Theorem",
+"year": 1949,
+"url": "https://www.math.lsu.edu/~mahlburg/teaching/handouts/2014-7230/Selberg-ElemPNT1949.pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "1a2a8871-32ed-4cfd-9cec-44342751cd5b"
+},
+{
+"slug": "cauchy",
+"title": "Oeuvres completes d'Augustin Cauchy (Serie 1)",
+"year": null,
+"url": "https://archive.org/download/uvrescompltes01caucgoog/uvrescompltes01caucgoog.pdf",
+"license": "public domain",
+"kind": "collected-works",
+"thinker_id": "d5e7a5c0-fcaf-4e4c-82e3-8281d86ebe98"
+},
+{
+"slug": "cauchy",
+"title": "Oeuvres completes d'Augustin Cauchy",
+"year": null,
+"url": "https://archive.org/download/oeuvresdaugusti01caucrich/oeuvresdaugusti01caucrich.pdf",
+"license": "public domain",
+"kind": "collected-works",
+"thinker_id": "d5e7a5c0-fcaf-4e4c-82e3-8281d86ebe98"
+},
+{
+"slug": "cauchy",
+"title": "Oeuvres completes d'Augustin Cauchy (further volume)",
+"year": null,
+"url": "https://archive.org/download/oeuvresdaugusti101caucrich/oeuvresdaugusti101caucrich.pdf",
+"license": "public domain",
+"kind": "collected-works",
+"thinker_id": "d5e7a5c0-fcaf-4e4c-82e3-8281d86ebe98"
+},
+{
+"slug": "cauchy",
+"title": "Oeuvres Completes",
+"year": null,
+"url": "https://archive.org/download/oeuvrescompletes03alca/oeuvrescompletes03alca.pdf",
+"license": "public domain",
+"kind": "collected-works",
+"thinker_id": "d5e7a5c0-fcaf-4e4c-82e3-8281d86ebe98"
+},
+{
+"slug": "cauchy",
+"title": "Cours d'analyse de l'Ecole royale polytechnique",
+"year": 1821,
+"url": "https://archive.org/download/coursdanalysede00caucgoog/coursdanalysede00caucgoog.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "d5e7a5c0-fcaf-4e4c-82e3-8281d86ebe98"
+},
+{
+"slug": "riemann",
+"title": "Gesammelte mathematische Werke und wissenschaftlicher Nachlass",
+"year": 1892,
+"url": "https://archive.org/download/gesammeltemathem00riemuoft/gesammeltemathem00riemuoft.pdf",
+"license": "public domain",
+"kind": "collected-works",
+"thinker_id": "52ff98a4-0b72-4486-b385-f91c8ecb85d9"
+},
+{
+"slug": "riemann",
+"title": "Bernhard Riemann's Gesammelte mathematische Werke und Wissenschaftlicher Nachlass",
+"year": null,
+"url": "https://archive.org/download/bernardrgesamm00riemrich/bernardrgesamm00riemrich.pdf",
+"license": "public domain",
+"kind": "collected-works",
+"thinker_id": "52ff98a4-0b72-4486-b385-f91c8ecb85d9"
+},
+{
+"slug": "riemann",
+"title": "Bernhard Riemann's Gesammelte mathematische Werke (first edition)",
+"year": 1876,
+"url": "https://archive.org/download/117719254/117719254.pdf",
+"license": "public domain",
+"kind": "collected-works",
+"thinker_id": "52ff98a4-0b72-4486-b385-f91c8ecb85d9"
+},
+{
+"slug": "gauss",
+"title": "Disquisitiones Arithmeticae",
+"year": 1801,
+"url": "https://archive.org/download/disquisitionesa00gaus/disquisitionesa00gaus.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "347e4891-fd85-466a-abb3-354ace48173e"
+},
+{
+"slug": "gauss",
+"title": "Theoria motus corporum coelestium in sectionibus conicis solem ambientium",
+"year": 1809,
+"url": "https://archive.org/download/theoriamotuscor00gausgoog/theoriamotuscor00gausgoog.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "347e4891-fd85-466a-abb3-354ace48173e"
+},
+{
+"slug": "gauss",
+"title": "Werke, Band 3",
+"year": null,
+"url": "https://archive.org/download/werkecarlf03gausrich/werkecarlf03gausrich.pdf",
+"license": "public domain",
+"kind": "collected-works",
+"thinker_id": "347e4891-fd85-466a-abb3-354ace48173e"
+},
+{
+"slug": "gauss",
+"title": "Werke, Band 4",
+"year": null,
+"url": "https://archive.org/download/bub_gb_9aZX3eYWkLQC/bub_gb_9aZX3eYWkLQC.pdf",
+"license": "public domain",
+"kind": "collected-works",
+"thinker_id": "347e4891-fd85-466a-abb3-354ace48173e"
+},
+{
+"slug": "gauss",
+"title": "Werke, hrsg. von der Gesellschaft der Wissenschaften zu Gottingen (Band 3)",
+"year": null,
+"url": "https://archive.org/download/werkehrsgvonderg03gausuoft/werkehrsgvonderg03gausuoft.pdf",
+"license": "public domain",
+"kind": "collected-works",
+"thinker_id": "347e4891-fd85-466a-abb3-354ace48173e"
+},
+{
+"slug": "jacobi",
+"title": "Fundamenta nova theoriae functionum ellipticarum",
+"year": 1829,
+"url": "https://archive.org/download/fundamentanovat00jacogoog/fundamentanovat00jacogoog.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "404a56c7-4ab2-427f-9af1-f3bdf2ddb34a"
+},
+{
+"slug": "jacobi",
+"title": "Gesammelte Werke, Band 5",
+"year": null,
+"url": "https://archive.org/download/gesammeltewerkeh05jacouoft/gesammeltewerkeh05jacouoft.pdf",
+"license": "public domain",
+"kind": "collected-works",
+"thinker_id": "404a56c7-4ab2-427f-9af1-f3bdf2ddb34a"
+},
+{
+"slug": "jacobi",
+"title": "Gesammelte Werke, Band 2",
+"year": null,
+"url": "https://archive.org/download/gesammelwerk02jacorich/gesammelwerk02jacorich.pdf",
+"license": "public domain",
+"kind": "collected-works",
+"thinker_id": "404a56c7-4ab2-427f-9af1-f3bdf2ddb34a"
+},
+{
+"slug": "jacobi",
+"title": "New Foundations of the Theory of Elliptic Functions (English translation of Fundamenta Nova)",
+"year": 1829,
+"url": "https://download.uni-mainz.de/mathematik/Algebraische%20Geometrie/Euler-Kreis%20Mainz/Jacobi_Fundamenta%20Nova.pdf",
+"license": "unknown",
+"kind": "book",
+"thinker_id": "404a56c7-4ab2-427f-9af1-f3bdf2ddb34a"
+},
+{
+"slug": "shannon",
+"title": "A Mathematical Theory of Communication (Bell System Technical Journal)",
+"year": 1948,
+"url": "https://archive.org/download/bstj27-4-623/bstj27-4-623.pdf",
+"license": "public domain",
+"kind": "paper",
+"thinker_id": "349279ca-edd8-460b-a3b1-747d26876b4f"
+},
+{
+"slug": "shannon",
+"title": "A Mathematical Theory of Communication",
+"year": 1948,
+"url": "https://people.math.harvard.edu/~ctm/home/text/others/shannon/entropy/entropy.pdf",
+"license": "public domain",
+"kind": "paper",
+"thinker_id": "349279ca-edd8-460b-a3b1-747d26876b4f"
+},
+{
+"slug": "hilbert",
+"title": "The Foundations of Geometry (trans. E.J. Townsend)",
+"year": 1902,
+"url": "https://math.berkeley.edu/~wodzicki/160/Hilbert.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "3bff9db3-b636-4d57-9822-db0ac9050b1d"
+},
+{
+"slug": "hilbert",
+"title": "The Foundations of Geometry (Project Gutenberg)",
+"year": 1902,
+"url": "https://www.gutenberg.org/files/17384/17384-pdf.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "3bff9db3-b636-4d57-9822-db0ac9050b1d"
+},
+{
+"slug": "witten",
+"title": "On Black Holes In String Theory",
+"year": 1991,
+"url": "https://arxiv.org/pdf/hep-th/9111052",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "5be6baad-8c05-4b89-885f-46bb4d8eb12f"
+},
+{
+"slug": "witten",
+"title": "Supersymmetric Index In Four-Dimensional Gauge Theories",
+"year": 2000,
+"url": "https://arxiv.org/pdf/hep-th/0006010",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "5be6baad-8c05-4b89-885f-46bb4d8eb12f"
+},
+{
+"slug": "witten",
+"title": "Quest For Unification",
+"year": 2002,
+"url": "https://arxiv.org/pdf/hep-ph/0207124",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "5be6baad-8c05-4b89-885f-46bb4d8eb12f"
+},
+{
+"slug": "witten",
+"title": "MHV Vertices And Tree Amplitudes In Gauge Theory",
+"year": 2004,
+"url": "https://arxiv.org/pdf/hep-th/0403047",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "5be6baad-8c05-4b89-885f-46bb4d8eb12f"
+},
+{
+"slug": "witten",
+"title": "Knot Invariants from Four-Dimensional Gauge Theory",
+"year": 2011,
+"url": "https://arxiv.org/pdf/1106.4789",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "5be6baad-8c05-4b89-885f-46bb4d8eb12f"
+},
+{
+"slug": "witten",
+"title": "Notes On Supermanifolds and Integration",
+"year": 2012,
+"url": "https://arxiv.org/pdf/1209.2199",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "5be6baad-8c05-4b89-885f-46bb4d8eb12f"
+},
+{
+"slug": "witten",
+"title": "Developments in Topological Gravity",
+"year": 2018,
+"url": "https://arxiv.org/pdf/1804.03275",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "5be6baad-8c05-4b89-885f-46bb4d8eb12f"
+},
+{
+"slug": "witten",
+"title": "Light Rays, Singularities, and All That",
+"year": 2019,
+"url": "https://arxiv.org/pdf/1901.03928",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "5be6baad-8c05-4b89-885f-46bb4d8eb12f"
+},
+{
+"slug": "witten",
+"title": "JT Gravity and the Ensembles of Random Matrix Theory",
+"year": 2019,
+"url": "https://arxiv.org/pdf/1907.03363",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "5be6baad-8c05-4b89-885f-46bb4d8eb12f"
+},
+{
+"slug": "witten",
+"title": "Gravity and the Crossed Product",
+"year": 2021,
+"url": "https://arxiv.org/pdf/2112.12828",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "5be6baad-8c05-4b89-885f-46bb4d8eb12f"
+},
+{
+"slug": "schrodinger",
+"title": "What is Life? The Physical Aspect of the Living Cell",
+"year": 1944,
+"url": "https://dlab.clemson.edu/Papers/11._Erwin_Schrodinger_-_What_is_Life__1944_.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "737b6d99-5f7c-4747-a836-5040aeb0e74d"
+},
+{
+"slug": "galois",
+"title": "Oeuvres mathématiques d'Évariste Galois (Project Gutenberg)",
+"year": 1897,
+"url": "https://www.gutenberg.org/files/40213/40213-pdf.pdf",
+"license": "public domain",
+"kind": "collected-works",
+"thinker_id": "71cc22c8-5221-422f-baac-1f9073a541a0"
+},
+{
+"slug": "galois",
+"title": "Oeuvres mathématiques d'Évariste Galois (Journal de mathématiques pures et appliquées)",
+"year": 1846,
+"url": "https://www.numdam.org/item/JMPA_1846_1_11__381_0.pdf",
+"license": "public domain",
+"kind": "collected-works",
+"thinker_id": "71cc22c8-5221-422f-baac-1f9073a541a0"
+},
+{
+"slug": "hardy",
+"title": "A Course of Pure Mathematics",
+"year": 1908,
+"url": "https://www.gutenberg.org/files/38769/38769-pdf.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "613f7e93-a6ae-444f-8bc9-178b9b037734"
+},
+{
+"slug": "hardy",
+"title": "A Mathematician's Apology (annotated)",
+"year": 1940,
+"url": "https://archive.org/download/hardy_annotated/hardy_annotated.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "613f7e93-a6ae-444f-8bc9-178b9b037734"
+},
+{
+"slug": "cantor",
+"title": "Contributions to the Founding of the Theory of Transfinite Numbers (trans. P.E.B. Jourdain)",
+"year": 1915,
+"url": "https://archive.org/download/contributionstof00cant/contributionstof00cant.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "9ed0bb0b-279b-4b3d-9462-abf5264ea261"
+},
+{
+"slug": "cantor",
+"title": "Contributions to the Founding of the Theory of Transfinite Numbers",
+"year": 1915,
+"url": "https://archive.org/download/contributionstot003626mbp/contributionstot003626mbp.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "9ed0bb0b-279b-4b3d-9462-abf5264ea261"
+},
+{
+"slug": "perelman",
+"title": "The entropy formula for the Ricci flow and its geometric applications",
+"year": 2002,
+"url": "https://arxiv.org/pdf/math/0211159",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "7f2b0efc-12cc-4a30-964f-8e74ae95b30e"
+},
+{
+"slug": "perelman",
+"title": "Ricci flow with surgery on three-manifolds",
+"year": 2003,
+"url": "https://arxiv.org/pdf/math/0303109",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "7f2b0efc-12cc-4a30-964f-8e74ae95b30e"
+},
+{
+"slug": "perelman",
+"title": "Finite extinction time for the solutions to the Ricci flow on certain three-manifolds",
+"year": 2003,
+"url": "https://arxiv.org/pdf/math/0307245",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "7f2b0efc-12cc-4a30-964f-8e74ae95b30e"
+},
+{
+"slug": "poincare",
+"title": "Science and Hypothesis",
+"year": 1905,
+"url": "https://www.gutenberg.org/files/37157/37157-pdf.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "0a5ece56-d755-4408-a20f-e5600374e8e5"
+},
+{
+"slug": "poincare",
+"title": "The Foundations of Science (Science and Hypothesis, The Value of Science, Science and Method)",
+"year": 1913,
+"url": "https://www.gutenberg.org/files/39713/39713-pdf.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "0a5ece56-d755-4408-a20f-e5600374e8e5"
+},
+{
+"slug": "newton",
+"title": "Philosophiae Naturalis Principia Mathematica (Latin)",
+"year": 1687,
+"url": "https://archive.org/download/philosophianatur00newt/philosophianatur00newt.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "cd92ac4f-58e5-41b3-a8a9-0b6aeb3b890a"
+},
+{
+"slug": "newton",
+"title": "Newton's Principia: The Mathematical Principles of Natural Philosophy (English translation)",
+"year": 1846,
+"url": "https://archive.org/download/newtonspmathema00newtrich/newtonspmathema00newtrich.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "cd92ac4f-58e5-41b3-a8a9-0b6aeb3b890a"
+},
+{
+"slug": "newton",
+"title": "Opticks: or, A Treatise of the Reflexions, Refractions, Inflexions and Colours of Light",
+"year": 1704,
+"url": "https://archive.org/download/opticksortreatis00newt/opticksortreatis00newt.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "cd92ac4f-58e5-41b3-a8a9-0b6aeb3b890a"
+},
+{
+"slug": "littlewood",
+"title": "A Mathematician's Miscellany",
+"year": 1953,
+"url": "https://bimsa.net/activity/MathematicalCommunication/files/Littlewood%20--%20Miscellany.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "8e6eb502-0ad7-4e2b-a06c-c6c0092b191e"
+},
+{
+"slug": "littlewood",
+"title": "Lectures on the Theory of Functions",
+"year": 1944,
+"url": "https://archive.org/download/in.ernet.dli.2015.205725/2015.205725.Lectures-In.pdf",
+"license": "unknown",
+"kind": "book",
+"thinker_id": "8e6eb502-0ad7-4e2b-a06c-c6c0092b191e"
+},
+{
+"slug": "maxwell",
+"title": "A Treatise on Electricity and Magnetism, Vol. 1",
+"year": 1873,
+"url": "https://archive.org/download/atreatiseonelec07maxwgoog/atreatiseonelec07maxwgoog.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "f018679f-a0af-4dfe-8b7b-6c79fd145bba"
+},
+{
+"slug": "maxwell",
+"title": "Theory of Heat",
+"year": 1871,
+"url": "https://archive.org/download/theoryofheat00maxwrich/theoryofheat00maxwrich.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "f018679f-a0af-4dfe-8b7b-6c79fd145bba"
+},
+{
+"slug": "maxwell",
+"title": "Matter and Motion",
+"year": 1876,
+"url": "https://archive.org/download/matterandmotion00maxwgoog/matterandmotion00maxwgoog.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "f018679f-a0af-4dfe-8b7b-6c79fd145bba"
+},
+{
+"slug": "von-neumann",
+"title": "Theory of Games and Economic Behavior (with Oskar Morgenstern)",
+"year": 1944,
+"url": "https://uvammm.github.io/docs/theoryofgames.pdf",
+"license": "unknown",
+"kind": "book",
+"thinker_id": "3668581a-07a5-4bde-9230-7d0437606a66"
+},
+{
+"slug": "von-neumann",
+"title": "First Draft of a Report on the EDVAC",
+"year": 1945,
+"url": "https://fab.cba.mit.edu/classes/862.16/notes/computation/vonNeumann-1945.pdf",
+"license": "public domain",
+"kind": "paper",
+"thinker_id": "3668581a-07a5-4bde-9230-7d0437606a66"
+},
+{
+"slug": "weierstrass",
+"title": "Mathematische Werke von Karl Weierstrass, Band 1",
+"year": 1894,
+"url": "https://archive.org/download/mathematischewer01weieuoft/mathematischewer01weieuoft.pdf",
+"license": "public domain",
+"kind": "collected-works",
+"thinker_id": "544420df-254a-42b7-91be-b0c60bb3d67a"
+},
+{
+"slug": "weierstrass",
+"title": "Mathematische Werke von Karl Weierstrass, Band 2",
+"year": 1895,
+"url": "https://archive.org/download/mathematischewer02weieuoft/mathematischewer02weieuoft.pdf",
+"license": "public domain",
+"kind": "collected-works",
+"thinker_id": "544420df-254a-42b7-91be-b0c60bb3d67a"
+},
+{
+"slug": "weierstrass",
+"title": "Abhandlungen aus der Functionenlehre",
+"year": 1886,
+"url": "https://archive.org/download/abhandlungenausd00weieuoft/abhandlungenausd00weieuoft.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "544420df-254a-42b7-91be-b0c60bb3d67a"
+},
+{
+"slug": "godel",
+"title": "On Formally Undecidable Propositions of Principia Mathematica and Related Systems (English translation)",
+"year": 1931,
+"url": "https://homepages.uc.edu/~martinj/History_of_Logic/Godel/Godel%20%E2%80%93%20On%20Formally%20Undecidable%20Propositions%20of%20Principia%20Mathematica%201931.pdf",
+"license": "public domain",
+"kind": "paper",
+"thinker_id": "6ff4497e-4b41-4ba3-abe5-da546bd2d5f8"
+},
+{
+"slug": "godel",
+"title": "The Consistency of the Continuum Hypothesis",
+"year": 1940,
+"url": "https://archive.org/download/dli.ernet.469738/469738-The%20Consistency%20Of%20The%20Continuum%20Hyothesis.pdf",
+"license": "unknown",
+"kind": "book",
+"thinker_id": "6ff4497e-4b41-4ba3-abe5-da546bd2d5f8"
+},
+{
+"slug": "de-moura",
+"title": "Z3: An Efficient SMT Solver (with Nikolaj Bjørner)",
+"year": 2008,
+"url": "https://link.springer.com/content/pdf/10.1007/978-3-540-78800-3_24.pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "b268e159-95ec-4ed2-8add-5a4e74e5b856"
+},
+{
+"slug": "de-moura",
+"title": "The Lean Theorem Prover (System Description)",
+"year": 2015,
+"url": "https://leodemoura.github.io/files/lean_cade25.pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "b268e159-95ec-4ed2-8add-5a4e74e5b856"
+},
+{
+"slug": "de-moura",
+"title": "Efficient E-matching for SMT Solvers",
+"year": 2007,
+"url": "https://leodemoura.github.io/files/ematching.pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "b268e159-95ec-4ed2-8add-5a4e74e5b856"
+},
+{
+"slug": "de-moura",
+"title": "The Lean 4 Theorem Prover and Programming Language",
+"year": 2021,
+"url": "https://lean-lang.org/papers/lean4.pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "b268e159-95ec-4ed2-8add-5a4e74e5b856"
+},
+{
+"slug": "de-moura",
+"title": "'do' Unchained: Embracing Local Imperativity in a Purely Functional Language",
+"year": 2022,
+"url": "https://lean-lang.org/papers/do.pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "b268e159-95ec-4ed2-8add-5a4e74e5b856"
+},
+{
+"slug": "de-moura",
+"title": "Congruence Closure in Intensional Type Theory",
+"year": 2016,
+"url": "https://lean-lang.org/papers/congr.pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "b268e159-95ec-4ed2-8add-5a4e74e5b856"
+},
+{
+"slug": "euler",
+"title": "Introductio in analysin infinitorum",
+"year": 1748,
+"url": "https://archive.org/download/bub_gb_jQ1bAAAAQAAJ/bub_gb_jQ1bAAAAQAAJ.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "bce43977-8908-4f6b-9273-93b74338e6f4"
+},
+{
+"slug": "euler",
+"title": "Institutiones calculi differentialis",
+"year": 1755,
+"url": "https://archive.org/download/institutionesca00eulegoog/institutionesca00eulegoog.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "bce43977-8908-4f6b-9273-93b74338e6f4"
+},
+{
+"slug": "euler",
+"title": "Institutiones calculi integralis",
+"year": 1768,
+"url": "https://archive.org/download/institutionescal020326mbp/institutionescal020326mbp.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "bce43977-8908-4f6b-9273-93b74338e6f4"
+},
+{
+"slug": "born",
+"title": "The Restless Universe",
+"year": 1935,
+"url": "https://archive.org/download/in.ernet.dli.2015.222004/2015.222004.The-Restless.pdf",
+"license": "unknown",
+"kind": "book",
+"thinker_id": "ee45963b-0af7-4cef-abda-8f7459bb4b89"
+},
+{
+"slug": "born",
+"title": "Einstein's Theory of Relativity",
+"year": 1924,
+"url": "https://archive.org/download/einsteinstheoryo00born/einsteinstheoryo00born.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "ee45963b-0af7-4cef-abda-8f7459bb4b89"
+},
+{
+"slug": "planck",
+"title": "Eight Lectures on Theoretical Physics (Columbia University, 1909)",
+"year": 1915,
+"url": "https://archive.org/download/eightlecturesont00planuoft/eightlecturesont00planuoft.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "a1179564-e77d-4183-98d0-d5414b4c3888"
+},
+{
+"slug": "planck",
+"title": "The Theory of Heat Radiation",
+"year": 1914,
+"url": "https://archive.org/download/theheatradiation00planrich/theheatradiation00planrich.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "a1179564-e77d-4183-98d0-d5414b4c3888"
+},
+{
+"slug": "planck",
+"title": "Vorlesungen über die Theorie der Wärmestrahlung",
+"year": 1913,
+"url": "https://archive.org/download/bub_gb_k21KAAAAMAAJ/bub_gb_k21KAAAAMAAJ.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "a1179564-e77d-4183-98d0-d5414b4c3888"
+},
+{
+"slug": "planck",
+"title": "Vorlesungen über die Theorie der Wärmestrahlung (1st ed.)",
+"year": 1906,
+"url": "https://archive.org/download/vorlesungenberd03plangoog/vorlesungenberd03plangoog.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "a1179564-e77d-4183-98d0-d5414b4c3888"
+},
+{
+"slug": "planck",
+"title": "Das Wesen des Lichts",
+"year": 1920,
+"url": "https://archive.org/download/daswesendeslich00plangoog/daswesendeslich00plangoog.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "a1179564-e77d-4183-98d0-d5414b4c3888"
+},
+{
+"slug": "planck",
+"title": "Treatise on Thermodynamics",
+"year": 1927,
+"url": "https://archive.org/download/treatise-on-thermodynamics-max-planck-1927-london-logmans/Treatise%20on%20thermodynamics%2C%20Max%20Planck%2C%201927%2C%20London%2C%20Logmans.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "a1179564-e77d-4183-98d0-d5414b4c3888"
+},
+{
+"slug": "planck",
+"title": "Where Is Science Going?",
+"year": 1933,
+"url": "https://archive.org/download/dli.ministry.24615/E03722_Where_Is_Science_Going.pdf",
+"license": "unknown",
+"kind": "book",
+"thinker_id": "a1179564-e77d-4183-98d0-d5414b4c3888"
+},
+{
+"slug": "atiyah",
+"title": "An M-theory Flop as a Large N Duality",
+"year": 2000,
+"url": "https://arxiv.org/pdf/hep-th/0011256",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "99b36a54-0537-437e-a69d-5cb0540c3ef3"
+},
+{
+"slug": "atiyah",
+"title": "Complex Geometry of Nuclei and Atoms",
+"year": 2016,
+"url": "https://arxiv.org/pdf/1609.02816",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "99b36a54-0537-437e-a69d-5cb0540c3ef3"
+},
+{
+"slug": "bohr",
+"title": "On the Quantum Theory of Line-Spectra",
+"year": 1918,
+"url": "https://archive.org/download/onquantumtheoryo01bohruoft/onquantumtheoryo01bohruoft.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "0e692121-4b4d-4b65-9e2c-adaf9016a962"
+},
+{
+"slug": "bohr",
+"title": "The Theory of Spectra and Atomic Constitution: Three Essays",
+"year": 1922,
+"url": "https://archive.org/download/theoryofspectraa00bohr/theoryofspectraa00bohr.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "0e692121-4b4d-4b65-9e2c-adaf9016a962"
+},
+{
+"slug": "abel",
+"title": "Œuvres complètes de N. H. Abel, tome 1 (1839 ed.)",
+"year": 1839,
+"url": "https://archive.org/download/oeuvrescomplte01abel/oeuvrescomplte01abel.pdf",
+"license": "public domain",
+"kind": "collected-works",
+"thinker_id": "8c9a3923-4ec1-423b-9786-a89ebc83d4d4"
+},
+{
+"slug": "abel",
+"title": "Œuvres complètes de N. H. Abel, tome 2 (1839 ed.)",
+"year": 1839,
+"url": "https://archive.org/download/oeuvrescomplte02abel/oeuvrescomplte02abel.pdf",
+"license": "public domain",
+"kind": "collected-works",
+"thinker_id": "8c9a3923-4ec1-423b-9786-a89ebc83d4d4"
+},
+{
+"slug": "abel",
+"title": "Œuvres complètes de Niels Henrik Abel (1881 ed., vols. 1 & 2)",
+"year": 1881,
+"url": "https://archive.org/download/OEuvresCompletesDeNielsHenrikAbel1881_12/OEuvres_Completes_de_Niels_Henrik_Abel.pdf",
+"license": "public domain",
+"kind": "collected-works",
+"thinker_id": "8c9a3923-4ec1-423b-9786-a89ebc83d4d4"
+},
+{
+"slug": "abel",
+"title": "Untersuchungen über die Reihe 1 + (m/1)x + … (Ostwald's Klassiker)",
+"year": 1895,
+"url": "https://archive.org/download/untersuchungenb01abelgoog/untersuchungenb01abelgoog.pdf",
+"license": "public domain",
+"kind": "paper",
+"thinker_id": "8c9a3923-4ec1-423b-9786-a89ebc83d4d4"
+},
+{
+"slug": "abel",
+"title": "Abhandlungen über die algebraische Auflösung der Gleichungen (Abel & Galois)",
+"year": 1889,
+"url": "https://archive.org/download/abhandlungenalge00abelrich/abhandlungenalge00abelrich.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "8c9a3923-4ec1-423b-9786-a89ebc83d4d4"
+},
+{
+"slug": "dirac",
+"title": "The Principles of Quantum Mechanics",
+"year": 1930,
+"url": "https://archive.org/download/dli.ernet.212159/212159-The%20Principals%20Of%20Quantum%20Mechanics.pdf",
+"license": "unknown",
+"kind": "book",
+"thinker_id": "d367d6fc-8ab8-428d-bd13-e76f04283635"
+},
+{
+"slug": "erdos",
+"title": "Beweis eines Satzes von Tschebyschef (proof of Bertrand's postulate)",
+"year": 1932,
+"url": "https://users.renyi.hu/~p_erdos/1932-01.pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "c08da5db-4f6f-42d0-98b3-d47b3cc999e3"
+},
+{
+"slug": "erdos",
+"title": "A Theorem of Sylvester and Schur",
+"year": 1934,
+"url": "https://users.renyi.hu/~p_erdos/1934-01.pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "c08da5db-4f6f-42d0-98b3-d47b3cc999e3"
+},
+{
+"slug": "erdos",
+"title": "A Combinatorial Problem in Geometry (Erdős–Szekeres)",
+"year": 1935,
+"url": "https://users.renyi.hu/~p_erdos/1935-01.pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "c08da5db-4f6f-42d0-98b3-d47b3cc999e3"
+},
+{
+"slug": "erdos",
+"title": "On Interpolation, III (Erdős–Turán)",
+"year": 1940,
+"url": "https://users.renyi.hu/~p_erdos/1940-05.pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "c08da5db-4f6f-42d0-98b3-d47b3cc999e3"
+},
+{
+"slug": "erdos",
+"title": "A Combinatorial Theorem (Erdős–Rado)",
+"year": 1950,
+"url": "https://users.renyi.hu/~p_erdos/1950-01.pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "c08da5db-4f6f-42d0-98b3-d47b3cc999e3"
+},
+{
+"slug": "erdos",
+"title": "A Partition Calculus in Set Theory (Erdős–Rado)",
+"year": 1956,
+"url": "https://users.renyi.hu/~p_erdos/1956-02.pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "c08da5db-4f6f-42d0-98b3-d47b3cc999e3"
+},
+{
+"slug": "erdos",
+"title": "On Random Graphs, I (Erdős–Rényi)",
+"year": 1959,
+"url": "https://users.renyi.hu/~p_erdos/1959-11.pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "c08da5db-4f6f-42d0-98b3-d47b3cc999e3"
+},
+{
+"slug": "erdos",
+"title": "On the Evolution of Random Graphs (Erdős–Rényi)",
+"year": 1960,
+"url": "https://users.renyi.hu/~p_erdos/1960-10.pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "c08da5db-4f6f-42d0-98b3-d47b3cc999e3"
+},
+{
+"slug": "erdos",
+"title": "Extremal Problems in Graph Theory",
+"year": 1964,
+"url": "https://users.renyi.hu/~p_erdos/1964-06.pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "c08da5db-4f6f-42d0-98b3-d47b3cc999e3"
+},
+{
+"slug": "dirichlet",
+"title": "Vorlesungen über Zahlentheorie (ed. Dedekind)",
+"year": 1871,
+"url": "https://archive.org/download/vorluberzahlenth00diririch/vorluberzahlenth00diririch.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "9b6adc61-0880-4b49-81b2-3860a083da03"
+},
+{
+"slug": "dirichlet",
+"title": "Untersuchungen über verschiedene Anwendungen der Infinitesimalanalysis auf die Zahlentheorie",
+"year": 1897,
+"url": "https://archive.org/download/untersuchungenb00dirigoog/untersuchungenb00dirigoog.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "9b6adc61-0880-4b49-81b2-3860a083da03"
+},
+{
+"slug": "dirichlet",
+"title": "Vorlesungen über die Lehre von den einfachen und mehrfachen bestimmten Integralen",
+"year": 1904,
+"url": "https://archive.org/download/glejeunedirichl02dirigoog/glejeunedirichl02dirigoog.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "9b6adc61-0880-4b49-81b2-3860a083da03"
+},
+{
+"slug": "dirichlet",
+"title": "Die Darstellung ganz willkürlicher Functionen durch Sinus- und Cosinusreihen (Ostwald's Klassiker)",
+"year": 1900,
+"url": "https://archive.org/download/diedarstellungga00liebuoft/diedarstellungga00liebuoft.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "9b6adc61-0880-4b49-81b2-3860a083da03"
+},
+{
+"slug": "scholze",
+"title": "Perfectoid Spaces",
+"year": 2011,
+"url": "https://arxiv.org/pdf/1111.4914",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "e8238551-e486-4b8c-b202-241c2ce18b2d"
+},
+{
+"slug": "scholze",
+"title": "p-adic Hodge Theory for Rigid-Analytic Varieties",
+"year": 2012,
+"url": "https://arxiv.org/pdf/1205.3463",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "e8238551-e486-4b8c-b202-241c2ce18b2d"
+},
+{
+"slug": "scholze",
+"title": "Moduli of p-divisible Groups (Scholze–Weinstein)",
+"year": 2012,
+"url": "https://arxiv.org/pdf/1211.6357",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "e8238551-e486-4b8c-b202-241c2ce18b2d"
+},
+{
+"slug": "scholze",
+"title": "On Torsion in the Cohomology of Locally Symmetric Varieties",
+"year": 2013,
+"url": "https://arxiv.org/pdf/1306.2070",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "e8238551-e486-4b8c-b202-241c2ce18b2d"
+},
+{
+"slug": "scholze",
+"title": "Canonical q-deformations in Arithmetic Geometry",
+"year": 2016,
+"url": "https://arxiv.org/pdf/1606.01796",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "e8238551-e486-4b8c-b202-241c2ce18b2d"
+},
+{
+"slug": "scholze",
+"title": "Étale Cohomology of Diamonds",
+"year": 2017,
+"url": "https://arxiv.org/pdf/1709.07343",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "e8238551-e486-4b8c-b202-241c2ce18b2d"
+},
+{
+"slug": "scholze",
+"title": "p-adic Geometry (ICM 2018 report)",
+"year": 2017,
+"url": "https://arxiv.org/pdf/1712.03708",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "e8238551-e486-4b8c-b202-241c2ce18b2d"
+},
+{
+"slug": "scholze",
+"title": "Topological Hochschild Homology and Integral p-adic Hodge Theory",
+"year": 2018,
+"url": "https://arxiv.org/pdf/1802.03261",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "e8238551-e486-4b8c-b202-241c2ce18b2d"
+},
+{
+"slug": "scholze",
+"title": "Prisms and Prismatic Cohomology (Bhatt–Scholze)",
+"year": 2019,
+"url": "https://arxiv.org/pdf/1905.08229",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "e8238551-e486-4b8c-b202-241c2ce18b2d"
+},
+{
+"slug": "scholze",
+"title": "Geometrization of the Local Langlands Correspondence (Fargues–Scholze)",
+"year": 2021,
+"url": "https://arxiv.org/pdf/2102.13459",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "e8238551-e486-4b8c-b202-241c2ce18b2d"
+},
+{
+"slug": "shor",
+"title": "Polynomial-Time Algorithms for Prime Factorization and Discrete Logarithms on a Quantum Computer",
+"year": 1995,
+"url": "https://arxiv.org/pdf/quant-ph/9508027",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "d8814c66-01f2-4b0d-ae69-e72a7c098fd5"
+},
+{
+"slug": "shor",
+"title": "Elementary Gates for Quantum Computation",
+"year": 1995,
+"url": "https://arxiv.org/pdf/quant-ph/9503016",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "d8814c66-01f2-4b0d-ae69-e72a7c098fd5"
+},
+{
+"slug": "shor",
+"title": "Quantum Error Correction and Orthogonal Geometry",
+"year": 1996,
+"url": "https://arxiv.org/pdf/quant-ph/9605005",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "d8814c66-01f2-4b0d-ae69-e72a7c098fd5"
+},
+{
+"slug": "shor",
+"title": "Quantum Error Correction via Codes over GF(4)",
+"year": 1996,
+"url": "https://arxiv.org/pdf/quant-ph/9608006",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "d8814c66-01f2-4b0d-ae69-e72a7c098fd5"
+},
+{
+"slug": "shor",
+"title": "Unextendible Product Bases and Bound Entanglement",
+"year": 1998,
+"url": "https://arxiv.org/pdf/quant-ph/9808030",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "d8814c66-01f2-4b0d-ae69-e72a7c098fd5"
+},
+{
+"slug": "shor",
+"title": "Simple Proof of Security of the BB84 Quantum Key Distribution Protocol",
+"year": 2000,
+"url": "https://arxiv.org/pdf/quant-ph/0003004",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "d8814c66-01f2-4b0d-ae69-e72a7c098fd5"
+},
+{
+"slug": "shor",
+"title": "Entanglement-Assisted Capacity of a Quantum Channel and the Reverse Shannon Theorem",
+"year": 2001,
+"url": "https://arxiv.org/pdf/quant-ph/0106052",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "d8814c66-01f2-4b0d-ae69-e72a7c098fd5"
+},
+{
+"slug": "shor",
+"title": "General Entanglement Breaking Channels",
+"year": 2003,
+"url": "https://arxiv.org/pdf/quant-ph/0302031",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "d8814c66-01f2-4b0d-ae69-e72a7c098fd5"
+},
+{
+"slug": "shor",
+"title": "Capacities of Quantum Channels and How to Find Them",
+"year": 2003,
+"url": "https://arxiv.org/pdf/quant-ph/0304102",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "d8814c66-01f2-4b0d-ae69-e72a7c098fd5"
+},
+{
+"slug": "shor",
+"title": "The Capacity of a Quantum Channel for Simultaneous Transmission of Classical and Quantum Information",
+"year": 2003,
+"url": "https://arxiv.org/pdf/quant-ph/0311131",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "d8814c66-01f2-4b0d-ae69-e72a7c098fd5"
+},
+{
+"slug": "deligne",
+"title": "Arithmetic monodromy actions on pro-metabelian fundamental groups of once-punctured elliptic curves",
+"year": 2017,
+"url": "https://arxiv.org/pdf/1710.05532",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "0daea441-7833-4d51-bba5-307c12c19cd0"
+},
+{
+"slug": "deligne",
+"title": "On the Locus of Hodge Classes",
+"year": 1994,
+"url": "https://arxiv.org/pdf/alg-geom/9402009",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "0daea441-7833-4d51-bba5-307c12c19cd0"
+},
+{
+"slug": "deligne",
+"title": "Motives, Periods, and Functoriality",
+"year": 2024,
+"url": "https://arxiv.org/pdf/2403.03342",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "0daea441-7833-4d51-bba5-307c12c19cd0"
+},
+{
+"slug": "deligne",
+"title": "On the K(pi,1)-problem for restrictions of complex reflection arrangements",
+"year": 2017,
+"url": "https://arxiv.org/pdf/1708.05452",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "0daea441-7833-4d51-bba5-307c12c19cd0"
+},
+{
+"slug": "deligne",
+"title": "Supersolutions",
+"year": 1999,
+"url": "https://arxiv.org/pdf/hep-th/9901094",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "0daea441-7833-4d51-bba5-307c12c19cd0"
+},
+{
+"slug": "deligne",
+"title": "Appendix to Deligne's integrality theorem in unequal characteristic and rational points over finite fields",
+"year": 2004,
+"url": "https://arxiv.org/pdf/math/0409286",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "0daea441-7833-4d51-bba5-307c12c19cd0"
+},
+{
+"slug": "deligne",
+"title": "The first fundamental theorem of invariant theory for the orthosymplectic super group",
+"year": 2015,
+"url": "https://arxiv.org/pdf/1508.04202",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "0daea441-7833-4d51-bba5-307c12c19cd0"
+},
+{
+"slug": "feynman",
+"title": "There's Plenty of Room at the Bottom",
+"year": 1960,
+"url": "https://calteches.library.caltech.edu/47/2/1960Bottom.pdf",
+"license": "unknown",
+"kind": "paper",
+"thinker_id": "86e6d561-1dfe-4620-98ed-cc447a51b08d"
+},
+{
+"slug": "feynman",
+"title": "Simulating Physics with Computers",
+"year": 1982,
+"url": "https://www.cs.princeton.edu/courses/archive/fall04/cos576/papers/feynman82/feynman82.pdf",
+"license": "unknown",
+"kind": "paper",
+"thinker_id": "86e6d561-1dfe-4620-98ed-cc447a51b08d"
+},
+{
+"slug": "langlands",
+"title": "Formule des Traces et Fonctorialite: le Debut d'un Programme",
+"year": 2010,
+"url": "https://arxiv.org/pdf/1003.4578",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "34a2094a-38ad-470d-bcdc-dc620f97e9ef"
+},
+{
+"slug": "langlands",
+"title": "Conformal invariance in two-dimensional percolation",
+"year": 1994,
+"url": "https://arxiv.org/pdf/math/9401222",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "34a2094a-38ad-470d-bcdc-dc620f97e9ef"
+},
+{
+"slug": "langlands",
+"title": "Shimura varieties and gerbes",
+"year": 2025,
+"url": "https://arxiv.org/pdf/2504.18119",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "34a2094a-38ad-470d-bcdc-dc620f97e9ef"
+},
+{
+"slug": "langlands",
+"title": "Universality and conformal invariance for the Ising model in domains with boundary",
+"year": 1999,
+"url": "https://arxiv.org/pdf/hep-th/9904088",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "34a2094a-38ad-470d-bcdc-dc620f97e9ef"
+},
+{
+"slug": "penrose",
+"title": "Correlated 'noise' in LIGO gravitational wave signals: an implication of Conformal Cyclic Cosmology",
+"year": 2017,
+"url": "https://arxiv.org/pdf/1707.04169",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "cd813d88-bc76-47c1-adda-b5131418f1bb"
+},
+{
+"slug": "penrose",
+"title": "Quantum state reduction, and Newtonian twistor theory",
+"year": 2022,
+"url": "https://arxiv.org/pdf/2203.08567",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "cd813d88-bc76-47c1-adda-b5131418f1bb"
+},
+{
+"slug": "penrose",
+"title": "Drawing with Complex Numbers",
+"year": 2000,
+"url": "https://arxiv.org/pdf/math/0001097",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "cd813d88-bc76-47c1-adda-b5131418f1bb"
+},
+{
+"slug": "penrose",
+"title": "Towards quantum superpositions of a mirror",
+"year": 2002,
+"url": "https://arxiv.org/pdf/quant-ph/0210001",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "cd813d88-bc76-47c1-adda-b5131418f1bb"
+},
+{
+"slug": "penrose",
+"title": "Gluing Noncommutative Twistor Spaces",
+"year": 2020,
+"url": "https://arxiv.org/pdf/2012.02823",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "cd813d88-bc76-47c1-adda-b5131418f1bb"
+},
+{
+"slug": "penrose",
+"title": "The Physics of Conformal Cyclic Cosmology",
+"year": 2025,
+"url": "https://arxiv.org/pdf/2503.24263",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "cd813d88-bc76-47c1-adda-b5131418f1bb"
+},
+{
+"slug": "penrose",
+"title": "Exploring the unification of quantum theory and general relativity with a Bose-Einstein condensate",
+"year": 2018,
+"url": "https://arxiv.org/pdf/1812.04630",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "cd813d88-bc76-47c1-adda-b5131418f1bb"
+},
+{
+"slug": "penrose",
+"title": "Foreword: A Computable Universe, Understanding Computation and Exploring Nature As Computation",
+"year": 2012,
+"url": "https://arxiv.org/pdf/1205.5823",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "cd813d88-bc76-47c1-adda-b5131418f1bb"
+},
+{
+"slug": "penrose",
+"title": "Apparent evidence for Hawking points in the CMB Sky",
+"year": 2018,
+"url": "https://arxiv.org/pdf/1808.01740",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "cd813d88-bc76-47c1-adda-b5131418f1bb"
+},
+{
+"slug": "penrose",
+"title": "On the quadratic invariant of binary sextics",
+"year": 2015,
+"url": "https://arxiv.org/pdf/1504.07998",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "cd813d88-bc76-47c1-adda-b5131418f1bb"
+},
+{
+"slug": "ramanujan",
+"title": "Collected Papers of Srinivasa Ramanujan",
+"year": 1927,
+"url": "https://archive.org/download/pli.kerala.rare.28155/pli.kerala.rare.28155.pdf",
+"license": "public domain",
+"kind": "collected-works",
+"thinker_id": "361b2278-3ddf-4143-8a10-84eabb1af6f3"
+},
+{
+"slug": "ramanujan",
+"title": "Notebooks of Srinivasa Ramanujan, Volume I (Tata Institute of Fundamental Research facsimile)",
+"year": 1957,
+"url": "https://archive.org/download/tdkg_notebooks-of-srinivasa-ramanujan-volume-i-by-srinivasa-ramanujan-editor-k-c/Notebooks%20Of%20Srinivasa%20Ramanujan%20Volume%20I%20By%20Srinivasa%20Ramanujan%20Editor%20K%20Chandrasekharan%20Mathematics%20Illustrated%20Bombay%201957%20-%20Tata%20Institute%20Of%20Fundamental%20Research.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "361b2278-3ddf-4143-8a10-84eabb1af6f3"
+},
+{
+"slug": "ramanujan",
+"title": "Ramanujan: Unpublished Notebooks and the Lost Notebook (Volume 1)",
+"year": null,
+"url": "https://archive.org/download/ramanujan-unpublished-notebooks-and-lost-notebook/01.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "361b2278-3ddf-4143-8a10-84eabb1af6f3"
+},
+{
+"slug": "hawking",
+"title": "Evaporation of Two Dimensional Black Holes",
+"year": 1992,
+"url": "https://arxiv.org/pdf/hep-th/9203052",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "9cf4540f-db12-4709-87f5-32b7376f7018"
+},
+{
+"slug": "hawking",
+"title": "The Nature of Space and Time",
+"year": 1994,
+"url": "https://arxiv.org/pdf/hep-th/9409195",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "9cf4540f-db12-4709-87f5-32b7376f7018"
+},
+{
+"slug": "hawking",
+"title": "Information Preservation and Weather Forecasting for Black Holes",
+"year": 2014,
+"url": "https://arxiv.org/pdf/1401.5761",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "9cf4540f-db12-4709-87f5-32b7376f7018"
+},
+{
+"slug": "hawking",
+"title": "Information Loss in Black Holes",
+"year": 2005,
+"url": "https://arxiv.org/pdf/hep-th/0507171",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "9cf4540f-db12-4709-87f5-32b7376f7018"
+},
+{
+"slug": "hawking",
+"title": "Quantum Coherence and Closed Timelike Curves",
+"year": 1995,
+"url": "https://arxiv.org/pdf/gr-qc/9502017",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "9cf4540f-db12-4709-87f5-32b7376f7018"
+},
+{
+"slug": "hawking",
+"title": "The Information Paradox for Black Holes",
+"year": 2015,
+"url": "https://arxiv.org/pdf/1509.01147",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "9cf4540f-db12-4709-87f5-32b7376f7018"
+},
+{
+"slug": "hawking",
+"title": "The Superscattering Matrix for Two Dimensional Black Holes",
+"year": 1994,
+"url": "https://arxiv.org/pdf/hep-th/9401109",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "9cf4540f-db12-4709-87f5-32b7376f7018"
+},
+{
+"slug": "hawking",
+"title": "The Origin of Time Asymmetry",
+"year": 1993,
+"url": "https://arxiv.org/pdf/gr-qc/9301017",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "9cf4540f-db12-4709-87f5-32b7376f7018"
+},
+{
+"slug": "hawking",
+"title": "A Smooth Exit from Eternal Inflation?",
+"year": 2017,
+"url": "https://arxiv.org/pdf/1707.07702",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "9cf4540f-db12-4709-87f5-32b7376f7018"
+},
+{
+"slug": "hawking",
+"title": "The No-Boundary Measure of the Universe",
+"year": 2007,
+"url": "https://arxiv.org/pdf/0711.4630",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "9cf4540f-db12-4709-87f5-32b7376f7018"
+},
+{
+"slug": "tao",
+"title": "The primes contain arbitrarily long arithmetic progressions",
+"year": 2004,
+"url": "https://arxiv.org/pdf/math/0404188",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "c0847b1d-234d-47dd-8067-34c64212d67a"
+},
+{
+"slug": "tao",
+"title": "Commutators close to the identity",
+"year": 2018,
+"url": "https://arxiv.org/pdf/1805.11131",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "c0847b1d-234d-47dd-8067-34c64212d67a"
+},
+{
+"slug": "tao",
+"title": "Narrow progressions in the primes",
+"year": 2014,
+"url": "https://arxiv.org/pdf/1409.1327",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "c0847b1d-234d-47dd-8067-34c64212d67a"
+},
+{
+"slug": "tao",
+"title": "The structure of logarithmically averaged correlations of multiplicative functions, with applications to the Chowla and Elliott conjectures",
+"year": 2017,
+"url": "https://arxiv.org/pdf/1708.02610",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "c0847b1d-234d-47dd-8067-34c64212d67a"
+},
+{
+"slug": "tao",
+"title": "Odd order cases of the logarithmically averaged Chowla conjecture",
+"year": 2017,
+"url": "https://arxiv.org/pdf/1710.02112",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "c0847b1d-234d-47dd-8067-34c64212d67a"
+},
+{
+"slug": "tao",
+"title": "A singularity removal theorem for Yang-Mills fields in higher dimensions",
+"year": 2002,
+"url": "https://arxiv.org/pdf/math/0209352",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "c0847b1d-234d-47dd-8067-34c64212d67a"
+},
+{
+"slug": "tao",
+"title": "Endpoint bilinear restriction theorems for the cone, and some sharp null form estimates",
+"year": 1999,
+"url": "https://arxiv.org/pdf/math/9909066",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "c0847b1d-234d-47dd-8067-34c64212d67a"
+},
+{
+"slug": "tao",
+"title": "Recent progress on the restriction conjecture",
+"year": 2003,
+"url": "https://arxiv.org/pdf/math/0311181",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "c0847b1d-234d-47dd-8067-34c64212d67a"
+},
+{
+"slug": "tao",
+"title": "Sharp bounds for multilinear curved Kakeya, restriction and oscillatory integral estimates away from the endpoint",
+"year": 2019,
+"url": "https://arxiv.org/pdf/1907.11342",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "c0847b1d-234d-47dd-8067-34c64212d67a"
+},
+{
+"slug": "tao",
+"title": "On random plus/minus 1 matrices: Singularity and Determinant",
+"year": 2004,
+"url": "https://arxiv.org/pdf/math/0411095",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "c0847b1d-234d-47dd-8067-34c64212d67a"
+},
+{
+"slug": "heisenberg",
+"title": "The Development of Quantum Mechanics (Nobel Lecture)",
+"year": 1933,
+"url": "https://www.nobelprize.org/uploads/2018/06/heisenberg-lecture.pdf",
+"license": "unknown",
+"kind": "paper",
+"thinker_id": "019190e6-882a-4467-8835-76706df70395"
+},
+{
+"slug": "heisenberg",
+"title": "The Physical Principles of the Quantum Theory",
+"year": 1930,
+"url": "https://archive.org/download/the-physical-principles-of-the-quantum-theory-1930-werner-heisenberg/The%20Physical%20Principles%20of%20the%20Quantum%20Theory%201930%20-%20Heisenberg%20W..pdf",
+"license": "unknown",
+"kind": "book",
+"thinker_id": "019190e6-882a-4467-8835-76706df70395"
+},
+{
+"slug": "pauli",
+"title": "Exclusion Principle and Quantum Mechanics (Nobel Lecture)",
+"year": 1946,
+"url": "https://www.nobelprize.org/uploads/2018/06/pauli-lecture.pdf",
+"license": "unknown",
+"kind": "paper",
+"thinker_id": "2c51e4ad-9e14-43d5-90ba-176be8cc3bd4"
+},
+{
+"slug": "pauli",
+"title": "Theory of Relativity",
+"year": 1958,
+"url": "https://archive.org/download/theory-of-relativity-wolfgang-pauli/Theory%20of%20relativity%20-%20Pauli%2C%20Wolfgang%2C%201900-1958.pdf",
+"license": "unknown",
+"kind": "book",
+"thinker_id": "2c51e4ad-9e14-43d5-90ba-176be8cc3bd4"
+},
+{
+"slug": "whitehead",
+"title": "A Treatise on Universal Algebra, with Applications",
+"year": 1898,
+"url": "https://archive.org/download/treatiseonuniver00anwh_859/treatiseonuniver00anwh_859.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "1c374264-3057-4449-a99c-8bf18600b651"
+},
+{
+"slug": "whitehead",
+"title": "An Introduction to Mathematics",
+"year": 1911,
+"url": "https://archive.org/download/introductiontoma00whituoft/introductiontoma00whituoft.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "1c374264-3057-4449-a99c-8bf18600b651"
+},
+{
+"slug": "whitehead",
+"title": "Principia Mathematica, Vol. 1 (with B. Russell)",
+"year": 1910,
+"url": "https://archive.org/download/principiamathema01anwh/principiamathema01anwh.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "1c374264-3057-4449-a99c-8bf18600b651"
+},
+{
+"slug": "whitehead",
+"title": "Principia Mathematica, Vol. 2 (with B. Russell)",
+"year": 1912,
+"url": "https://archive.org/download/PrincipiaMathematicaVol2/AlfredNorthWhiteheadBertrandRussell-PrincipiaMathematicaVol2.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "1c374264-3057-4449-a99c-8bf18600b651"
+},
+{
+"slug": "whitehead",
+"title": "Principia Mathematica, Vol. 3 (with B. Russell)",
+"year": 1913,
+"url": "https://archive.org/download/PrincipiaMathematicaVol3/AlfredNorthWhiteheadBertrandRussell-PrincipiaMathematicaVol3.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "1c374264-3057-4449-a99c-8bf18600b651"
+},
+{
+"slug": "tarski",
+"title": "A Decision Method for Elementary Algebra and Geometry (RAND R-109)",
+"year": 1948,
+"url": "https://www.rand.org/content/dam/rand/pubs/reports/2008/R109.pdf",
+"license": "open access",
+"kind": "book",
+"thinker_id": "6a75f72a-95be-4071-9ba3-145e41719887"
+},
+{
+"slug": "russell",
+"title": "The Principles of Mathematics, Vol. I",
+"year": 1903,
+"url": "https://archive.org/download/principlesmathe00russgoog/principlesmathe00russgoog.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "5e738851-05c7-47e6-b7f6-90bb5fa4e362"
+},
+{
+"slug": "russell",
+"title": "Introduction to Mathematical Philosophy",
+"year": 1919,
+"url": "https://archive.org/download/cu31924001598188/cu31924001598188.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "5e738851-05c7-47e6-b7f6-90bb5fa4e362"
+},
+{
+"slug": "russell",
+"title": "Our Knowledge of the External World",
+"year": 1914,
+"url": "https://archive.org/download/cu31924093827008/cu31924093827008.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "5e738851-05c7-47e6-b7f6-90bb5fa4e362"
+},
+{
+"slug": "russell",
+"title": "Principia Mathematica, Vol. 1 (with A. N. Whitehead)",
+"year": 1910,
+"url": "https://archive.org/download/principiamathema01anwh/principiamathema01anwh.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "5e738851-05c7-47e6-b7f6-90bb5fa4e362"
+},
+{
+"slug": "russell",
+"title": "Principia Mathematica, Vol. 2 (with A. N. Whitehead)",
+"year": 1912,
+"url": "https://archive.org/download/PrincipiaMathematicaVol2/AlfredNorthWhiteheadBertrandRussell-PrincipiaMathematicaVol2.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "5e738851-05c7-47e6-b7f6-90bb5fa4e362"
+},
+{
+"slug": "russell",
+"title": "Principia Mathematica, Vol. 3 (with A. N. Whitehead)",
+"year": 1913,
+"url": "https://archive.org/download/PrincipiaMathematicaVol3/AlfredNorthWhiteheadBertrandRussell-PrincipiaMathematicaVol3.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "5e738851-05c7-47e6-b7f6-90bb5fa4e362"
+},
+{
+"slug": "zermelo",
+"title": "Untersuchungen über die Grundlagen der Mengenlehre. I",
+"year": 1908,
+"url": "https://gdz.sub.uni-goettingen.de/download/pdf/PPN235181684_0065/LOG_0018.pdf",
+"license": "public domain",
+"kind": "paper",
+"thinker_id": "9a92ee7b-5901-4d81-8a24-68779d5f534c"
+},
+{
+"slug": "zermelo",
+"title": "Neuer Beweis für die Möglichkeit einer Wohlordnung",
+"year": 1908,
+"url": "https://gdz.sub.uni-goettingen.de/download/pdf/PPN235181684_0065/LOG_0009.pdf",
+"license": "public domain",
+"kind": "paper",
+"thinker_id": "9a92ee7b-5901-4d81-8a24-68779d5f534c"
+},
+{
+"slug": "zermelo",
+"title": "Beweis, daß jede Menge wohlgeordnet werden kann",
+"year": 1904,
+"url": "https://gdz.sub.uni-goettingen.de/download/pdf/PPN235181684_0059/LOG_0040.pdf",
+"license": "public domain",
+"kind": "paper",
+"thinker_id": "9a92ee7b-5901-4d81-8a24-68779d5f534c"
+},
+{
+"slug": "frege",
+"title": "Begriffsschrift, eine der arithmetischen nachgebildete Formelsprache des reinen Denkens",
+"year": 1879,
+"url": "https://archive.org/download/11388662/11388662.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "f800de40-61fb-4b8d-95b9-848f06b9446c"
+},
+{
+"slug": "frege",
+"title": "Die Grundlagen der Arithmetik",
+"year": 1884,
+"url": "https://archive.org/download/diegrundlagende01freggoog/diegrundlagende01freggoog.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "f800de40-61fb-4b8d-95b9-848f06b9446c"
+},
+{
+"slug": "frege",
+"title": "Grundgesetze der Arithmetik",
+"year": 1893,
+"url": "https://archive.org/download/bub_gb_LZ5tAAAAMAAJ/bub_gb_LZ5tAAAAMAAJ.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "f800de40-61fb-4b8d-95b9-848f06b9446c"
+},
+{
+"slug": "brouwer",
+"title": "Over de grondslagen der wiskunde (dissertation)",
+"year": 1907,
+"url": "https://eprints.illc.uva.nl/1852/2/HDS-20-LEJBrouwer.text.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "1c4596b0-b82f-4c41-8579-4aac271c8994"
+},
+{
+"slug": "brouwer",
+"title": "Intuitionism and Formalism",
+"year": 1913,
+"url": "https://projecteuclid.org/download/pdf_1/euclid.bams/1183422499",
+"license": "public domain",
+"kind": "paper",
+"thinker_id": "1c4596b0-b82f-4c41-8579-4aac271c8994"
+},
+{
+"slug": "martin-lof",
+"title": "Intuitionistic Type Theory (Bibliopolis, retypeset)",
+"year": 1984,
+"url": "https://archive-pml.github.io/martin-lof/pdfs/Bibliopolis-Book-retypeset-1984.pdf",
+"license": "open access",
+"kind": "book",
+"thinker_id": "44640499-8645-498d-8438-8fec83f7ba53"
+},
+{
+"slug": "martin-lof",
+"title": "Constructive Mathematics and Computer Programming",
+"year": 1982,
+"url": "https://archive-pml.github.io/martin-lof/pdfs/Constructive-mathematics-and-computer-programming-1982.pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "44640499-8645-498d-8438-8fec83f7ba53"
+},
+{
+"slug": "martin-lof",
+"title": "An Intuitionistic Theory of Types",
+"year": 1972,
+"url": "https://archive-pml.github.io/martin-lof/pdfs/An-Intuitionistic-Theory-of-Types-1972.pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "44640499-8645-498d-8438-8fec83f7ba53"
+},
+{
+"slug": "martin-lof",
+"title": "The Definition of Random Sequences",
+"year": 1966,
+"url": "https://archive-pml.github.io/martin-lof/pdfs/Definition-of-Random-Sequences-1966.pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "44640499-8645-498d-8438-8fec83f7ba53"
+},
+{
+"slug": "martin-lof",
+"title": "On the Meanings of the Logical Constants and the Justifications of the Logical Laws",
+"year": 1983,
+"url": "https://archive-pml.github.io/martin-lof/pdfs/Meanings-of-the-Logical-Constants-1983.pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "44640499-8645-498d-8438-8fec83f7ba53"
+},
+{
+"slug": "martin-lof",
+"title": "Truth of a Proposition, Evidence of a Judgement, Validity of a Proof",
+"year": 1987,
+"url": "https://archive-pml.github.io/martin-lof/pdfs/Truth-of-a-Proposition-Evidence-of-a-Judgment-1987.pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "44640499-8645-498d-8438-8fec83f7ba53"
+},
+{
+"slug": "martin-lof",
+"title": "Verificationism Then and Now",
+"year": 2013,
+"url": "https://archive-pml.github.io/martin-lof/pdfs/Martin-Lof-Verificationism-Then-and-Now-2013.pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "44640499-8645-498d-8438-8fec83f7ba53"
+},
+{
+"slug": "martin-lof",
+"title": "Mathematics of Infinity",
+"year": 1990,
+"url": "https://archive-pml.github.io/martin-lof/pdfs/Mathematics-of-Infinity.pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "44640499-8645-498d-8438-8fec83f7ba53"
+},
+{
+"slug": "coquand",
+"title": "Canonicity and normalisation for Dependent Type Theory",
+"year": 2018,
+"url": "https://arxiv.org/pdf/1810.09367",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "c3cc558a-c226-4c8d-b70c-6eb35fab0e10"
+},
+{
+"slug": "coquand",
+"title": "Reduction Free Normalisation for a proof irrelevant type of propositions",
+"year": 2021,
+"url": "https://arxiv.org/pdf/2103.04287",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "c3cc558a-c226-4c8d-b70c-6eb35fab0e10"
+},
+{
+"slug": "coquand",
+"title": "Constructive basic theory of central simple algebras",
+"year": 2021,
+"url": "https://arxiv.org/pdf/2102.12775",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "c3cc558a-c226-4c8d-b70c-6eb35fab0e10"
+},
+{
+"slug": "coquand",
+"title": "Constructive sheaf models of type theory",
+"year": 2019,
+"url": "https://arxiv.org/pdf/1912.10407",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "c3cc558a-c226-4c8d-b70c-6eb35fab0e10"
+},
+{
+"slug": "coquand",
+"title": "The Regular Element Property in Constructive Mathematics",
+"year": 2024,
+"url": "https://arxiv.org/pdf/2401.15671",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "c3cc558a-c226-4c8d-b70c-6eb35fab0e10"
+},
+{
+"slug": "coquand",
+"title": "Azumaya algebras and the Barr Theorem",
+"year": 2023,
+"url": "https://arxiv.org/pdf/2306.17679",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "c3cc558a-c226-4c8d-b70c-6eb35fab0e10"
+},
+{
+"slug": "coquand",
+"title": "A variation of Reynolds-Hurkens Paradox",
+"year": 2023,
+"url": "https://arxiv.org/pdf/2308.16726",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "c3cc558a-c226-4c8d-b70c-6eb35fab0e10"
+},
+{
+"slug": "coquand",
+"title": "Châtelet's Theorem in Synthetic Algebraic Geometry",
+"year": 2025,
+"url": "https://arxiv.org/pdf/2504.08326",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "c3cc558a-c226-4c8d-b70c-6eb35fab0e10"
+},
+{
+"slug": "voevodsky",
+"title": "Univalence in Simplicial Sets",
+"year": 2012,
+"url": "https://arxiv.org/pdf/1203.2553",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "94bc3528-d843-434d-a9c3-31164beaab0e"
+},
+{
+"slug": "voevodsky",
+"title": "Experimental library of univalent formalization of mathematics",
+"year": 2013,
+"url": "https://arxiv.org/pdf/1401.0053",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "94bc3528-d843-434d-a9c3-31164beaab0e"
+},
+{
+"slug": "voevodsky",
+"title": "The equivalence axiom and univalent models of type theory",
+"year": 2014,
+"url": "https://arxiv.org/pdf/1402.5556",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "94bc3528-d843-434d-a9c3-31164beaab0e"
+},
+{
+"slug": "voevodsky",
+"title": "Reduced power operations in motivic cohomology",
+"year": 2001,
+"url": "https://arxiv.org/pdf/math/0107109",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "94bc3528-d843-434d-a9c3-31164beaab0e"
+},
+{
+"slug": "voevodsky",
+"title": "An exact sequence for K^M_* /2 with applications to quadratic forms",
+"year": 2001,
+"url": "https://arxiv.org/pdf/math/0101023",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "94bc3528-d843-434d-a9c3-31164beaab0e"
+},
+{
+"slug": "voevodsky",
+"title": "A preliminary univalent formalization of the p-adic numbers",
+"year": 2013,
+"url": "https://arxiv.org/pdf/1302.1207",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "94bc3528-d843-434d-a9c3-31164beaab0e"
+},
+{
+"slug": "voevodsky",
+"title": "Cancellation theorem",
+"year": 2002,
+"url": "https://arxiv.org/pdf/math/0202012",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "94bc3528-d843-434d-a9c3-31164beaab0e"
+},
+{
+"slug": "voevodsky",
+"title": "On the zero slice of the sphere spectrum",
+"year": 2003,
+"url": "https://arxiv.org/pdf/math/0301013",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "94bc3528-d843-434d-a9c3-31164beaab0e"
+},
+{
+"slug": "peano",
+"title": "Arithmetices principia, nova methodo exposita",
+"year": 1889,
+"url": "https://archive.org/download/arithmeticespri00peangoog/arithmeticespri00peangoog.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "951ea78f-618f-4d4e-ba84-e645e59a581d"
+},
+{
+"slug": "peano",
+"title": "Applicazioni geometriche del calcolo infinitesimale",
+"year": 1887,
+"url": "https://archive.org/download/applicazionigeo00peangoog/applicazionigeo00peangoog.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "951ea78f-618f-4d4e-ba84-e645e59a581d"
+},
+{
+"slug": "peano",
+"title": "Gli elementi di calcolo geometrico",
+"year": 1891,
+"url": "https://archive.org/download/glielementidica00peangoog/glielementidica00peangoog.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "951ea78f-618f-4d4e-ba84-e645e59a581d"
+},
+{
+"slug": "peano",
+"title": "Formulaire de mathematiques",
+"year": null,
+"url": "https://archive.org/download/formulairedemat02peangoog/formulairedemat02peangoog.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "951ea78f-618f-4d4e-ba84-e645e59a581d"
+},
+{
+"slug": "peano",
+"title": "Formulario mathematico (editio V)",
+"year": 1908,
+"url": "https://archive.org/download/formulario-mathematico/formulario-mathematico.pdf",
+"license": "public domain",
+"kind": "book",
+"thinker_id": "951ea78f-618f-4d4e-ba84-e645e59a581d"
+},
+{
+"slug": "gentzen",
+"title": "Untersuchungen uber das logische Schliessen I",
+"year": 1935,
+"url": "https://gdz.sub.uni-goettingen.de/download/pdf/PPN266833020_0039/LOG_0032.pdf",
+"license": "public domain",
+"kind": "paper",
+"thinker_id": "fcf9d1ba-ef25-4ff2-a656-c9787cd6d449"
+},
+{
+"slug": "gentzen",
+"title": "Untersuchungen uber das logische Schliessen II",
+"year": 1935,
+"url": "https://gdz.sub.uni-goettingen.de/download/pdf/PPN266833020_0039/LOG_0042.pdf",
+"license": "public domain",
+"kind": "paper",
+"thinker_id": "fcf9d1ba-ef25-4ff2-a656-c9787cd6d449"
+},
+{
+"slug": "post",
+"title": "Finite Combinatory Processes - Formulation 1",
+"year": 1936,
+"url": "https://www.wolframscience.com/prizes/tm23/images/Post.pdf",
+"license": "unknown",
+"kind": "paper",
+"thinker_id": "bea9c1a7-485e-4d91-96e8-e6404237d716"
+},
+{
+"slug": "post",
+"title": "Recursively Enumerable Sets of Positive Integers and Their Decision Problems",
+"year": 1944,
+"url": "https://www.ams.org/journals/bull/1944-50-05/S0002-9904-1944-08111-1/S0002-9904-1944-08111-1.pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "bea9c1a7-485e-4d91-96e8-e6404237d716"
+},
+{
+"slug": "post",
+"title": "A Variant of a Recursively Unsolvable Problem",
+"year": 1946,
+"url": "https://www.ams.org/journals/bull/1946-52-04/S0002-9904-1946-08555-9/S0002-9904-1946-08555-9.pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "bea9c1a7-485e-4d91-96e8-e6404237d716"
+},
+{
+"slug": "curry",
+"title": "Some Aspects of the Problem of Mathematical Rigor",
+"year": 1941,
+"url": "https://www.ams.org/journals/bull/1941-47-04/S0002-9904-1941-07414-8/S0002-9904-1941-07414-8.pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "2e5aec4e-a935-4525-b355-a09f52de3947"
+},
+{
+"slug": "curry",
+"title": "The Paradox of Kleene and Rosser",
+"year": 1941,
+"url": "https://www.ams.org/journals/tran/1941-050-03/S0002-9947-1941-0005275-6/S0002-9947-1941-0005275-6.pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "2e5aec4e-a935-4525-b355-a09f52de3947"
+},
+{
+"slug": "p-cohen",
+"title": "The Independence of the Continuum Hypothesis",
+"year": 1963,
+"url": "https://europepmc.org/articles/PMC221287?pdf=render",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "f0feeaa1-aff4-4c3b-8496-9e8f05a98b37"
+},
+{
+"slug": "p-cohen",
+"title": "The Independence of the Continuum Hypothesis, II",
+"year": 1964,
+"url": "https://europepmc.org/articles/PMC300611?pdf=render",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "f0feeaa1-aff4-4c3b-8496-9e8f05a98b37"
+},
+{
+"slug": "p-cohen",
+"title": "A Minimal Model for Set Theory",
+"year": 1963,
+"url": "https://www.ams.org/journals/bull/1963-69-04/S0002-9904-1963-11011-3/S0002-9904-1963-11011-3.pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "f0feeaa1-aff4-4c3b-8496-9e8f05a98b37"
+},
+{
+"slug": "de-bruijn",
+"title": "A Combinatorial Problem",
+"year": 1946,
+"url": "https://pure.tue.nl/ws/files/4442708/597473.pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "b73d5e79-1b6e-4f61-b466-8fdef3a79702"
+},
+{
+"slug": "de-bruijn",
+"title": "AUTOMATH, a Language for Mathematics",
+"year": 1968,
+"url": "https://pure.tue.nl/ws/files/2039924/256169.pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "b73d5e79-1b6e-4f61-b466-8fdef3a79702"
+},
+{
+"slug": "de-bruijn",
+"title": "The AUTOMATH Mathematics Checking Project",
+"year": null,
+"url": "https://automath.win.tue.nl/archive/pdf/aut034.pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "b73d5e79-1b6e-4f61-b466-8fdef3a79702"
+},
+{
+"slug": "de-bruijn",
+"title": "The Mathematical Language AUTOMATH, its Usage, and Some of its Extensions",
+"year": 1970,
+"url": "https://www.cs.cornell.edu/courses/cs4860/2018fa/lectures/The-mathematical-language-Automath_de-Bruijn.pdf",
+"license": "unknown",
+"kind": "paper",
+"thinker_id": "b73d5e79-1b6e-4f61-b466-8fdef3a79702"
+},
+{
+"slug": "markov",
+"title": "Theory of Algorithms (Teoriya algorifmov), Trudy Mat. Inst. Steklov 42",
+"year": 1954,
+"url": "https://www.mathnet.ru/php/getFT.phtml?jrnid=tm&paperid=1178&what=fullt&option_lang=eng",
+"license": "unknown",
+"kind": "book",
+"thinker_id": "7b775c7f-9a94-4429-afef-9765eb7cd13e"
+},
+{
+"slug": "harper",
+"title": "Computational Higher Type Theory IV: Inductive Types",
+"year": 2018,
+"url": "https://arxiv.org/pdf/1801.01568",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "38938a82-19d8-4699-8870-f43023757d77"
+},
+{
+"slug": "harper",
+"title": "Internal Parametricity for Cubical Type Theory",
+"year": 2020,
+"url": "https://arxiv.org/pdf/2005.11290",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "38938a82-19d8-4699-8870-f43023757d77"
+},
+{
+"slug": "harper",
+"title": "An Equational Logical Framework for Type Theories",
+"year": 2021,
+"url": "https://arxiv.org/pdf/2106.01484",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "38938a82-19d8-4699-8870-f43023757d77"
+},
+{
+"slug": "harper",
+"title": "Guarded Computational Type Theory",
+"year": 2018,
+"url": "https://arxiv.org/pdf/1804.09098",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "38938a82-19d8-4699-8870-f43023757d77"
+},
+{
+"slug": "harper",
+"title": "Cost-Aware Type Theory",
+"year": 2020,
+"url": "https://arxiv.org/pdf/2011.03660",
+"license": "arXiv",
+"kind": "paper",
+"thinker_id": "38938a82-19d8-4699-8870-f43023757d77"
+},
+{
+"slug": "kleene",
+"title": "Introduction to Metamathematics",
+"year": 1952,
+"url": "https://archive.org/download/BubliothecaMathematicaStephenColeKleeneIntroductionToMetamathematicsWoltersNoordhoffPublishing1971/(Bubliotheca%20Mathematica)%20Stephen%20Cole%20Kleene-Introduction%20to%20Metamathematics-Wolters-Noordhoff%20Publishing%20(1971).pdf",
+"license": "unknown",
+"kind": "book",
+"thinker_id": "7cbf8079-ce95-4152-98a2-b6879ba4eeb7"
+},
+{
+"slug": "kleene",
+"title": "Mathematical Logic",
+"year": 1967,
+"url": "https://archive.org/download/KleeneMathematicalLogic/Kleene-MathematicalLogic.pdf",
+"license": "unknown",
+"kind": "book",
+"thinker_id": "7cbf8079-ce95-4152-98a2-b6879ba4eeb7"
+},
+{
+"slug": "kleene",
+"title": "The Foundations of Intuitionistic Mathematics, Especially in Relation to Recursive Functions (with R. E. Vesley)",
+"year": 1965,
+"url": "https://archive.org/download/StudiesInLogicAndTheFoundationsOfMathematics39StephenColeKleeneR.E.VesleyTheFoun/%28Studies%20in%20Logic%20and%20the%20Foundations%20of%20Mathematics%2039%29%20Stephen%20Cole%20Kleene%2C%20R.E.%20Vesley-The%20Foundations%20of%20Intuitionistic%20Mathematics_%20Especially%20In.pdf",
+"license": "unknown",
+"kind": "book",
+"thinker_id": "7cbf8079-ce95-4152-98a2-b6879ba4eeb7"
+},
+{
+"slug": "skolem",
+"title": "Über die Nicht-charakterisierbarkeit der Zahlenreihe mittels endlich oder abzählbar unendlich vieler Aussagen mit ausschliesslich Zahlenvariablen",
+"year": 1934,
+"url": "https://matwbn.icm.edu.pl/ksiazki/fm/fm23/fm23115.pdf",
+"license": "open access",
+"kind": "paper",
+"thinker_id": "5c5b7881-159c-496b-a17d-3146a2867f24"
+},
+{
+"slug": "howard",
+"title": "The Formulae-as-Types Notion of Construction",
+"year": 1980,
+"url": "https://raw.githubusercontent.com/Mzk-Levi/texts/master/The%20Formulae-as-types%20notion%20of%20construction%20-%20Howard.pdf",
+"license": "unknown",
+"kind": "paper",
+"thinker_id": "bac61bb1-0c7f-4c9b-83a2-6afe460f950a"
+}
+]
