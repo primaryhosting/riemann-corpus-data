@@ -33,120 +33,110 @@ Provenance: Aristotle theorem prover (Harmonic)
 
 import Mathlib
 
-/-!
-Landau's fourth problem asks whether there are infinitely many primes of the form
-`n ^ 2 + 1`.  This is an open problem, so what is formalized here is
-
-* a **conditional reduction**: Landau's fourth conjecture follows from the
-  Bunyakovsky conjecture (`LandauFourthConjecture`), together with the
-  verification that `X ^ 2 + 1` satisfies all hypotheses of that conjecture; and
-* two **unconditional partial results**: every prime of the form `n ^ 2 + 1` is
-  either `2` or congruent to `1` mod `4`, and infinitely many primes divide some
-  value `n ^ 2 + 1`.
--/
-
-namespace Brockian.LandauNSquaredPlusOne
+namespace Brockian
+namespace LandauNSquaredPlusOne
 
 open Polynomial
 
-/-- The set of natural numbers `n` for which `n ^ 2 + 1` is prime. -/
-def LandauSet : Set ℕ := {n : ℕ | Nat.Prime (n ^ 2 + 1)}
+/-- **Landau's fourth problem**: there are infinitely many natural numbers `n` such that
+`n ^ 2 + 1` is prime. -/
+def LandauFourth : Prop := {n : ℕ | Nat.Prime (n ^ 2 + 1)}.Infinite
 
-/-- **Bunyakovsky's conjecture** (also known as Bouniakowsky's conjecture): if
-`f ∈ ℤ[X]` is irreducible, of positive degree, with positive leading coefficient,
-and the values `f(0), f(1), f(2), …` have no common divisor `> 1`, then `f(n)` is
-prime for infinitely many natural numbers `n`. -/
-def BunyakovskyConjecture : Prop :=
-  ∀ f : ℤ[X], 0 < f.natDegree → Irreducible f → 0 < f.leadingCoeff →
-    (∀ d : ℕ, 1 < d → ∃ n : ℕ, ¬ ((d : ℤ) ∣ f.eval (n : ℤ))) →
+/-- **Bunyakovsky's conjecture** (in the form used here): if `f : ℤ[X]` is a nonconstant
+irreducible integer polynomial with no fixed prime divisor (for each prime `p` there is a
+natural number `n` with `p ∤ f n`), then `f` takes prime values at infinitely many natural
+numbers. -/
+def Bunyakovsky : Prop :=
+  ∀ f : ℤ[X], 0 < f.natDegree → Irreducible f →
+    (∀ p : ℕ, p.Prime → ∃ n : ℕ, ¬ ((p : ℤ) ∣ f.eval (n : ℤ))) →
     {n : ℕ | Prime (f.eval (n : ℤ))}.Infinite
 
-section Polynomial
+/-! ### The polynomial `X ^ 2 + 1` -/
 
-/-- The polynomial `X ^ 2 + 1` over `ℤ` is monic. -/
-theorem monic_X_sq_add_one : (X ^ 2 + 1 : ℤ[X]).Monic := by
-  monicity!
+lemma monic_X_sq_add_one : (X ^ 2 + 1 : ℤ[X]).Monic := by monicity!
 
-/-- The polynomial `X ^ 2 + 1` over `ℤ` has degree `2`. -/
-theorem natDegree_X_sq_add_one : (X ^ 2 + 1 : ℤ[X]).natDegree = 2 := by
-  compute_degree!
+lemma natDegree_X_sq_add_one : (X ^ 2 + 1 : ℤ[X]).natDegree = 2 := by compute_degree!
 
-/-- The polynomial `X ^ 2 + 1` is irreducible over `ℤ`. -/
-theorem irreducible_X_sq_add_one : Irreducible (X ^ 2 + 1 : ℤ[X]) := by
+/-- `X ^ 2 + 1` is irreducible over `ℤ`. -/
+lemma irreducible_X_sq_add_one : Irreducible (X ^ 2 + 1 : ℤ[X]) := by
+  have hm := monic_X_sq_add_one
   have hd := natDegree_X_sq_add_one
-  rw [monic_X_sq_add_one.irreducible_iff_roots_eq_zero_of_degree_le_three
-    (by omega) (by omega)]
-  rw [Multiset.eq_zero_iff_forall_notMem]
-  intro a ha
-  rw [mem_roots (by intro h; simpa using congrArg (Polynomial.eval 0) h)] at ha
-  have h : a ^ 2 + 1 = 0 := by simpa [IsRoot] using ha
-  nlinarith [sq_nonneg a]
+  rw [hm.irreducible_iff_roots_eq_zero_of_degree_le_three (by omega) (by omega),
+    Multiset.eq_zero_iff_forall_notMem]
+  intro x hx
+  rw [Polynomial.mem_roots hm.ne_zero, IsRoot.def] at hx
+  simp only [eval_add, eval_pow, eval_X, eval_one] at hx
+  nlinarith [sq_nonneg x]
 
-/-- Evaluating `X ^ 2 + 1` at a natural number `n`. -/
-theorem eval_X_sq_add_one (n : ℕ) :
-    (X ^ 2 + 1 : ℤ[X]).eval (n : ℤ) = ((n ^ 2 + 1 : ℕ) : ℤ) := by
-  push_cast
-  simp
-
-end Polynomial
-
-/-- `X ^ 2 + 1` has no fixed prime divisor: for every `d > 1` some value
-`n ^ 2 + 1` is not divisible by `d` (take `n = 0`). -/
-theorem no_fixed_divisor (d : ℕ) (hd : 1 < d) :
-    ∃ n : ℕ, ¬ ((d : ℤ) ∣ (X ^ 2 + 1 : ℤ[X]).eval (n : ℤ)) := by
+/-- `X ^ 2 + 1` has no fixed prime divisor: its value at `0` is `1`. -/
+lemma no_fixed_prime_divisor_X_sq_add_one (p : ℕ) (hp : p.Prime) :
+    ∃ n : ℕ, ¬ ((p : ℤ) ∣ (X ^ 2 + 1 : ℤ[X]).eval (n : ℤ)) := by
   refine ⟨0, ?_⟩
-  rw [eval_X_sq_add_one]
-  intro h
-  have : (d : ℤ) ∣ 1 := by simpa using h
-  have := Int.le_of_dvd one_pos this
+  simp only [Nat.cast_zero, eval_add, eval_pow, eval_X, eval_one]
+  intro hdvd
+  rw [show ((0 : ℤ) ^ 2 + 1) = 1 by ring] at hdvd
+  have := Int.le_of_dvd one_pos hdvd
+  have : (2 : ℤ) ≤ (p : ℤ) := by exact_mod_cast hp.two_le
   omega
 
-/-- **Landau's fourth conjecture, conditionally on Bunyakovsky's conjecture.**
-If Bunyakovsky's conjecture holds, then there are infinitely many natural numbers
-`n` such that `n ^ 2 + 1` is prime. -/
-theorem LandauFourthConjecture (H : BunyakovskyConjecture) : LandauSet.Infinite := by
-  have hinf := H (X ^ 2 + 1) (by rw [natDegree_X_sq_add_one]; omega)
-    irreducible_X_sq_add_one (by rw [monic_X_sq_add_one.leadingCoeff]; norm_num)
-    no_fixed_divisor
-  have hset : {n : ℕ | Prime ((X ^ 2 + 1 : ℤ[X]).eval (n : ℤ))} = LandauSet := by
+/-! ### The conditional theorem -/
+
+/-- **Landau's fourth conjecture**, conditional on Bunyakovsky's conjecture: assuming that
+every nonconstant irreducible integer polynomial without a fixed prime divisor takes
+infinitely many prime values, there are infinitely many `n : ℕ` with `n ^ 2 + 1` prime.
+
+Landau's fourth problem is open unconditionally; this is a Lean-checked reduction of it to
+Bunyakovsky's conjecture. -/
+theorem LandauFourthConjecture (hB : Bunyakovsky) : {n : ℕ | Nat.Prime (n ^ 2 + 1)}.Infinite := by
+  have h := hB (X ^ 2 + 1) (by rw [natDegree_X_sq_add_one]; norm_num)
+    irreducible_X_sq_add_one no_fixed_prime_divisor_X_sq_add_one
+  have hset : {n : ℕ | Prime ((X ^ 2 + 1 : ℤ[X]).eval (n : ℤ))}
+      = {n : ℕ | Nat.Prime (n ^ 2 + 1)} := by
     ext n
-    simp only [Set.mem_setOf_eq, LandauSet, eval_X_sq_add_one]
-    rw [Int.prime_iff_natAbs_prime, Int.natAbs_natCast]
-  rwa [hset] at hinf
+    simp only [Set.mem_setOf_eq, eval_add, eval_pow, eval_X, eval_one]
+    rw [show ((n : ℤ) ^ 2 + 1) = ((n ^ 2 + 1 : ℕ) : ℤ) by push_cast; ring,
+      ← Nat.prime_iff_prime_int]
+  rwa [hset] at h
 
-/-! ### Unconditional partial results -/
+/-- The same statement in the packaged form `LandauFourth`. -/
+theorem landauFourth_of_bunyakovsky (hB : Bunyakovsky) : LandauFourth :=
+  LandauFourthConjecture hB
 
-/-- Every prime of the form `n ^ 2 + 1` is either `2` or congruent to `1` mod `4`. -/
-theorem prime_sq_add_one_eq_two_or_one_mod_four (n : ℕ) (hp : Nat.Prime (n ^ 2 + 1)) :
-    n ^ 2 + 1 = 2 ∨ (n ^ 2 + 1) % 4 = 1 := by
-  rcases Nat.even_or_odd n with ⟨k, hk⟩ | ⟨k, hk⟩
-  · right
-    have : n ^ 2 + 1 = 4 * k ^ 2 + 1 := by subst hk; ring
+/-! ### Unconditional equivalent reformulations -/
+
+/-- Landau's fourth problem is equivalent to: for every bound `N` there is `n ≥ N` with
+`n ^ 2 + 1` prime. -/
+theorem landauFourth_iff_forall_exists :
+    LandauFourth ↔ ∀ N : ℕ, ∃ n ≥ N, Nat.Prime (n ^ 2 + 1) := by
+  constructor
+  · intro h N
+    obtain ⟨n, hn, hnN⟩ := h.exists_gt N
+    exact ⟨n, hnN.le, hn⟩
+  · intro h
+    apply Set.infinite_of_not_bddAbove
+    rintro ⟨N, hN⟩
+    obtain ⟨n, hn, hnp⟩ := h (N + 1)
+    have := hN hnp
     omega
-  · left
-    have hdvd : 2 ∣ n ^ 2 + 1 := ⟨2 * k ^ 2 + 2 * k + 1, by subst hk; ring⟩
-    rcases (Nat.Prime.eq_one_or_self_of_dvd hp 2 hdvd) with h | h
-    · omega
-    · omega
 
-/-- Unconditionally, infinitely many primes divide some value of `n ^ 2 + 1`. -/
-theorem infinite_primes_dividing_sq_add_one :
-    {p : ℕ | p.Prime ∧ ∃ n : ℕ, p ∣ n ^ 2 + 1}.Infinite := by
-  refine Set.Infinite.mono ?_ (Nat.infinite_setOf_prime_modEq_one (k := 4) (by norm_num))
-  rintro p ⟨hp, hmod⟩
-  refine ⟨hp, ?_⟩
-  haveI : Fact p.Prime := ⟨hp⟩
-  have hp4 : p % 4 ≠ 3 := by
-    have : p % 4 = 1 % 4 := hmod
-    omega
-  obtain ⟨x, hx⟩ := (ZMod.exists_sq_eq_neg_one_iff (p := p)).2 hp4
-  refine ⟨x.val, ?_⟩
-  have : ((x.val ^ 2 + 1 : ℕ) : ZMod p) = 0 := by
-    push_cast
-    rw [ZMod.natCast_val, ZMod.cast_id]
-    rw [pow_two, ← hx]
-    ring
-  exact (ZMod.natCast_eq_zero_iff _ _).1 this
+/-- Landau's fourth problem is equivalent to the infinitude of the set of primes of the
+form `n ^ 2 + 1`. -/
+theorem landauFourth_iff_primes_infinite :
+    LandauFourth ↔ {p : ℕ | p.Prime ∧ ∃ n : ℕ, p = n ^ 2 + 1}.Infinite := by
+  have himg : (fun n : ℕ => n ^ 2 + 1) '' {n : ℕ | Nat.Prime (n ^ 2 + 1)}
+      = {p : ℕ | p.Prime ∧ ∃ n : ℕ, p = n ^ 2 + 1} := by
+    ext p
+    constructor
+    · rintro ⟨n, hn, rfl⟩
+      exact ⟨hn, ⟨n, rfl⟩⟩
+    · rintro ⟨hp, n, rfl⟩
+      exact ⟨n, hp, rfl⟩
+  have hinj : Function.Injective (fun n : ℕ => n ^ 2 + 1) := by
+    intro a b hab
+    simp only [add_left_inj] at hab
+    exact Nat.pow_left_injective (by norm_num) hab
+  rw [LandauFourth, ← himg, Set.infinite_image_iff hinj.injOn]
 
-end Brockian.LandauNSquaredPlusOne
+end LandauNSquaredPlusOne
+end Brockian
 
