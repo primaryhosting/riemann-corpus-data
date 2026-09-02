@@ -1,5 +1,88 @@
 import Mathlib
 
+/-!
+# Rotations of `ℝ³` and a free group of rotations
+
+This file constructs two explicit rotations of `ℝ³` (rotations by the angle `arccos (3/5)`
+about the `z`- and `x`-axes) and proves that they generate a free group of rank two.
+-/
+
+open Matrix WithLp
+
+namespace BanachTarski
+
+/-- Euclidean three-space. -/
+abbrev E := EuclideanSpace ℝ (Fin 3)
+
+/-! ### From orthogonal matrices to linear isometries -/
+
+/-- The linear equivalence of `ℝ³` given by an orthogonal matrix. -/
+def rotEquiv (M : Matrix (Fin 3) (Fin 3) ℝ) (h : Mᵀ * M = 1) : E ≃ₗ[ℝ] E where
+  toFun := fun x => toLp 2 (M *ᵥ ofLp x)
+  map_add' := by intro x y; ext i; simp [Matrix.mulVec_add]
+  map_smul' := by intro c x; ext i; simp [Matrix.mulVec_smul]
+  invFun := fun y => toLp 2 (Mᵀ *ᵥ ofLp y)
+  left_inv := by intro x; ext i; simp [Matrix.mulVec_mulVec, h]
+  right_inv := by
+    intro y; ext i
+    show (M *ᵥ ofLp (toLp 2 (Mᵀ *ᵥ ofLp y))) i = ofLp y i
+    rw [WithLp.ofLp_toLp, Matrix.mulVec_mulVec, mul_eq_one_comm.mp h, Matrix.one_mulVec]
+
+@[simp] lemma rotEquiv_apply (M : Matrix (Fin 3) (Fin 3) ℝ) (h : Mᵀ * M = 1) (x : E) :
+    rotEquiv M h x = toLp 2 (M *ᵥ ofLp x) := rfl
+
+/-- The linear isometry of `ℝ³` given by an orthogonal matrix. -/
+noncomputable def rotOf (M : Matrix (Fin 3) (Fin 3) ℝ) (h : Mᵀ * M = 1) : E ≃ₗᵢ[ℝ] E :=
+  LinearEquiv.isometryOfInner (rotEquiv M h) (by
+    intro x y
+    simp only [PiLp.inner_apply, RCLike.inner_apply, conj_trivial, rotEquiv_apply,
+      WithLp.ofLp_toLp]
+    show (M *ᵥ ofLp y) ⬝ᵥ (M *ᵥ ofLp x) = (ofLp y) ⬝ᵥ (ofLp x)
+    rw [Matrix.dotProduct_mulVec, ← Matrix.mulVec_transpose, Matrix.mulVec_mulVec, h,
+      Matrix.one_mulVec])
+
+@[simp] lemma rotOf_apply (M : Matrix (Fin 3) (Fin 3) ℝ) (h : Mᵀ * M = 1) (x : E) :
+    rotOf M h x = toLp 2 (M *ᵥ ofLp x) := rfl
+
+@[simp] lemma rotOf_symm_apply (M : Matrix (Fin 3) (Fin 3) ℝ) (h : Mᵀ * M = 1) (x : E) :
+    (rotOf M h).symm x = toLp 2 (Mᵀ *ᵥ ofLp x) := rfl
+
+/-! ### The two generating rotations -/
+
+/-- Rotation by `arccos (3/5)` about the `z`-axis. -/
+def Ma : Matrix (Fin 3) (Fin 3) ℝ := !![3/5, -4/5, 0; 4/5, 3/5, 0; 0, 0, 1]
+
+/-- Rotation by `arccos (3/5)` about the `x`-axis. -/
+def Mb : Matrix (Fin 3) (Fin 3) ℝ := !![1, 0, 0; 0, 3/5, -4/5; 0, 4/5, 3/5]
+
+lemma Ma_orth : Maᵀ * Ma = 1 := by
+  ext i j
+  fin_cases i <;> fin_cases j <;>
+    simp [Ma, Matrix.mul_apply, Fin.sum_univ_three, Matrix.one_apply] <;> norm_num
+
+lemma Mb_orth : Mbᵀ * Mb = 1 := by
+  ext i j
+  fin_cases i <;> fin_cases j <;>
+    simp [Mb, Matrix.mul_apply, Fin.sum_univ_three, Matrix.one_apply] <;> norm_num
+
+/-- The matrices of the two generators. -/
+def genM : Fin 2 → Matrix (Fin 3) (Fin 3) ℝ := ![Ma, Mb]
+
+lemma genM_orth : ∀ i, (genM i)ᵀ * genM i = 1 := by
+  intro i; fin_cases i
+  · exact Ma_orth
+  · exact Mb_orth
+
+/-- The two generating rotations, as linear isometries. -/
+noncomputable def gen (i : Fin 2) : E ≃ₗᵢ[ℝ] E := rotOf (genM i) (genM_orth i)
+
+/-- The canonical homomorphism from the free group of rank two to the rotation group. -/
+noncomputable def rho : FreeGroup (Fin 2) →* (E ≃ₗᵢ[ℝ] E) := FreeGroup.lift gen
+
+end BanachTarski
+
+import Mathlib
+
 open scoped BigOperators
 open scoped Real
 open scoped Nat
@@ -22,137 +105,4 @@ set_option pp.letVarTypes true
 set_option pp.piBinderTypes true
 
 set_option grind.warning false
-
-import Mathlib
-
-/-!
-# Equidecomposability and paradoxical decompositions
-
-This file develops the basic abstract theory used in the proof of the Banach–Tarski paradox.
-
-Given a group `G` acting on a type `X`, two sets `A B : Set X` are *equidecomposable*
-(`BT.Equidec G A B`) if there is a bijection `f : A → B` which is piecewise given by finitely many
-elements of `G`.  A set `E` is *paradoxical* (`BT.Paradoxical G E`) if it contains two disjoint
-subsets, each of which is equidecomposable with `E` itself.
--/
-
-open Function Set Pointwise
-
-namespace BT
-
-variable {X : Type*} {G : Type*} [Group G] [MulAction G X]
-
-/-- `A` and `B` are `G`-equidecomposable: there is a bijection from `A` to `B` which is
-piecewise given by finitely many elements of `G`. -/
-def Equidec (G : Type*) [Group G] [MulAction G X] (A B : Set X) : Prop :=
-  ∃ (f : X → X) (S : Finset G), (∀ a ∈ A, ∃ g ∈ S, f a = g • a) ∧ Set.BijOn f A B
-
-/-- `E` is `G`-paradoxical: it contains two disjoint subsets each equidecomposable with `E`. -/
-def Paradoxical (G : Type*) [Group G] [MulAction G X] (E : Set X) : Prop :=
-  ∃ A B : Set X, A ⊆ E ∧ B ⊆ E ∧ Disjoint A B ∧ Equidec G A E ∧ Equidec G B E
-
-namespace Equidec
-
-variable {A B C A₁ A₂ B₁ B₂ : Set X}
-
-theorem refl (A : Set X) : Equidec G A A :=
-  ⟨id, {1}, fun a _ => ⟨1, Finset.mem_singleton_self _, by simp⟩, Set.bijOn_id A⟩
-
-theorem symm [Nonempty X] (h : Equidec G A B) : Equidec G B A := by
-  classical
-  obtain ⟨f, S, hS, hbij⟩ := h
-  refine ⟨invFunOn f A, S⁻¹, ?_, hbij.symm (hbij.invOn_invFunOn)⟩
-  intro b hb
-  obtain ⟨a, ha, rfl⟩ := hbij.surjOn hb
-  obtain ⟨g, hgS, hg⟩ := hS a ha
-  refine ⟨g⁻¹, Finset.inv_mem_inv hgS, ?_⟩
-  rw [hbij.invOn_invFunOn.1 ha, hg, inv_smul_smul]
-
-theorem trans (h₁ : Equidec G A B) (h₂ : Equidec G B C) : Equidec G A C := by
-  classical
-  obtain ⟨f, S, hS, hbij⟩ := h₁
-  obtain ⟨f', S', hS', hbij'⟩ := h₂
-  refine ⟨f' ∘ f, S' * S, ?_, hbij'.comp hbij⟩
-  intro a ha
-  obtain ⟨g, hgS, hg⟩ := hS a ha
-  obtain ⟨g', hgS', hg'⟩ := hS' (f a) (hbij.mapsTo ha)
-  refine ⟨g' * g, Finset.mul_mem_mul hgS' hgS, ?_⟩
-  rw [Function.comp_apply, hg', hg, mul_smul]
-
-/-- The restriction of an equidecomposition to a subset. -/
-theorem restrict (h : Equidec G A B) (hA₁ : A₁ ⊆ A) : ∃ B₁ ⊆ B, Equidec G A₁ B₁ := by
-  obtain ⟨f, S, hS, hbij⟩ := h
-  refine ⟨f '' A₁, (Set.image_mono hA₁).trans hbij.mapsTo.image_subset,
-    ⟨f, S, fun a ha => hS a (hA₁ ha), (hbij.injOn.mono hA₁).bijOn_image⟩⟩
-
-theorem union (hA : Disjoint A₁ A₂) (hB : Disjoint B₁ B₂)
-    (h₁ : Equidec G A₁ B₁) (h₂ : Equidec G A₂ B₂) : Equidec G (A₁ ∪ A₂) (B₁ ∪ B₂) := by
-  classical
-  obtain ⟨f, S, hS, hbij⟩ := h₁
-  obtain ⟨f', S', hS', hbij'⟩ := h₂
-  have hd : ∀ x ∈ A₂, x ∉ A₁ := fun x hx h => (hA.le_bot ⟨h, hx⟩).elim
-  have hdB : ∀ x ∈ B₂, x ∉ B₁ := fun x hx h => (hB.le_bot ⟨h, hx⟩).elim
-  refine ⟨fun x => if x ∈ A₁ then f x else f' x, S ∪ S', ?_, ?_, ?_, ?_⟩
-  · rintro a (ha | ha)
-    · obtain ⟨g, hg, hga⟩ := hS a ha
-      exact ⟨g, Finset.mem_union_left _ hg, by simpa [ha] using hga⟩
-    · obtain ⟨g, hg, hga⟩ := hS' a ha
-      exact ⟨g, Finset.mem_union_right _ hg, by simpa [hd a ha] using hga⟩
-  · rintro a (ha | ha)
-    · exact Or.inl (by simpa [ha] using hbij.mapsTo ha)
-    · exact Or.inr (by simpa [hd a ha] using hbij'.mapsTo ha)
-  · rintro a ha b hb hab
-    rcases ha with ha | ha <;> rcases hb with hb | hb
-    · simp only [ha, hb, if_true] at hab
-      exact hbij.injOn ha hb hab
-    · simp only [ha, hd b hb, if_true, if_false] at hab
-      exact absurd (hab ▸ hbij.mapsTo ha) (hdB _ (hbij'.mapsTo hb))
-    · simp only [hb, hd a ha, if_true, if_false] at hab
-      exact absurd (hab ▸ hbij'.mapsTo ha) (fun h => hdB _ h (hbij.mapsTo hb))
-    · simp only [hd a ha, hd b hb, if_false] at hab
-      exact hbij'.injOn ha hb hab
-  · rintro b (hb | hb)
-    · obtain ⟨a, ha, rfl⟩ := hbij.surjOn hb
-      exact ⟨a, Or.inl ha, by simp [ha]⟩
-    · obtain ⟨a, ha, rfl⟩ := hbij'.surjOn hb
-      exact ⟨a, Or.inr ha, by simp [hd a ha]⟩
-
-/-- Transfer along a group homomorphism compatible with the actions. -/
-theorem of_hom {H : Type*} [Group H] [MulAction H X] (φ : G →* H)
-    (hφ : ∀ (g : G) (x : X), (φ g) • x = g • x) (h : Equidec G A B) : Equidec H A B := by
-  classical
-  obtain ⟨f, S, hS, hbij⟩ := h
-  refine ⟨f, S.image φ, ?_, hbij⟩
-  intro a ha
-  obtain ⟨g, hg, hga⟩ := hS a ha
-  exact ⟨φ g, Finset.mem_image_of_mem _ hg, by rw [hga, hφ]⟩
-
-end Equidec
-
-theorem Paradoxical.congr [Nonempty X] {E F : Set X} (h : Paradoxical G E) (hEF : Equidec G E F) :
-    Paradoxical G F := by
-  obtain ⟨A, B, hA, hB, hAB, hAE, hBE⟩ := h
-  obtain ⟨f, S, hS, hbij⟩ := hEF
-  have h1 : Equidec G A (f '' A) :=
-    ⟨f, S, fun a ha => hS a (hA ha), (hbij.injOn.mono hA).bijOn_image⟩
-  have h2 : Equidec G B (f '' B) :=
-    ⟨f, S, fun a ha => hS a (hB ha), (hbij.injOn.mono hB).bijOn_image⟩
-  refine ⟨f '' A, f '' B, (Set.image_mono hA).trans hbij.mapsTo.image_subset,
-    (Set.image_mono hB).trans hbij.mapsTo.image_subset, ?_, ?_, ?_⟩
-  · rw [Set.disjoint_iff_inter_eq_empty]
-    ext x
-    simp only [Set.mem_inter_iff, Set.mem_image, Set.mem_empty_iff_false, iff_false]
-    rintro ⟨⟨a, ha, rfl⟩, ⟨b, hb, hab⟩⟩
-    have hba : b = a := hbij.injOn (hB hb) (hA ha) hab
-    subst hba
-    exact (hAB.le_bot ⟨hb, ha⟩).elim
-  · exact (h1.symm.trans hAE).trans ⟨f, S, hS, hbij⟩
-  · exact (h2.symm.trans hBE).trans ⟨f, S, hS, hbij⟩
-
-theorem Paradoxical.of_hom {H : Type*} [Group H] [MulAction H X] {E : Set X} (φ : G →* H)
-    (hφ : ∀ (g : G) (x : X), (φ g) • x = g • x) (h : Paradoxical G E) : Paradoxical H E := by
-  obtain ⟨A, B, hA, hB, hAB, hAE, hBE⟩ := h
-  exact ⟨A, B, hA, hB, hAB, hAE.of_hom φ hφ, hBE.of_hom φ hφ⟩
-
-end BT
 
