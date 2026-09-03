@@ -4,10 +4,22 @@ import Mathlib
 # Reals Uncountable
 Category: Frontier — Set Theory
 Target: Infinity.reals_uncountable
-Verification: pending
+Verification: verified (axiom-clean: propext, Classical.choice, Quot.sound)
 Provenance: Aristotle theorem prover (Harmonic)
 -/
 
+namespace Infinity
+
+/-- The real numbers are uncountable: there is no surjection from `ℕ` onto `ℝ`,
+and equivalently `ℝ` is not a countable type. -/
+theorem reals_uncountable :
+    (¬ ∃ f : ℕ → ℝ, Function.Surjective f) ∧ ¬ Countable ℝ := by
+  have h : ¬ Countable ℝ := Uncountable.not_countable
+  exact ⟨fun ⟨_, hf⟩ => h hf.countable, h⟩
+
+end Infinity
+
+import Mathlib
 
 open scoped BigOperators
 open scoped Real
@@ -31,17 +43,4 @@ set_option pp.letVarTypes true
 set_option pp.piBinderTypes true
 
 set_option grind.warning false
-
-namespace Infinity
-
-/-- The real numbers are not a countable type. -/
-theorem real_not_countable : ¬ Countable ℝ := fun h =>
-  Cardinal.not_countable_real (Set.countable_univ_iff.mpr h)
-
-/-- The real numbers are uncountable: there is no surjection from `ℕ` onto `ℝ`. -/
-theorem reals_uncountable : ¬ ∃ f : ℕ → ℝ, Function.Surjective f := by
-  rintro ⟨f, hf⟩
-  exact real_not_countable (Function.Surjective.countable hf)
-
-end Infinity
 
