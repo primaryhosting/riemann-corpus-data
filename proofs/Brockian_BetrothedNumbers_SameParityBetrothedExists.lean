@@ -33,128 +33,123 @@ Provenance: Aristotle theorem prover (Harmonic)
 
 import Mathlib
 
-namespace Brockian.BetrothedNumbers
+/-!
+# Same Parity Betrothed Exists
+Category: Brockian Conjecture
+Target: Brockian.BetrothedNumbers.SameParityBetrothedExists
+Verification: pending
+Provenance: Aristotle theorem prover (Harmonic)
 
-open ArithmeticFunction Finset
+Whether there exists a pair of *betrothed* (quasi-amicable) numbers of the same parity is an
+open problem: every known betrothed pair consists of one even and one odd number.  Accordingly
+this file establishes a Lean-checked **conditional reduction**: if a same-parity betrothed pair
+exists, then each of its two members is either a perfect square or twice a perfect square.
 
-/-- `sigmaOne n` is the sum of all divisors of `n`. -/
-def sigmaOne (n : ℕ) : ℕ := ∑ d ∈ n.divisors, d
+The argument: for a same-parity pair, `σ m = σ n = m + n + 1` is odd; a number has an odd sum of
+divisors exactly when its odd part has an odd sum of divisors, which (since all divisors of an
+odd number are odd) happens exactly when its odd part has an odd number of divisors, i.e. is a
+perfect square.
+-/
 
-/-- `Betrothed m n` says that `m` and `n` form a *betrothed* (quasi-amicable) pair:
-they are distinct positive integers such that the sum of the proper divisors of each
-one is one more than the other, i.e. `σ(m) = σ(n) = m + n + 1`. -/
+open scoped BigOperators ArithmeticFunction.sigma Finset
+
+namespace Brockian
+namespace BetrothedNumbers
+
+/-- `m` and `n` are a pair of *betrothed* (quasi-amicable) numbers:
+they are distinct positive integers with `σ m = σ n = m + n + 1`,
+i.e. the sum of the proper divisors of each is one more than the other. -/
 def Betrothed (m n : ℕ) : Prop :=
-  0 < m ∧ 0 < n ∧ m ≠ n ∧ sigmaOne m = m + n + 1 ∧ sigmaOne n = m + n + 1
+  0 < m ∧ 0 < n ∧ m ≠ n ∧ σ 1 m = m + n + 1 ∧ σ 1 n = m + n + 1
 
-/-- A number is of *square type* if it is a perfect square or twice a perfect square. -/
-def SquareType (n : ℕ) : Prop := ∃ a, n = a ^ 2 ∨ n = 2 * a ^ 2
+/-- A natural number that is either a perfect square or twice a perfect square. -/
+def SquareOrTwiceSquare (k : ℕ) : Prop :=
+  (∃ a, k = a ^ 2) ∨ (∃ a, k = 2 * a ^ 2)
 
-section SigmaParity
+/-- The smallest betrothed pair, `(48, 75)`; note that it has opposite parity. -/
+theorem betrothed_48_75 : Betrothed 48 75 :=
+  ⟨by norm_num, by norm_num, by norm_num, by decide, by decide⟩
 
-lemma sigmaOne_eq_sigma (n : ℕ) : sigmaOne n = (sigma 1) n := by
-  rw [sigma_one_apply]; rfl
-
-/-- For an odd prime `p`, `σ(p ^ k)` is odd exactly when `k` is even. -/
-lemma odd_sigmaOne_prime_pow_iff {p : ℕ} (hp : p.Prime) (hp2 : p ≠ 2) (k : ℕ) :
-    Odd (sigmaOne (p ^ k)) ↔ Even k := by
-  have key : sigmaOne (p ^ k) % 2 = (k + 1) % 2 := by
-    unfold sigmaOne
-    rw [Nat.sum_divisors_prime_pow hp, Finset.sum_nat_mod]
-    rw [Finset.sum_congr rfl (fun i _ => Nat.odd_iff.mp ((hp.odd_of_ne_two hp2).pow (n := i)))]
-    simp
-  rw [Nat.odd_iff, Nat.even_iff, key]
+/-- If every exponent in the prime factorization of `q ≠ 0` is even, then `q` is a square. -/
+theorem isSquare_of_factorization_even {q : ℕ} (hq : q ≠ 0)
+    (h : ∀ p, Even (q.factorization p)) : ∃ c, q = c ^ 2 := by
+  refine ⟨∏ p ∈ q.primeFactors, p ^ (q.factorization p / 2), ?_⟩
+  rw [← Finset.prod_pow]
+  conv_lhs => rw [← Nat.factorization_prod_pow_eq_self hq]
+  rw [Nat.prod_factorization_eq_prod_primeFactors]
+  refine Finset.prod_congr rfl fun p _ => ?_
+  rw [← pow_mul]
+  congr 1
+  obtain ⟨t, ht⟩ := h p
   omega
 
-/-- If `σ(n)` is odd then every odd prime occurs to an even power in `n`. -/
-lemma even_factorization_of_odd_sigmaOne {n : ℕ} (hn : n ≠ 0) (h : Odd (sigmaOne n))
-    {p : ℕ} (hp : p.Prime) (hp2 : p ≠ 2) : Even (n.factorization p) := by
-  by_cases hmem : p ∈ n.factorization.support
-  · have hprod := (isMultiplicative_sigma (k := 1)).multiplicative_factorization _ hn
-    have hdvd : (sigma 1) (p ^ n.factorization p) ∣ (sigma 1) n := by
-      rw [hprod]
-      exact Finset.dvd_prod_of_mem (fun q => (sigma 1) (q ^ n.factorization q)) hmem
-    rw [← sigmaOne_eq_sigma, ← sigmaOne_eq_sigma] at hdvd
-    refine (odd_sigmaOne_prime_pow_iff hp hp2 _).mp ?_
-    rcases Nat.even_or_odd (sigmaOne (p ^ n.factorization p)) with he | ho
-    · exfalso
-      have h2 : 2 ∣ sigmaOne n := dvd_trans he.two_dvd hdvd
-      have := Nat.odd_iff.mp h
+/-- For an odd number, the sum of its divisors is congruent mod `2` to its number of divisors,
+since all of its divisors are odd. -/
+theorem sigma_one_mod_two_of_odd {q : ℕ} (hq : Odd q) :
+    σ 1 q % 2 = q.divisors.card % 2 := by
+  rw [ArithmeticFunction.sigma_one_apply, Finset.sum_nat_mod]
+  have key : ∀ d ∈ q.divisors, d % 2 = 1 := fun d hd =>
+    Nat.odd_iff.mp (hq.of_dvd_nat (Nat.dvd_of_mem_divisors hd))
+  rw [Finset.sum_congr rfl key, Finset.sum_const, smul_eq_mul, mul_one]
+
+/-- An odd number with an odd sum of divisors is a perfect square. -/
+theorem isSquare_of_odd_of_odd_sigma {q : ℕ} (hq0 : q ≠ 0) (hq : Odd q)
+    (hs : Odd (σ 1 q)) : ∃ c, q = c ^ 2 := by
+  rw [Nat.odd_iff] at hs
+  have hcard : q.divisors.card % 2 = 1 := by rw [← sigma_one_mod_two_of_odd hq]; exact hs
+  refine isSquare_of_factorization_even hq0 fun p => ?_
+  rcases Nat.even_or_odd (q.factorization p) with h | h
+  · exact h
+  · exfalso
+    have hne : q.factorization p ≠ 0 := by rw [Nat.odd_iff] at h; omega
+    have hp : p ∈ q.factorization.support := Finsupp.mem_support_iff.mpr hne
+    have hdvd : (q.factorization p + 1) ∣ q.divisors.card := by
+      rw [Nat.card_divisors hq0]
+      exact Finset.dvd_prod_of_mem (fun a => q.factorization a + 1) hp
+    have h2 : (2 : ℕ) ∣ q.divisors.card := by
+      refine dvd_trans ?_ hdvd
+      rw [Nat.odd_iff] at h
       omega
-    · exact ho
-  · simp [Finsupp.notMem_support_iff.mp hmem]
-
-/-- If `σ(n)` is odd then `n` is a square or twice a square. -/
-theorem squareType_of_odd_sigmaOne {n : ℕ} (hn : 0 < n) (h : Odd (sigmaOne n)) :
-    SquareType n := by
-  obtain ⟨a, b, ha, hb, hab, hsq⟩ := Nat.sq_mul_squarefree_of_pos hn
-  have ha2 : ∀ {d : ℕ}, d.Prime → d ∣ a → d = 2 := by
-    intro d hd hda
-    by_contra hne
-    have hdn : n.factorization d = 2 * b.factorization d + a.factorization d := by
-      rw [← hab, Nat.factorization_mul (pow_ne_zero 2 hb.ne') ha.ne']
-      simp [Nat.factorization_pow, two_mul]
-    have h1 : a.factorization d = 1 :=
-      le_antisymm (hsq.natFactorization_le_one d) (hd.factorization_pos_of_dvd ha.ne' hda)
-    obtain ⟨c, hc⟩ := even_factorization_of_odd_sigmaOne hn.ne' h hd hne
-    omega
-  have hpow : a = 2 ^ a.primeFactorsList.length :=
-    Nat.eq_prime_pow_of_unique_prime_dvd ha.ne' ha2
-  have hL : a.primeFactorsList.length ≤ 1 := by
-    have h2 := hsq.natFactorization_le_one 2
-    rw [hpow] at h2
-    simpa [Nat.Prime.factorization_pow, Nat.prime_two] using h2
-  interval_cases hle : a.primeFactorsList.length
-  · exact ⟨b, Or.inl (by simp [hpow] at *; omega)⟩
-  · refine ⟨b, Or.inr ?_⟩
-    rw [hpow] at hab
-    simp at hab
     omega
 
-end SigmaParity
+/-- Any positive number with an odd sum of divisors is a perfect square or twice one. -/
+theorem squareOrTwiceSquare_of_odd_sigma {k : ℕ} (hk : k ≠ 0) (hs : Odd (σ 1 k)) :
+    SquareOrTwiceSquare k := by
+  set t := k.factorization 2 with ht
+  set q := k / 2 ^ t with hqdef
+  have hsplit : 2 ^ t * q = k := Nat.ordProj_mul_ordCompl_eq_self k 2
+  have hq0 : q ≠ 0 := (Nat.ordCompl_pos 2 hk).ne'
+  have hqodd : Odd q :=
+    Nat.odd_iff.mpr (Nat.two_dvd_ne_zero.mp (Nat.not_dvd_ordCompl Nat.prime_two hk))
+  have hcop : Nat.Coprime (2 ^ t) q := Nat.Coprime.pow_left _ (Nat.coprime_two_left.mpr hqodd)
+  have hmul : σ 1 k = σ 1 (2 ^ t) * σ 1 q := by
+    rw [← hsplit]
+    exact ArithmeticFunction.isMultiplicative_sigma.map_mul_of_coprime hcop
+  have hsq : Odd (σ 1 q) := by
+    rw [hmul] at hs
+    exact (Nat.odd_mul.mp hs).2
+  obtain ⟨c, hc⟩ := isSquare_of_odd_of_odd_sigma hq0 hqodd hsq
+  rcases Nat.even_or_odd t with he | ho
+  · obtain ⟨s, hsv⟩ := he
+    exact Or.inl ⟨2 ^ s * c, by rw [← hsplit, hc, hsv]; ring⟩
+  · obtain ⟨s, hsv⟩ := ho
+    exact Or.inr ⟨2 ^ s * c, by rw [← hsplit, hc, hsv]; ring⟩
 
-/-- Both members of a same-parity betrothed pair are of square type. -/
-theorem squareType_of_betrothed_sameParity {m n : ℕ} (hb : Betrothed m n)
-    (hpar : m % 2 = n % 2) : SquareType m ∧ SquareType n := by
-  obtain ⟨hm, hn, -, hsm, hsn⟩ := hb
-  have hodd : Odd (m + n + 1) := by rw [Nat.odd_iff]; omega
-  exact ⟨squareType_of_odd_sigmaOne hm (hsm ▸ hodd),
-    squareType_of_odd_sigmaOne hn (hsn ▸ hodd)⟩
+/-- **Same-parity betrothed pairs.**  Whether a betrothed pair of equal parity exists is an
+open problem (all known betrothed pairs have opposite parity).  What is proved here is a
+Lean-checked structural reduction: *if* a same-parity betrothed pair exists, then there is one
+(indeed, the very same pair) whose two members are each either a perfect square or twice a
+perfect square. -/
+theorem SameParityBetrothedExists
+    (h : ∃ m n, Betrothed m n ∧ m % 2 = n % 2) :
+    ∃ m n, Betrothed m n ∧ m % 2 = n % 2 ∧
+      SquareOrTwiceSquare m ∧ SquareOrTwiceSquare n := by
+  obtain ⟨m, n, ⟨hm, hn, hmn, hsm, hsn⟩, hpar⟩ := h
+  have hodd : Odd (m + n + 1) := Nat.odd_iff.mpr (by omega)
+  refine ⟨m, n, ⟨hm, hn, hmn, hsm, hsn⟩, hpar, ?_, ?_⟩
+  · exact squareOrTwiceSquare_of_odd_sigma hm.ne' (hsm ▸ hodd)
+  · exact squareOrTwiceSquare_of_odd_sigma hn.ne' (hsn ▸ hodd)
 
-/-- The classical smallest betrothed pair `(48, 75)`; it has *opposite* parity.
-This witnesses that `Betrothed` is not vacuous. -/
-theorem betrothed_48_75 : Betrothed 48 75 := by
-  refine ⟨by norm_num, by norm_num, by norm_num, ?_, ?_⟩ <;> (unfold sigmaOne; decide)
-
-/-- **Conditional reduction for the same-parity betrothed number problem.**
-
-Whether a betrothed (quasi-amicable) pair of the same parity exists is an open problem;
-all known betrothed pairs consist of one even and one odd number.  What is proved here is
-a reduction: such a pair exists if and only if one exists in which *both* members are a
-perfect square or twice a perfect square. -/
-theorem SameParityBetrothedExists :
-    (∃ m n, Betrothed m n ∧ m % 2 = n % 2) ↔
-      (∃ m n, Betrothed m n ∧ m % 2 = n % 2 ∧ SquareType m ∧ SquareType n) := by
-  constructor
-  · rintro ⟨m, n, hb, hpar⟩
-    exact ⟨m, n, hb, hpar, (squareType_of_betrothed_sameParity hb hpar).1,
-      (squareType_of_betrothed_sameParity hb hpar).2⟩
-  · rintro ⟨m, n, hb, hpar, -, -⟩
-    exact ⟨m, n, hb, hpar⟩
-
-/-- If a betrothed pair of two odd numbers exists, both members are (odd) perfect squares. -/
-theorem odd_betrothed_isSquare {m n : ℕ} (hb : Betrothed m n)
-    (hm : Odd m) (hn : Odd n) : (∃ a, m = a ^ 2) ∧ (∃ b, n = b ^ 2) := by
-  have hpar : m % 2 = n % 2 := by
-    rw [Nat.odd_iff] at hm hn; omega
-  obtain ⟨⟨a, hA⟩, ⟨b, hB⟩⟩ := squareType_of_betrothed_sameParity hb hpar
-  rw [Nat.odd_iff] at hm hn
-  refine ⟨⟨a, ?_⟩, ⟨b, ?_⟩⟩
-  · rcases hA with hA | hA
-    · exact hA
-    · omega
-  · rcases hB with hB | hB
-    · exact hB
-    · omega
-
-end Brockian.BetrothedNumbers
+end BetrothedNumbers
+end Brockian
 
