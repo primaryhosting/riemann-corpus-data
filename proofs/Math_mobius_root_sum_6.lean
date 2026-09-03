@@ -1,13 +1,3 @@
-/-
-# Mobius Root Sum 6
-Category: Pure Mathematics
-Target: Math.mobius_root_sum_6
-Verification: pending
-Provenance: Aristotle theorem prover (Harmonic)
--/
--- (The header above uses a plain block comment because Lean 4 does not allow a
--- module docstring `/-! ... -/` to appear before the `import` commands.)
-
 import Mathlib
 
 /-!
@@ -17,45 +7,6 @@ Target: Math.mobius_root_sum_6
 Verification: pending
 Provenance: Aristotle theorem prover (Harmonic)
 -/
-
-open scoped BigOperators
-
-namespace Math
-
-open Polynomial
-
-/-- The sixth cyclotomic polynomial over `ℂ` has `nextCoeff = -1`. -/
-lemma nextCoeff_cyclotomic_six : (cyclotomic 6 ℂ).nextCoeff = -1 := by
-  rw [Polynomial.cyclotomic_six]
-  have hdeg : (X ^ 2 - X + 1 : ℂ[X]).natDegree = 2 := by
-    compute_degree!
-  rw [Polynomial.nextCoeff, hdeg]
-  norm_num [Polynomial.coeff_one, Polynomial.coeff_X]
-
-/-- **Sum of the primitive 6-th roots of unity.**
-The sum of the primitive `6`-th roots of unity in `ℂ` equals the Möbius function `μ(6) = 1`. -/
-theorem mobius_root_sum_6 :
-    ∑ ζ ∈ primitiveRoots 6 ℂ, ζ = (ArithmeticFunction.moebius 6 : ℂ) := by
-  have hζ : IsPrimitiveRoot (Complex.exp (2 * Real.pi * Complex.I / 6)) 6 :=
-    Complex.isPrimitiveRoot_exp 6 (by norm_num)
-  have hprod := Polynomial.cyclotomic_eq_prod_X_sub_primitiveRoots hζ
-  have hnext : (∏ μ ∈ primitiveRoots 6 ℂ, (X - C μ)).nextCoeff
-      = -∑ μ ∈ primitiveRoots 6 ℂ, μ := Polynomial.prod_X_sub_C_nextCoeff _
-  have h : -∑ μ ∈ primitiveRoots 6 ℂ, μ = -1 := by
-    rw [← hnext, ← hprod, nextCoeff_cyclotomic_six]
-  have hmu : (ArithmeticFunction.moebius 6 : ℤ) = 1 := by
-    have hmul := ArithmeticFunction.isMultiplicative_moebius.map_mul_of_coprime
-      (show Nat.Coprime 2 3 by norm_num)
-    rw [show (6 : ℕ) = 2 * 3 from rfl, hmul,
-      ArithmeticFunction.moebius_apply_prime (by norm_num),
-      ArithmeticFunction.moebius_apply_prime (by norm_num)]
-    norm_num
-  rw [neg_inj.mp h, hmu]
-  norm_num
-
-end Math
-
-import Mathlib
 
 open scoped BigOperators
 open scoped Real
@@ -71,12 +22,41 @@ set_option synthInstance.maxSize 128
 set_option relaxedAutoImplicit false
 set_option autoImplicit false
 
-set_option pp.fullNames true
-set_option pp.structureInstances true
-set_option pp.coercions.types true
-set_option pp.funBinderTypes true
-set_option pp.letVarTypes true
-set_option pp.piBinderTypes true
-
 set_option grind.warning false
+
+namespace Math
+
+open Polynomial
+
+/-- The sum of the primitive `6`-th roots of unity in `ℂ` equals `μ 6` (which is `1`). -/
+theorem mobius_root_sum_6 :
+    ∑ z ∈ primitiveRoots 6 ℂ, z = (ArithmeticFunction.moebius 6 : ℂ) := by
+  have hmu : ArithmeticFunction.moebius 6 = 1 := by
+    have h : (6 : ℕ) = 2 * 3 := by norm_num
+    rw [h, ArithmeticFunction.isMultiplicative_moebius.map_mul_of_coprime (by norm_num),
+      ArithmeticFunction.moebius_apply_prime Nat.prime_two,
+      ArithmeticFunction.moebius_apply_prime Nat.prime_three]
+    norm_num
+  -- there are exactly `φ 6 = 2` primitive sixth roots of unity
+  have hcard : (primitiveRoots 6 ℂ).card = 2 := by
+    rw [Complex.card_primitiveRoots]; decide +kernel
+  obtain ⟨a, b, hab, hs⟩ := Finset.card_eq_two.1 hcard
+  obtain ⟨ζ, hζ⟩ : ∃ ζ : ℂ, IsPrimitiveRoot ζ 6 :=
+    ⟨Complex.exp (2 * Real.pi * Complex.I / 6), Complex.isPrimitiveRoot_exp 6 (by norm_num)⟩
+  -- the 6th cyclotomic polynomial factors as `(X - a) (X - b)`
+  have hprod : cyclotomic 6 ℂ = (X - C a) * (X - C b) := by
+    rw [cyclotomic_eq_prod_X_sub_primitiveRoots hζ, hs, Finset.prod_pair hab]
+  -- and it equals `X ^ 2 - X + 1`, so `a + b = 1`
+  have h1 : (cyclotomic 6 ℂ).coeff 1 = -1 := by
+    rw [cyclotomic_six]; simp [coeff_one]
+  have h2 : ((X - C a) * (X - C b) : ℂ[X]).coeff 1 = -(a + b) := by
+    have h3 : ((X - C a) * (X - C b) : ℂ[X]) = X ^ 2 - C (a + b) * X + C (a * b) := by
+      rw [C_add, C_mul]; ring
+    rw [h3]; simp
+  rw [hprod, h2] at h1
+  rw [hs, Finset.sum_pair hab, hmu]
+  push_cast
+  linear_combination -h1
+
+end Math
 
