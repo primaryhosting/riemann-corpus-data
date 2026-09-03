@@ -1,4 +1,5 @@
-/-
+import Mathlib
+
 /-!
 # Hydra Kirby Paris
 Category: Frontier — Set Theory
@@ -6,8 +7,6 @@ Target: Frontier.Hydra_Kirby_Paris
 Verification: pending
 Provenance: Aristotle theorem prover (Harmonic)
 -/
--/
-import Mathlib
 
 open scoped BigOperators
 open scoped Real
@@ -23,208 +22,199 @@ set_option synthInstance.maxSize 128
 set_option relaxedAutoImplicit false
 set_option autoImplicit false
 
+set_option pp.fullNames true
+set_option pp.structureInstances true
+set_option pp.coercions.types true
+set_option pp.funBinderTypes true
+set_option pp.letVarTypes true
+set_option pp.piBinderTypes true
+
 set_option grind.warning false
 
 namespace Frontier
 
-/-- A *hydra* is a finite rooted tree: a node together with the (finite) list of the
-hydras hanging from it.  Only the multiset of children matters for the game, but a list
-representation is used so that the type is a genuine inductive type. -/
+/-- A hydra is a finite rooted tree: a node together with the (finite, ordered) list of the
+subtrees hanging from it.  A *head* of the hydra is a leaf, i.e. a subtree `node []`. -/
 inductive Hydra : Type
   | node : List Hydra → Hydra
 
 namespace Hydra
 
-/-- Structural induction principle for hydras: to prove a property of every hydra it
-suffices to prove it for `node L` assuming it for every element of `L`. -/
-theorem ind_children {motive : Hydra → Prop}
-    (H : ∀ L : List Hydra, (∀ c ∈ L, motive c) → motive (node L)) (x : Hydra) : motive x :=
-  Hydra.rec (motive_1 := motive) (motive_2 := fun L => ∀ c ∈ L, motive c)
-    (fun L ih => H L ih)
-    (by simp)
-    (fun t ts iht ihts c hc => by
-      rcases List.mem_cons.1 hc with rfl | hc
-      · exact iht
-      · exact ihts c hc)
-    x
-
-/-- Auxiliary multiset computation: as a multiset, `a ++ x :: b` is `{x}` plus `a ++ b`. -/
-theorem coe_append_cons {α : Type*} (a b : List α) (x : α) :
-    ((a ++ x :: b : List α) : Multiset α) = {x} + ((a ++ b : List α) : Multiset α) := by
-  rw [Multiset.singleton_add, Multiset.cons_coe]
-  exact Multiset.coe_eq_coe.2 List.perm_middle
-
-/-- `Inner x y` : the hydra `y` arises from the hydra `x` by one legal Kirby–Paris move
-whose chopped head sits at depth at least `2`, so that the head has a grandparent and
-the copies grown by the hydra stay inside `x`.
-
-* `grand`: a head (`node []`) is chopped off the child `c = node (ca ++ node [] :: cb)`
-  of the root; the child `c` is then replaced by an arbitrary finite number `k` of
-  copies of `c' = node (ca ++ cb)`, i.e. of the tree `c` with that head removed.
-  The usual rule "grow `n` new copies at stage `n`" is the special case `k = n`;
-  since `k` is arbitrary, termination below holds for every growth rule.
-* `deep`: the move takes place inside one of the children. -/
-inductive Inner : Hydra → Hydra → Prop
-  | grand (k : ℕ) (a b ca cb : List Hydra) :
-      Inner (node (a ++ node (ca ++ node [] :: cb) :: b))
-            (node (a ++ List.replicate k (node (ca ++ cb)) ++ b))
-  | deep (a b : List Hydra) {c c' : Hydra} (h : Inner c c') :
-      Inner (node (a ++ c :: b)) (node (a ++ c' :: b))
-
-/-- `Step x y` : the hydra `y` arises from `x` by one legal Kirby–Paris move.
-Either a head attached directly to the root is chopped off (there is no regrowth then,
-since such a head has no grandparent), or the move is an `Inner` one. -/
-inductive Step : Hydra → Hydra → Prop
-  | top (a b : List Hydra) : Step (node (a ++ node [] :: b)) (node (a ++ b))
-  | inner {x y : Hydra} (h : Inner x y) : Step x y
-
-/-- Sanity check: chopping the head of a two-node branch makes the hydra grow
-(here three) new heads at the root. -/
-example : Step (node [node [node []]]) (node [node [], node [], node []]) :=
-  Step.inner (by simpa using Inner.grand 3 [] [] [] [])
-
-/-- Sanity check: a head attached to the root is chopped off without regrowth. -/
-example : Step (node [node [], node [node []]]) (node [node [node []]]) := by
-  simpa using Step.top [] [node [node []]]
-
-/-- `Below x y` means that `x` is obtained from `y` by one Kirby–Paris move. -/
-def Below (x y : Hydra) : Prop := Step y x
-
-/-- The move relation restricted to accessible sources; it is irreflexive by
-construction, which is what lets us feed it to the `CutExpand` machinery. -/
-def BelowAcc (x y : Hydra) : Prop := Below x y ∧ Acc Below x
-
-theorem acc_not_self {α : Type*} {r : α → α → Prop} {a : α} (h : Acc r a) : ¬ r a a := by
-  induction h with
-  | intro x _ ih => exact fun hr => ih x hr hr
-
-instance : Std.Irrefl BelowAcc := ⟨fun _ h => acc_not_self h.2 h.1⟩
-
-theorem belowAcc_sub : Subrelation BelowAcc Below := fun h => h.1
-
-/-- A dead hydra admits no move. -/
-theorem step_ne_dead {x y : Hydra} (h : Step x y) : x ≠ node [] := by
-  cases h with
-  | top a b => simp
-  | inner h =>
-      cases h with
-      | grand k a b ca cb => simp
-      | @deep a b c c' h => simp
-
-/-- If a hydra `x` is alive, then a head can be chopped off inside `x`, wherever `x`
-sits as a child of some node. -/
-theorem exists_inner_of_ne_dead :
-    ∀ x : Hydra, x ≠ node [] → ∀ a b : List Hydra, ∃ y, Inner (node (a ++ x :: b)) y := by
-  refine ind_children ?_
-  intro L ih hL a b
-  cases L with
-  | nil => exact absurd rfl hL
-  | cons c cs =>
-      by_cases hc : c = node []
-      · subst hc
-        exact ⟨_, by simpa using Inner.grand 0 a b [] cs⟩
-      · obtain ⟨y, hy⟩ := ih c (by simp) hc [] cs
-        exact ⟨_, Inner.deep a b hy⟩
-
-/-- Conversely to `step_ne_dead`: a hydra which is not dead admits a move. -/
-theorem exists_step_of_ne_dead (x : Hydra) (hx : x ≠ node []) : ∃ y, Step x y := by
-  cases x with
-  | node L =>
-      cases L with
-      | nil => exact absurd rfl hx
-      | cons c cs =>
-          by_cases hc : c = node []
-          · subst hc
-            exact ⟨node cs, by simpa using Step.top [] cs⟩
-          · obtain ⟨y, hy⟩ := exists_inner_of_ne_dead c hc [] cs
-            exact ⟨y, Step.inner (by simpa using hy)⟩
-
-/-- One Kirby–Paris move on `node L` turns the multiset of children `L` into a multiset
-obtained by removing one child and adding back finitely many strictly smaller ones:
-this is a `CutExpand` step for the move relation. -/
-theorem step_cutExpand {L L' : List Hydra} (hacc : ∀ c ∈ L, Acc Below c)
-    (h : Step (node L) (node L')) :
-    Relation.CutExpand BelowAcc (L' : Multiset Hydra) (L : Multiset Hydra) := by
-  cases h with
-  | top a b =>
-      refine ⟨0, node [], by simp, ?_⟩
-      rw [coe_append_cons]
-      abel
-  | inner h =>
-      cases h with
-      | grand k a b ca cb =>
-          refine ⟨Multiset.replicate k (node (ca ++ cb)), node (ca ++ node [] :: cb), ?_, ?_⟩
-          · intro y hy
-            rw [Multiset.eq_of_mem_replicate hy]
-            exact ⟨Step.top ca cb, Acc.inv (hacc _ (by simp)) (Step.top ca cb)⟩
-          · rw [coe_append_cons]
-            simp only [← Multiset.coe_add, Multiset.coe_replicate]
-            abel
-      | @deep a b c c' hcc' =>
-          refine ⟨{c'}, c, ?_, ?_⟩
-          · intro y hy
-            rw [Multiset.mem_singleton.1 hy]
-            exact ⟨Step.inner hcc', Acc.inv (hacc _ (by simp)) (Step.inner hcc')⟩
-          · rw [coe_append_cons, coe_append_cons]
-            abel
-
-/-- Transfer of accessibility from the multiset of children to the hydra itself. -/
-theorem acc_of_acc_children {m : Multiset Hydra} (hm : Acc (Relation.CutExpand BelowAcc) m) :
-    ∀ L : List Hydra, (L : Multiset Hydra) = m → (∀ c ∈ L, Acc Below c) → Acc Below (node L) := by
-  induction hm with
-  | intro m _ ih =>
-      intro L hLm hL
-      refine Acc.intro _ ?_
-      rintro x hx
-      obtain ⟨L', rfl⟩ : ∃ L', x = node L' := by cases x with | node L' => exact ⟨L', rfl⟩
-      have hcut : Relation.CutExpand BelowAcc (L' : Multiset Hydra) (L : Multiset Hydra) :=
-        step_cutExpand hL hx
-      refine ih (L' : Multiset Hydra) (hLm ▸ hcut) L' rfl ?_
-      intro c hc
-      have hmem : c ∈ (L' : Multiset Hydra) := by simpa using hc
-      have hclosed : ∀ a ∈ (L : Multiset Hydra), Acc Below a := by
-        intro a ha; exact hL a (by simpa using ha)
-      exact Relation.cutExpand_closed (r := BelowAcc) (fun a => Acc Below a)
-        (fun {a' a} hr ha => Acc.inv ha hr.1) hcut hclosed c hmem
-
-/-- **Every hydra is accessible for the Kirby–Paris move relation.** -/
-theorem acc_below : ∀ x : Hydra, Acc Below x := by
-  refine ind_children ?_
-  intro L ih
-  have hsing : ∀ c ∈ (L : Multiset Hydra), Acc (Relation.CutExpand BelowAcc) {c} := by
-    intro c hc
-    exact Acc.cutExpand (belowAcc_sub.accessible (ih c (by simpa using hc)))
-  exact acc_of_acc_children (Relation.acc_of_singleton hsing) L rfl (fun c hc => ih c hc)
-
-/-- **Kirby–Paris, well-foundedness form.** The relation "is obtained by one hydra move"
-is well founded; equivalently, there is no infinite play. -/
-theorem wellFounded_below : WellFounded Below := ⟨acc_below⟩
+/-- Structural induction for `Hydra`: to prove a statement for all hydras it suffices to prove
+it for `node ts` assuming it for all subtrees in `ts`. -/
+theorem ind {P : Hydra → Prop} (h : ∀ ts : List Hydra, (∀ c ∈ ts, P c) → P (node ts)) :
+    ∀ x, P x := by
+  have key : ∀ x, P x ∧ True := by
+    intro x
+    induction x using Hydra.rec (motive_2 := fun l => ∀ c ∈ l, P c) with
+    | node ts ih => exact ⟨h ts ih, trivial⟩
+    | nil => simp_all
+    | cons a l iha ihl =>
+        rename_i c hc
+        rcases List.mem_cons.1 hc with rfl | hc
+        · exact iha.1
+        · exact ihl c hc
+  exact fun x => (key x).1
 
 end Hydra
 
-/-- **The Kirby–Paris hydra theorem.**
+open Hydra
 
-Whatever strategy is used — at every stage the player may chop off *any* head, and the
-hydra may grow back *any* finite number of copies of the relevant subtree — the game
-terminates: the hydra is dead (`Hydra.node []`) after finitely many moves.
+/-- Chopping off a head growing directly at the root: a leaf child `node []` of the root is
+simply removed (no new heads grow back). -/
+inductive Chop : Hydra → Hydra → Prop
+  | mk (ts us : List Hydra) : Chop (node (ts ++ us)) (node (ts ++ node [] :: us))
 
-Here `H : ℕ → Hydra` is an arbitrary play: as long as the current hydra `H k` is alive,
-`H (k+1)` is obtained from it by a legal move (`Hydra.Step`).  The conclusion is that
-some `H k` is the dead hydra. -/
-theorem Hydra_Kirby_Paris (H : ℕ → Hydra)
-    (hplay : ∀ k, H k ≠ Hydra.node [] → Hydra.Step (H k) (H (k + 1))) :
-    ∃ k, H k = Hydra.node [] := by
-  by_contra hcon
-  push_neg at hcon
-  have hstep : ∀ k, Hydra.Below (H (k + 1)) (H k) := fun k => hplay k (hcon k)
-  -- an infinite descending chain of moves contradicts accessibility of `H 0`
-  have key : ∀ x : Hydra, Acc Hydra.Below x → ∀ j : ℕ, H j = x → False := by
+/-- Chopping off a head at depth at least `2`, with the Kirby–Paris regrowth rule with
+parameter `n`.
+
+* `grand`: the chopped head is a child of a child `c = node (as ++ node [] :: bs)` of the root.
+  The head is removed from `c`, producing `c' = node (as ++ bs)`, and the root (the grandparent
+  of the head) then carries `n + 1` copies of `c'` in place of `c`.
+* `deeper`: the chopped head lies strictly deeper, so the whole move (removal plus regrowth)
+  happens inside one subtree `c` of the root. -/
+inductive Deep (n : ℕ) : Hydra → Hydra → Prop
+  | grand (ts us as bs : List Hydra) :
+      Deep n (node (ts ++ List.replicate (n + 1) (node (as ++ bs)) ++ us))
+        (node (ts ++ node (as ++ node [] :: bs) :: us))
+  | deeper {c' c : Hydra} (ts us : List Hydra) (hc : Deep n c' c) :
+      Deep n (node (ts ++ c' :: us)) (node (ts ++ c :: us))
+
+/-- One move of the Kirby–Paris hydra game with regrowth parameter `n`: `KPStep n H' H` says
+that the hydra `H` turns into the hydra `H'` when the player chops off one head and the hydra
+grows back `n` extra copies of the relevant branch. -/
+def KPStep (n : ℕ) (H' H : Hydra) : Prop := Chop H' H ∨ Deep n H' H
+
+/-- `KPMove H' H` : `H'` arises from `H` by one legal move of the Kirby–Paris hydra game,
+for some regrowth parameter. -/
+def KPMove (H' H : Hydra) : Prop := ∃ n, KPStep n H' H
+
+/-- The abstract "cut a head, grow smaller branches" relation on hydras: `KPAbs (node ts')
+(node ts)` holds when the multiset `ts'` of subtrees is obtained from `ts` by deleting one
+subtree `a` and inserting an arbitrary finite multiset of subtrees, each of which is
+`KPAbs`-smaller than `a`.  (The equation `ts' + {a} = ts + t` is the `Multiset.erase`-free
+formulation used by `Relation.CutExpand`.) -/
+inductive KPAbs : Hydra → Hydra → Prop
+  | mk (ts ts' t : List Hydra) (a : Hydra) (h : ∀ a' ∈ t, KPAbs a' a)
+      (he : (ts' : Multiset Hydra) + {a} = (ts : Multiset Hydra) + (t : Multiset Hydra)) :
+      KPAbs (node ts') (node ts)
+
+theorem kpAbs_of_cutExpand {ts ts' : List Hydra}
+    (h : Relation.CutExpand KPAbs (ts' : Multiset Hydra) (ts : Multiset Hydra)) :
+    KPAbs (node ts') (node ts) := by
+  obtain ⟨t, a, hr, he⟩ := h
+  refine KPAbs.mk ts ts' t.toList a ?_ ?_
+  · intro a' ha'
+    exact hr a' (by rwa [← Multiset.mem_coe, Multiset.coe_toList] at ha')
+  · rwa [Multiset.coe_toList]
+
+theorem cutExpand_of_kpAbs {ts ts' : List Hydra} (h : KPAbs (node ts') (node ts)) :
+    Relation.CutExpand KPAbs (ts' : Multiset Hydra) (ts : Multiset Hydra) := by
+  cases h with
+  | mk ts₀ ts₀' t a hr he =>
+      exact ⟨(t : Multiset Hydra), a, hr, he⟩
+
+theorem KPAbs.irrefl' : ∀ x : Hydra, ¬ KPAbs x x := by
+  have key : ∀ x y : Hydra, KPAbs x y → x = y → False := by
+    intro x y h
+    induction h with
+    | mk ts ts' t a hr he ih =>
+        intro hEq
+        have hts : ts' = ts := by
+          cases hEq
+          rfl
+        subst hts
+        have ht : (t : Multiset Hydra) = {a} := by
+          have := he
+          rw [add_comm ((ts' : Multiset Hydra)) ({a} : Multiset Hydra),
+            add_comm ((ts' : Multiset Hydra)) ((t : Multiset Hydra))] at this
+          exact (add_right_cancel this).symm
+        have hmem : a ∈ t := by
+          have : a ∈ (t : Multiset Hydra) := by rw [ht]; simp
+          rwa [Multiset.mem_coe] at this
+        exact ih a hmem rfl
+  intro x hx
+  exact key x x hx rfl
+
+instance : Std.Irrefl KPAbs := ⟨KPAbs.irrefl'⟩
+
+theorem acc_node_of_acc_cutExpand {s : Multiset Hydra} (h : Acc (Relation.CutExpand KPAbs) s) :
+    ∀ ts : List Hydra, (ts : Multiset Hydra) = s → Acc KPAbs (node ts) := by
+  induction h with
+  | intro s hs ih =>
+      intro ts hts
+      refine Acc.intro _ ?_
+      rintro y hy
+      cases hy with
+      | mk ts₀ ts₀' t a hr he =>
+          refine ih ((ts₀' : Multiset Hydra)) ?_ ts₀' rfl
+          exact hts ▸ (⟨(t : Multiset Hydra), a, hr, he⟩ :
+            Relation.CutExpand KPAbs (ts₀' : Multiset Hydra) (ts₀ : Multiset Hydra))
+
+theorem acc_kpAbs (x : Hydra) : Acc KPAbs x := by
+  induction x using Hydra.ind with
+  | _ ts ih =>
+      refine acc_node_of_acc_cutExpand ?_ ts rfl
+      refine Relation.acc_of_singleton ?_
+      intro a ha
+      exact (ih a (by rwa [← Multiset.mem_coe])).cutExpand
+
+theorem wellFounded_kpAbs : WellFounded KPAbs := ⟨acc_kpAbs⟩
+
+theorem kpAbs_of_chop {H' H : Hydra} (h : Chop H' H) : KPAbs H' H := by
+  cases h with
+  | mk ts us =>
+      refine KPAbs.mk (ts ++ node [] :: us) (ts ++ us) [] (node []) (by simp) ?_
+      simp [Multiset.coe_add]
+      rfl
+
+theorem kpAbs_of_deep {n : ℕ} {H' H : Hydra} (h : Deep n H' H) : KPAbs H' H := by
+  induction h with
+  | grand ts us as bs =>
+      refine KPAbs.mk (ts ++ node (as ++ node [] :: bs) :: us)
+        (ts ++ List.replicate (n + 1) (node (as ++ bs)) ++ us)
+        (List.replicate (n + 1) (node (as ++ bs))) (node (as ++ node [] :: bs)) ?_ ?_
+      · intro a' ha'
+        have : a' = node (as ++ bs) := List.eq_of_mem_replicate ha'
+        subst this
+        exact kpAbs_of_chop (Chop.mk as bs)
+      · simp [Multiset.coe_add]
+        abel
+  | deeper ts us hc ih =>
+      rename_i c' c
+      refine KPAbs.mk (ts ++ c :: us) (ts ++ c' :: us) [c'] c ?_ ?_
+      · intro a' ha'
+        have : a' = c' := by simpa using ha'
+        subst this
+        exact ih
+      · simp [Multiset.coe_add]
+        abel
+
+theorem kpAbs_of_kpMove {H' H : Hydra} (h : KPMove H' H) : KPAbs H' H := by
+  obtain ⟨n, hn⟩ := h
+  rcases hn with h | h
+  · exact kpAbs_of_chop h
+  · exact kpAbs_of_deep h
+
+/-- **Termination of the Kirby–Paris hydra game.**  The one-move relation of the hydra game is
+well founded; equivalently, there is no infinite play: for every starting hydra, every strategy
+(choice of heads to chop) and every choice of regrowth parameters, the game reaches the empty
+hydra after finitely many moves. -/
+theorem Hydra_Kirby_Paris :
+    WellFounded KPMove ∧
+      ∀ (f : ℕ → Hydra) (n : ℕ → ℕ), ¬ ∀ k : ℕ, KPStep (n k) (f (k + 1)) (f k) := by
+  have hwf : WellFounded KPMove :=
+    Subrelation.wf (fun {a b} h => kpAbs_of_kpMove h) wellFounded_kpAbs
+  refine ⟨hwf, ?_⟩
+  intro f n hf
+  have hstep : ∀ k : ℕ, KPMove (f (k + 1)) (f k) := fun k => ⟨n k, hf k⟩
+  have key : ∀ x : Hydra, Acc KPMove x → ∀ k : ℕ, f k ≠ x := by
     intro x hx
     induction hx with
     | intro y _ ih =>
-        intro j hj
-        exact ih (H (j + 1)) (hj ▸ hstep j) (j + 1) rfl
-  exact key (H 0) (Hydra.acc_below _) 0 rfl
+        intro k hk
+        exact ih (f (k + 1)) (hk ▸ hstep k) (k + 1) rfl
+  exact key (f 0) (hwf.apply _) 0 rfl
 
 end Frontier
 
