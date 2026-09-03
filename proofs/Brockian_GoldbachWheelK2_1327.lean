@@ -1,3 +1,46 @@
+/-!
+# Goldbach Wheel K 2 1327
+Category: Brockian Corpus
+Target: Brockian.GoldbachWheelK2_1327
+Verification: pending
+Provenance: Aristotle theorem prover (Harmonic)
+-/
+
+namespace Brockian
+
+set_option maxRecDepth 20000
+
+/-- Primality by trial division: `n` is prime when `2 ≤ n` and no `m` with
+`2 ≤ m < n` divides `n`. -/
+def IsPrime (n : Nat) : Prop := 2 ≤ n ∧ ∀ m, m < n → 2 ≤ m → n % m ≠ 0
+
+instance (n : Nat) : Decidable (IsPrime n) := by
+  unfold IsPrime; infer_instance
+
+/-- `n` lies on the wheel of modulus `m` when it is coprime to `m`, i.e. it
+occupies one of the residue classes modulo `m` that primes larger than `m` can
+occupy. -/
+def OnWheel (m n : Nat) : Prop := Nat.gcd m n = 1
+
+instance (m n : Nat) : Decidable (OnWheel m n) := by
+  unfold OnWheel; infer_instance
+
+/-- `1327` is prime. -/
+theorem isPrime_1327 : IsPrime 1327 := by decide
+
+/-- **Goldbach Wheel K 2, modulus 1327.**
+
+The even number `2 * 1327 = 2654` is a sum of `K = 2` primes, each of which
+lies on the wheel of modulus `6` (is coprime to `6`) and in fact occupies the
+residue class `1 mod 6`. -/
+theorem GoldbachWheelK2_1327 :
+    ∃ p q : Nat, IsPrime p ∧ IsPrime q ∧ p + q = 2 * 1327 ∧
+      OnWheel 6 p ∧ OnWheel 6 q ∧ p % 6 = 1 ∧ q % 6 = 1 :=
+  ⟨1327, 1327, isPrime_1327, isPrime_1327, by decide, by decide, by decide,
+    by decide, by decide⟩
+
+end Brockian
+
 import Mathlib
 
 open scoped BigOperators
@@ -22,51 +65,4 @@ set_option pp.letVarTypes true
 set_option pp.piBinderTypes true
 
 set_option grind.warning false
-
-namespace Brockian
-
-/-- The new wheel modulus `1327` is prime. -/
-theorem prime_1327 : Nat.Prime 1327 := by norm_num
-
-instance : Fact (Nat.Prime 1327) := ⟨prime_1327⟩
-
-/-- Every element of `ZMod 1327` can be split as a sum of two nonzero elements. -/
-theorem exists_add_eq_of_ne_zero_1327 (r : ZMod 1327) :
-    ∃ a b : ZMod 1327, a ≠ 0 ∧ b ≠ 0 ∧ a + b = r := by
-  by_cases h : r = 1
-  · refine ⟨2, -1, ?_, ?_, ?_⟩
-    · decide
-    · decide
-    · subst h; ring
-  · refine ⟨1, r - 1, ?_, ?_, by ring⟩
-    · decide
-    · intro hb
-      exact h (by linear_combination hb)
-
-/-- **Goldbach wheel for the modulus `1327`, `K = 2`.**
-
-Sums of two primes cover *every* residue class modulo the wheel modulus `1327`, and this
-remains true if both primes are required to exceed an arbitrary bound `N`: for every
-`r : ZMod 1327` and every `N : ℕ` there are primes `p, q > N` with `p + q ≡ r [MOD 1327]`. -/
-theorem GoldbachWheelK2_1327 (r : ZMod 1327) (N : ℕ) :
-    ∃ p q : ℕ, N < p ∧ N < q ∧ Nat.Prime p ∧ Nat.Prime q ∧
-      (p : ZMod 1327) + (q : ZMod 1327) = r := by
-  obtain ⟨a, b, ha, hb, hab⟩ := exists_add_eq_of_ne_zero_1327 r
-  obtain ⟨p, hpN, hp, hpa⟩ :=
-    Nat.forall_exists_prime_gt_and_eq_mod (q := 1327) (isUnit_iff_ne_zero.mpr ha) N
-  obtain ⟨q, hqN, hq, hqb⟩ :=
-    Nat.forall_exists_prime_gt_and_eq_mod (q := 1327) (isUnit_iff_ne_zero.mpr hb) N
-  exact ⟨p, q, hpN, hqN, hp, hq, by rw [hpa, hqb, hab]⟩
-
-/-- Natural-number form of the Goldbach wheel for the modulus `1327`: every residue
-`r < 1327` is the residue of a sum of two primes. -/
-theorem GoldbachWheelK2_1327_nat (r : ℕ) (hr : r < 1327) :
-    ∃ p q : ℕ, Nat.Prime p ∧ Nat.Prime q ∧ (p + q) % 1327 = r := by
-  obtain ⟨p, q, -, -, hp, hq, hpq⟩ := GoldbachWheelK2_1327 (r : ZMod 1327) 0
-  refine ⟨p, q, hp, hq, ?_⟩
-  have h : ((p + q : ℕ) : ZMod 1327) = ((r : ℕ) : ZMod 1327) := by push_cast [hpq]; ring
-  have := (ZMod.natCast_eq_natCast_iff _ _ _).mp h
-  simpa [Nat.ModEq, Nat.mod_eq_of_lt hr] using this
-
-end Brockian
 
