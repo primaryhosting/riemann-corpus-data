@@ -6,7 +6,7 @@
   "Brockian Program": 88,
   "Computer Science": 88,
   "Chemistry": 45,
-  "Frontier": 13
+  "Frontier": 14
  },
  "field_concepts": {
   "Mathematics › Number Theory": 365,
@@ -28,14 +28,14 @@
   "Physics › Quantum": 27,
   "Brockian Program › Core / Other": 15,
   "Frontier › Foundations / Mind": 8,
+  "Frontier › Frontier (unsorted)": 6,
   "Mathematics › Moonshine / Modular": 6,
-  "Frontier › Frontier (unsorted)": 5,
   "Brockian Program › Riemann / Zeta": 1
  },
  "source_programs": {
   "Other": 333,
   "Brockian program": 283,
-  "Frontier attempts": 161,
+  "Frontier attempts": 162,
   "Core mathematics": 160,
   "Physics corpus": 117,
   "Corpus extension (C-series)": 70,
@@ -80,7 +80,7 @@
   },
   "Frontier": {
    "Foundations / Mind": 8,
-   "Frontier (unsorted)": 5
+   "Frontier (unsorted)": 6
   }
  }
 }
