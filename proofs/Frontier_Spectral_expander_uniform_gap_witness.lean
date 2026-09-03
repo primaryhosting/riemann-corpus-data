@@ -1,3 +1,11 @@
+/-
+# Expander Uniform Gap Witness
+Category: Frontier — Spectral Geometry
+Target: Frontier.Spectral.expander_uniform_gap_witness
+Verification: pending
+Provenance: Aristotle theorem prover (Harmonic)
+-/
+
 import Mathlib
 
 /-!
@@ -12,10 +20,12 @@ open scoped BigOperators
 open scoped Real
 open scoped Nat
 open scoped Classical
-open scoped Matrix
+open scoped Pointwise
 
-set_option maxHeartbeats 1000000
+set_option maxHeartbeats 8000000
 set_option maxRecDepth 4000
+set_option synthInstance.maxHeartbeats 20000
+set_option synthInstance.maxSize 128
 
 set_option relaxedAutoImplicit false
 set_option autoImplicit false
@@ -24,262 +34,250 @@ set_option grind.warning false
 
 namespace Frontier.Spectral
 
-/-! ## The hypercube graph -/
+/-- Vertices of the `k`-dimensional hypercube graph `Q k`: bit strings of length `k`. -/
+abbrev Cube (k : ℕ) := Fin k → Bool
 
-/-- Flip the `i`-th coordinate of a vertex of the `k`-dimensional hypercube. -/
-def flipAt {k : ℕ} (i : Fin k) (x : Fin k → Bool) : Fin k → Bool :=
-  Function.update x i (!x i)
+/-- Flip the `i`-th coordinate of a vertex: the neighbours of `x` in `Q k` are the
+`flipAt x i` for `i : Fin k`. -/
+def flipAt {k : ℕ} (x : Cube k) (i : Fin k) : Cube k := Function.update x i (!x i)
 
-@[simp] lemma flipAt_self {k : ℕ} (i : Fin k) (x : Fin k → Bool) :
-    flipAt i x i = !x i := by simp [flipAt]
+/-- The graph Laplacian of the hypercube `Q k`, acting on real functions on vertices.
+Since `Q k` is `k`-regular, `L = k • I - A`. -/
+def lap {k : ℕ} (v : Cube k → ℝ) (x : Cube k) : ℝ := k * v x - ∑ i, v (flipAt x i)
 
-lemma flipAt_of_ne {k : ℕ} {i j : Fin k} (h : j ≠ i) (x : Fin k → Bool) :
-    flipAt i x j = x j := by simp [flipAt, h]
+/-- `μ` is a Laplacian eigenvalue of the hypercube `Q k`. -/
+def IsLapEigenvalue (k : ℕ) (μ : ℝ) : Prop :=
+  ∃ v : Cube k → ℝ, v ≠ 0 ∧ ∀ x, lap v x = μ * v x
 
-@[simp] lemma flipAt_flipAt {k : ℕ} (i : Fin k) (x : Fin k → Bool) :
-    flipAt i (flipAt i x) = x := by
-  funext j
-  by_cases h : j = i
-  · subst h; simp
-  · simp [flipAt_of_ne h]
+/-- The character (Walsh function) indexed by `s`, evaluated at `x`: `(-1)^⟨s,x⟩`. -/
+def chi {k : ℕ} (s x : Cube k) : ℝ := ∏ i, (if s i && x i then (-1 : ℝ) else 1)
 
-lemma flipAt_ne {k : ℕ} (i : Fin k) (x : Fin k → Bool) : flipAt i x ≠ x := by
+/-- The Hamming weight of `s`, i.e. the number of `1` bits. -/
+def wt {k : ℕ} (s : Cube k) : ℕ := (Finset.univ.filter fun i => s i = true).card
+
+lemma chi_comm {k : ℕ} (s x : Cube k) : chi s x = chi x s := by
+  unfold chi
+  refine Finset.prod_congr rfl fun i _ => ?_
+  rw [Bool.and_comm]
+
+lemma chi_mul_self {k : ℕ} (s x : Cube k) : chi s x * chi s x = 1 := by
+  unfold chi
+  rw [← Finset.prod_mul_distrib]
+  refine Finset.prod_eq_one fun i _ => ?_
+  by_cases h : s i && x i <;> simp [h]
+
+lemma chi_ne_zero {k : ℕ} (s x : Cube k) : chi s x ≠ 0 := by
   intro h
-  have := congrArg (fun y => y i) h
-  simp at this
+  have := chi_mul_self s x
+  rw [h] at this
+  norm_num at this
 
-lemma flipAt_injective_index {k : ℕ} (x : Fin k → Bool) :
-    Function.Injective (fun i : Fin k => flipAt i x) := by
-  intro i j h
-  by_contra hij
-  have h1 := congrArg (fun y => y i) h
-  simp only [flipAt_self, flipAt_of_ne hij] at h1
-  exact (Bool.not_ne_self (x i)) h1
-
-/-- The `k`-dimensional hypercube graph `Q k`: vertices are bit strings of length `k`,
-with an edge between strings differing in exactly one coordinate. -/
-def hypercube (k : ℕ) : SimpleGraph (Fin k → Bool) where
-  Adj x y := ∃ i, y = flipAt i x
-  symm := by
-    rintro x y ⟨i, rfl⟩
-    exact ⟨i, by simp⟩
-  loopless := ⟨fun x h => by
-    obtain ⟨i, hi⟩ := h
-    exact flipAt_ne i x hi.symm⟩
-
-instance hypercubeDecidableAdj (k : ℕ) : DecidableRel (hypercube k).Adj := fun x y =>
-  inferInstanceAs (Decidable (∃ i, y = flipAt i x))
-
-lemma hypercube_adj_iff {k : ℕ} {x y : Fin k → Bool} :
-    (hypercube k).Adj x y ↔ ∃ i, y = flipAt i x := Iff.rfl
-
-lemma hypercube_neighborFinset (k : ℕ) (x : Fin k → Bool) :
-    (hypercube k).neighborFinset x = Finset.image (fun i : Fin k => flipAt i x) Finset.univ := by
-  ext y
-  simp [SimpleGraph.mem_neighborFinset, hypercube_adj_iff, eq_comm]
-
-lemma hypercube_degree (k : ℕ) (x : Fin k → Bool) : (hypercube k).degree x = k := by
-  rw [SimpleGraph.degree, hypercube_neighborFinset,
-    Finset.card_image_of_injective _ (flipAt_injective_index x), Finset.card_univ,
-    Fintype.card_fin]
-
-lemma sum_over_neighbors {k : ℕ} (v : (Fin k → Bool) → ℝ) (x : Fin k → Bool) :
-    ∑ y ∈ (hypercube k).neighborFinset x, v y = ∑ i, v (flipAt i x) := by
-  rw [hypercube_neighborFinset,
-    Finset.sum_image (fun i _ j _ h => flipAt_injective_index x h)]
-
-/-- The action of the graph Laplacian of the hypercube on a vector. -/
-lemma lapMatrix_mulVec_apply {k : ℕ} (v : (Fin k → Bool) → ℝ) (x : Fin k → Bool) :
-    ((hypercube k).lapMatrix ℝ *ᵥ v) x = k * v x - ∑ i, v (flipAt i x) := by
-  rw [SimpleGraph.lapMatrix_mulVec_apply, hypercube_degree, sum_over_neighbors]
-
-/-! ## The Dirichlet energy and the Poincaré inequality -/
-
-/-- The Dirichlet energy `∑_x ∑_i (f x - f (flip i x))²` of `f` on the hypercube. -/
-def energy (k : ℕ) (f : (Fin k → Bool) → ℝ) : ℝ :=
-  ∑ x, ∑ i, (f x - f (flipAt i x)) ^ 2
-
-lemma sum_cons_split {k : ℕ} (F : (Fin (k + 1) → Bool) → ℝ) :
-    ∑ x, F x = ∑ y : Fin k → Bool, (F (Fin.cons true y) + F (Fin.cons false y)) := by
-  rw [← Fintype.sum_equiv (Fin.consEquiv (fun _ : Fin (k + 1) => Bool))
-      (fun p => F (Fin.cons p.1 p.2)) F (fun _ => rfl), Fintype.sum_prod_type]
-  simp [Finset.sum_add_distrib]
-
-@[simp] lemma flipAt_zero_cons {k : ℕ} (b : Bool) (y : Fin k → Bool) :
-    flipAt 0 (Fin.cons b y) = Fin.cons (!b) y := by
+lemma flipAt_involutive {k : ℕ} (i : Fin k) : Function.Involutive (fun x : Cube k => flipAt x i) := by
+  intro x
   funext j
-  refine Fin.cases ?_ ?_ j
-  · simp [flipAt]
-  · intro i
-    simp [flipAt_of_ne (Fin.succ_ne_zero i)]
+  by_cases h : j = i <;> simp [flipAt, Function.update, h]
 
-@[simp] lemma flipAt_succ_cons {k : ℕ} (i : Fin k) (b : Bool) (y : Fin k → Bool) :
-    flipAt i.succ (Fin.cons b y) = Fin.cons b (flipAt i y) := by
-  funext j
-  refine Fin.cases ?_ ?_ j
-  · simp [flipAt_of_ne (Ne.symm (Fin.succ_ne_zero i))]
-  · intro j'
-    by_cases h : j' = i
-    · subst h; simp [flipAt]
-    · simp [flipAt_of_ne (fun hh => h (Fin.succ_injective _ hh)), flipAt_of_ne h]
+lemma chi_flipAt {k : ℕ} (s x : Cube k) (i : Fin k) :
+    chi s (flipAt x i) = (if s i then -chi s x else chi s x) := by
+  have hpe : ∀ j ∈ Finset.univ.erase i,
+      (if s j && (flipAt x i) j then (-1 : ℝ) else 1) = (if s j && x j then (-1 : ℝ) else 1) := by
+    intro j hj
+    have hji : j ≠ i := (Finset.mem_erase.mp hj).1
+    simp [flipAt, Function.update, hji]
+  have e1 : chi s (flipAt x i)
+      = (if s i && (flipAt x i) i then (-1 : ℝ) else 1)
+        * ∏ j ∈ Finset.univ.erase i, (if s j && (flipAt x i) j then (-1 : ℝ) else 1) :=
+    (Finset.mul_prod_erase _ _ (Finset.mem_univ i)).symm
+  have e2 : chi s x = (if s i && x i then (-1 : ℝ) else 1)
+        * ∏ j ∈ Finset.univ.erase i, (if s j && x j then (-1 : ℝ) else 1) :=
+    (Finset.mul_prod_erase _ _ (Finset.mem_univ i)).symm
+  rw [e1, e2, Finset.prod_congr rfl hpe]
+  have hfi : (flipAt x i) i = !x i := by simp [flipAt]
+  rw [hfi]
+  rcases Bool.eq_false_or_eq_true (s i) with hs | hs <;>
+    rcases Bool.eq_false_or_eq_true (x i) with hx | hx <;>
+      simp [hs, hx]
 
-lemma energy_succ {k : ℕ} (f : (Fin (k + 1) → Bool) → ℝ) :
-    energy (k + 1) f =
-      2 * (∑ y : Fin k → Bool, (f (Fin.cons true y) - f (Fin.cons false y)) ^ 2)
-        + energy k (fun y => f (Fin.cons true y)) + energy k (fun y => f (Fin.cons false y)) := by
-  rw [energy, sum_cons_split, energy, energy, Finset.mul_sum, ← Finset.sum_add_distrib,
-    ← Finset.sum_add_distrib]
-  refine Finset.sum_congr rfl fun y _ => ?_
-  simp only [Fin.sum_univ_succ, flipAt_zero_cons, flipAt_succ_cons, Bool.not_true, Bool.not_false]
+/-- The characters are eigenvectors: `L χ_s = 2 |s| χ_s`. -/
+lemma lap_chi {k : ℕ} (s : Cube k) (x : Cube k) :
+    lap (chi s) x = (2 * wt s : ℝ) * chi s x := by
+  unfold lap
+  have hsum : ∑ i, chi s (flipAt x i)
+      = ∑ i, (if s i = true then -chi s x else chi s x) := by
+    simp only [chi_flipAt]
+  rw [hsum]
+  rw [Finset.sum_ite (f := fun _ => -chi s x) (g := fun _ => chi s x)]
+  simp only [Finset.sum_const, nsmul_eq_mul]
+  have hcard : (Finset.univ.filter fun i => ¬ (s i = true)).card = k - wt s := by
+    have : (Finset.univ.filter fun i => s i = true).card
+        + (Finset.univ.filter fun i => ¬ (s i = true)).card = k := by
+      simpa using Finset.card_filter_add_card_filter_not
+        (s := (Finset.univ : Finset (Fin k))) (p := fun i => s i = true)
+    unfold wt
+    omega
+  have hle : wt s ≤ k := by
+    unfold wt
+    simpa using Finset.card_filter_le (Finset.univ : Finset (Fin k)) (fun i => s i = true)
+  rw [hcard]
+  have : ((k - wt s : ℕ) : ℝ) = (k : ℝ) - (wt s : ℝ) := by
+    push_cast [Nat.cast_sub hle]; ring
+  rw [this]
+  unfold wt
+  push_cast
   ring
 
-/-- The Poincaré inequality for the hypercube: `2^k` times the Dirichlet energy dominates
-`4` times the (unnormalized) variance. -/
-lemma poincare (k : ℕ) (f : (Fin k → Bool) → ℝ) :
-    4 * ((2 ^ k : ℝ) * (∑ x, (f x) ^ 2) - (∑ x, f x) ^ 2) ≤ (2 ^ k : ℝ) * energy k f := by
-  induction k with
-  | zero => simp [energy]
-  | succ k ih =>
-    set g : (Fin k → Bool) → ℝ := fun y => f (Fin.cons true y) with hg
-    set h : (Fin k → Bool) → ℝ := fun y => f (Fin.cons false y) with hh
-    have hsum : ∑ x, f x = (∑ y, g y) + ∑ y, h y := by
-      rw [sum_cons_split f, Finset.sum_add_distrib]
-    have hsq : ∑ x, (f x) ^ 2 = (∑ y, (g y) ^ 2) + ∑ y, (h y) ^ 2 := by
-      rw [sum_cons_split (fun x => (f x) ^ 2), Finset.sum_add_distrib]
-    have hE := energy_succ f
-    have hCS : ((∑ y, g y) - ∑ y, h y) ^ 2 ≤ (2 ^ k : ℝ) * ∑ y, (g y - h y) ^ 2 := by
-      have hcard : ((Finset.univ : Finset (Fin k → Bool)).card : ℝ) = (2 ^ k : ℝ) := by
-        simp [Finset.card_univ]
-      have := sq_sum_le_card_mul_sum_sq (s := (Finset.univ : Finset (Fin k → Bool)))
-        (f := fun y => g y - h y)
-      rwa [Finset.sum_sub_distrib, hcard] at this
-    have ihg := ih g
-    have ihh := ih h
-    have e1 : ((∑ y, g y) + ∑ y, h y) ^ 2
-        = (∑ y, g y) ^ 2 + 2 * (∑ y, g y) * (∑ y, h y) + (∑ y, h y) ^ 2 := by ring
-    have e2 : ((∑ y, g y) - ∑ y, h y) ^ 2
-        = (∑ y, g y) ^ 2 - 2 * (∑ y, g y) * (∑ y, h y) + (∑ y, h y) ^ 2 := by ring
-    have hpow : (2 : ℝ) ^ (k + 1) = 2 * 2 ^ k := by ring
-    rw [hsq, hsum, hE, e1, hpow]
-    nlinarith [ihg, ihh, hCS, e2]
+/-- Orthogonality of characters. -/
+lemma chi_orthogonal {k : ℕ} (s t : Cube k) :
+    ∑ x : Cube k, chi s x * chi t x = if s = t then (2 : ℝ) ^ k else 0 := by
+  have key : ∀ x : Cube k, chi s x * chi t x
+      = ∏ i, ((if s i && x i then (-1 : ℝ) else 1) * (if t i && x i then (-1 : ℝ) else 1)) := by
+    intro x
+    unfold chi
+    rw [Finset.prod_mul_distrib]
+  simp_rw [key]
+  rw [← Fintype.prod_sum (f := fun (i : Fin k) (b : Bool) =>
+    (if s i && b then (-1 : ℝ) else 1) * (if t i && b then (-1 : ℝ) else 1))]
+  have hfac : ∀ i : Fin k, (∑ b : Bool, ((if s i && b then (-1 : ℝ) else 1)
+      * (if t i && b then (-1 : ℝ) else 1))) = if s i = t i then (2 : ℝ) else 0 := by
+    intro i
+    rcases Bool.eq_false_or_eq_true (s i) with hs | hs <;>
+      rcases Bool.eq_false_or_eq_true (t i) with ht | ht <;>
+        simp [hs, ht]
+  simp_rw [hfac]
+  by_cases hst : s = t
+  · subst hst
+    simp
+  · rw [if_neg hst]
+    obtain ⟨i, hi⟩ : ∃ i, s i ≠ t i := by
+      by_contra h
+      exact hst (funext fun i => not_not.mp (fun hh => h ⟨i, hh⟩))
+    exact Finset.prod_eq_zero (Finset.mem_univ i) (by rw [if_neg hi])
 
-/-! ## Quadratic form identity -/
+/-- Completeness of the character system: a function orthogonal to all characters is zero. -/
+lemma fourier_complete {k : ℕ} (v : Cube k → ℝ) (h : ∀ s : Cube k, ∑ x, v x * chi s x = 0) :
+    v = 0 := by
+  funext y
+  have h1 : ∑ s : Cube k, (∑ x, v x * chi s x) * chi s y = 0 := by
+    simp [h]
+  have h2 : ∑ s : Cube k, (∑ x, v x * chi s x) * chi s y
+      = ∑ x : Cube k, v x * (∑ s : Cube k, chi s x * chi s y) := by
+    calc ∑ s : Cube k, (∑ x, v x * chi s x) * chi s y
+        = ∑ s : Cube k, ∑ x : Cube k, (v x * chi s x) * chi s y := by
+          refine Finset.sum_congr rfl fun s _ => ?_
+          rw [Finset.sum_mul]
+      _ = ∑ x : Cube k, ∑ s : Cube k, (v x * chi s x) * chi s y := Finset.sum_comm
+      _ = ∑ x : Cube k, v x * (∑ s : Cube k, chi s x * chi s y) := by
+          refine Finset.sum_congr rfl fun x _ => ?_
+          rw [Finset.mul_sum]
+          refine Finset.sum_congr rfl fun s _ => ?_
+          ring
+  have h3 : ∀ x : Cube k, (∑ s : Cube k, chi s x * chi s y)
+      = if x = y then (2 : ℝ) ^ k else 0 := by
+    intro x
+    have : ∀ s : Cube k, chi s x * chi s y = chi x s * chi y s := by
+      intro s; rw [chi_comm s x, chi_comm s y]
+    simp_rw [this]
+    exact chi_orthogonal x y
+  rw [h2] at h1
+  simp_rw [h3] at h1
+  simp only [mul_ite, mul_zero, Finset.sum_ite_eq', Finset.mem_univ, if_true] at h1
+  have h2k : ((2:ℝ) ^ k) ≠ 0 := by positivity
+  rcases mul_eq_zero.mp h1 with h' | h'
+  · simpa using h'
+  · exact absurd h' h2k
 
-lemma sum_flip_comp {k : ℕ} (i : Fin k) (F : (Fin k → Bool) → ℝ) :
-    ∑ x, F (flipAt i x) = ∑ x, F x :=
-  Fintype.sum_equiv (Function.Involutive.toPerm (flipAt i) (fun x => flipAt_flipAt i x)) _ _
-    (fun _ => rfl)
-
-lemma energy_eq_two_mul_quadratic {k : ℕ} (v : (Fin k → Bool) → ℝ) :
-    energy k v = 2 * ∑ x, v x * ((hypercube k).lapMatrix ℝ *ᵥ v) x := by
-  have key : ∑ x, ∑ i, ((v (flipAt i x)) ^ 2 - (v x) ^ 2) = 0 := by
-    rw [Finset.sum_comm]
-    refine Finset.sum_eq_zero fun i _ => ?_
-    rw [Finset.sum_sub_distrib, sum_flip_comp i (fun x => (v x) ^ 2), sub_self]
-  have expand : energy k v
-      = 2 * (∑ x, ∑ i, ((v x) ^ 2 - v x * v (flipAt i x)))
-        + ∑ x, ∑ i, ((v (flipAt i x)) ^ 2 - (v x) ^ 2) := by
-    rw [energy, Finset.mul_sum, ← Finset.sum_add_distrib]
-    refine Finset.sum_congr rfl fun x _ => ?_
-    rw [Finset.mul_sum, ← Finset.sum_add_distrib]
+/-- The Laplacian is symmetric with respect to the standard bilinear form. -/
+lemma lap_symm {k : ℕ} (v w : Cube k → ℝ) :
+    ∑ x, lap v x * w x = ∑ x, v x * lap w x := by
+  have key : ∑ x : Cube k, (∑ i, v (flipAt x i)) * w x
+      = ∑ x : Cube k, v x * ∑ i, w (flipAt x i) := by
+    have l1 : ∑ x : Cube k, (∑ i, v (flipAt x i)) * w x
+        = ∑ i : Fin k, ∑ x : Cube k, v (flipAt x i) * w x := by
+      rw [← Finset.sum_comm]
+      refine Finset.sum_congr rfl fun x _ => ?_
+      rw [Finset.sum_mul]
+    have l2 : ∑ x : Cube k, v x * (∑ i, w (flipAt x i))
+        = ∑ i : Fin k, ∑ x : Cube k, v x * w (flipAt x i) := by
+      rw [← Finset.sum_comm]
+      refine Finset.sum_congr rfl fun x _ => ?_
+      rw [Finset.mul_sum]
+    rw [l1, l2]
     refine Finset.sum_congr rfl fun i _ => ?_
-    ring
-  rw [expand, key, add_zero]
+    refine Fintype.sum_equiv ((flipAt_involutive i).toPerm _) _ _ ?_
+    intro x
+    simp only [Function.Involutive.coe_toPerm]
+    have hinv : flipAt (flipAt x i) i = x := flipAt_involutive i x
+    rw [hinv]
+  unfold lap
+  simp only [sub_mul, mul_sub]
+  rw [Finset.sum_sub_distrib, Finset.sum_sub_distrib, key]
   congr 1
   refine Finset.sum_congr rfl fun x _ => ?_
-  rw [lapMatrix_mulVec_apply, Finset.sum_sub_distrib, Finset.sum_const, Finset.card_univ,
-    Fintype.card_fin, ← Finset.mul_sum, nsmul_eq_mul]
   ring
 
-/-! ## Main theorem -/
+/-- Every Laplacian eigenvalue of `Q k` is of the form `2 * (Hamming weight)`. -/
+lemma eigenvalue_eq_two_mul_wt {k : ℕ} {μ : ℝ} (h : IsLapEigenvalue k μ) :
+    ∃ s : Cube k, μ = 2 * wt s := by
+  obtain ⟨v, hv0, hv⟩ := h
+  obtain ⟨s, hs⟩ : ∃ s : Cube k, ∑ x, v x * chi s x ≠ 0 := by
+    by_contra hcon
+    push_neg at hcon
+    exact hv0 (fourier_complete v hcon)
+  refine ⟨s, ?_⟩
+  have h1 : ∑ x, lap v x * chi s x = μ * ∑ x, v x * chi s x := by
+    rw [Finset.mul_sum]
+    refine Finset.sum_congr rfl fun x _ => ?_
+    rw [hv x]; ring
+  have h2 : ∑ x, v x * lap (chi s) x = (2 * wt s : ℝ) * ∑ x, v x * chi s x := by
+    rw [Finset.mul_sum]
+    refine Finset.sum_congr rfl fun x _ => ?_
+    rw [lap_chi]; ring
+  rw [lap_symm v (chi s), h2] at h1
+  exact (mul_right_cancel₀ hs h1).symm
 
-lemma two_is_eigenvalue (k : ℕ) (hk : 1 ≤ k) :
-    ∃ v : (Fin k → Bool) → ℝ, v ≠ 0 ∧
-      (hypercube k).lapMatrix ℝ *ᵥ v = (2 : ℝ) • v := by
-  set i0 : Fin k := ⟨0, hk⟩ with hi0
-  refine ⟨fun x => if x i0 then -1 else 1, ?_, ?_⟩
-  · intro hcon
-    have := congrFun hcon (fun _ => false)
-    norm_num at this
-  · funext x
-    set v : (Fin k → Bool) → ℝ := fun x => if x i0 then -1 else 1 with hv
-    have hflip0 : v (flipAt i0 x) = - v x := by
-      simp only [hv, flipAt_self]
-      cases hx : x i0 <;> norm_num
-    have hflipne : ∀ i : Fin k, i ≠ i0 → v (flipAt i x) = v x := by
-      intro i hi
-      simp only [hv, flipAt_of_ne (Ne.symm hi)]
-    have hterm : ∀ i : Fin k, v (flipAt i x) = v x - (if i = i0 then 2 * v x else 0) := by
-      intro i
-      by_cases hi : i = i0
-      · subst hi; rw [hflip0, if_pos rfl]; ring
-      · rw [hflipne i hi]; simp [hi]
-    rw [lapMatrix_mulVec_apply]
-    rw [Finset.sum_congr rfl (fun i _ => hterm i), Finset.sum_sub_distrib, Finset.sum_const,
-      Finset.card_univ, Fintype.card_fin, nsmul_eq_mul,
-      Finset.sum_ite_eq' Finset.univ i0 (fun _ => 2 * v x)]
-    simp only [Finset.mem_univ, if_true, Pi.smul_apply, smul_eq_mul]
-    ring
-
-lemma eigenvalue_lower_bound {k : ℕ} {μ : ℝ} (hμ : μ ≠ 0) {v : (Fin k → Bool) → ℝ}
-    (hv : v ≠ 0) (hL : (hypercube k).lapMatrix ℝ *ᵥ v = μ • v) : 2 ≤ μ := by
-  -- the eigenvector for a nonzero eigenvalue has zero mean
-  have hrowsum : ∑ x, ((hypercube k).lapMatrix ℝ *ᵥ v) x = 0 := by
-    have : ∀ x, ((hypercube k).lapMatrix ℝ *ᵥ v) x = (k : ℝ) * v x - ∑ i, v (flipAt i x) := by
-      intro x; exact lapMatrix_mulVec_apply v x
-    rw [Finset.sum_congr rfl (fun x _ => this x), Finset.sum_sub_distrib, ← Finset.mul_sum,
-      Finset.sum_comm]
-    have : ∑ i : Fin k, ∑ x, v (flipAt i x) = ∑ _i : Fin k, ∑ x, v x :=
-      Finset.sum_congr rfl (fun i _ => sum_flip_comp i v)
-    rw [this, Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul, sub_self]
-  have hmean : ∑ x, v x = 0 := by
-    have h1 : ∑ x, ((hypercube k).lapMatrix ℝ *ᵥ v) x = μ * ∑ x, v x := by
-      rw [hL]
-      simp only [Pi.smul_apply, smul_eq_mul, ← Finset.mul_sum]
-    rw [hrowsum] at h1
-    rcases mul_eq_zero.1 h1.symm with h | h
-    · exact absurd h hμ
-    · exact h
-  have hQpos : 0 < ∑ x, (v x) ^ 2 := by
-    obtain ⟨x0, hx0⟩ : ∃ x, v x ≠ 0 := by
-      by_contra hcon
-      push_neg at hcon
-      exact hv (funext fun x => hcon x)
-    refine Finset.sum_pos' (fun x _ => sq_nonneg (v x)) ⟨x0, Finset.mem_univ x0, ?_⟩
-    exact pow_pos (abs_pos.mpr hx0) 2 |>.trans_le (le_of_eq (sq_abs (v x0)))
-  have henergy : energy k v = 2 * μ * ∑ x, (v x) ^ 2 := by
-    rw [energy_eq_two_mul_quadratic v, hL]
-    have : ∀ x, v x * ((μ • v) x) = μ * (v x) ^ 2 := by
-      intro x; simp [Pi.smul_apply, smul_eq_mul]; ring
-    rw [Finset.sum_congr rfl (fun x _ => this x), ← Finset.mul_sum]
-    ring
-  have hpc := poincare k v
-  rw [hmean, henergy] at hpc
-  have hpow : (0 : ℝ) < 2 ^ k := by positivity
-  nlinarith [hpc, mul_pos hpow hQpos]
+/-- `2` is a Laplacian eigenvalue of `Q k` whenever `k ≥ 1`. -/
+lemma two_isLapEigenvalue {k : ℕ} (hk : 1 ≤ k) : IsLapEigenvalue k 2 := by
+  refine ⟨chi (fun i => decide (i = ⟨0, hk⟩)), ?_, ?_⟩
+  · intro hc
+    exact chi_ne_zero (k := k) (fun i => decide (i = ⟨0, hk⟩)) (fun _ => false)
+      (by rw [hc]; rfl)
+  · intro x
+    rw [lap_chi]
+    congr 1
+    have : wt (k := k) (fun i => decide (i = ⟨0, hk⟩)) = 1 := by
+      unfold wt
+      have : (Finset.univ.filter fun i : Fin k => (decide (i = ⟨0, hk⟩)) = true)
+          = {(⟨0, hk⟩ : Fin k)} := by
+        ext i
+        simp
+      rw [this]
+      simp
+    rw [this]
+    norm_num
 
 /-- **Uniform spectral gap of the hypercube family.**
-For every `k ≥ 1`, the smallest nonzero eigenvalue of the Laplacian of the hypercube graph
-`Q k` on `2 ^ k` vertices equals `2`; in particular the family `(Q k)` has a spectral gap
+For every `k ≥ 1`, the smallest nonzero Laplacian eigenvalue of the hypercube graph `Q k`
+(on `2 ^ k` vertices) is exactly `2`.  In particular the family `(Q k)` has a spectral gap
 bounded below by `2`, uniformly in `k`. -/
-theorem expander_uniform_gap_witness (k : ℕ) (hk : 1 ≤ k) :
-    IsLeast {μ : ℝ | μ ≠ 0 ∧ ∃ v : (Fin k → Bool) → ℝ, v ≠ 0 ∧
-      (hypercube k).lapMatrix ℝ *ᵥ v = μ • v} 2 := by
-  constructor
-  · exact ⟨two_ne_zero, two_is_eigenvalue k hk⟩
-  · rintro μ ⟨hμ, v, hv, hL⟩
-    exact eigenvalue_lower_bound hμ hv hL
-
-/-- The hypercube `Q k` has `2 ^ k` vertices. -/
-lemma hypercube_card_vertices (k : ℕ) : Fintype.card (Fin k → Bool) = 2 ^ k := by simp
-
-/-- **Existence of a uniform spectral gap.** A single positive constant (namely `2`), independent
-of `k`, is the smallest nonzero Laplacian eigenvalue of every hypercube `Q k` with `k ≥ 1`. -/
-theorem hypercube_uniform_spectral_gap :
-    ∃ c : ℝ, 0 < c ∧ ∀ k : ℕ, 1 ≤ k →
-      IsLeast {μ : ℝ | μ ≠ 0 ∧ ∃ v : (Fin k → Bool) → ℝ, v ≠ 0 ∧
-        (hypercube k).lapMatrix ℝ *ᵥ v = μ • v} c :=
-  ⟨2, two_pos, expander_uniform_gap_witness⟩
+theorem expander_uniform_gap_witness :
+    ∀ k : ℕ, 1 ≤ k →
+      IsLeast {μ : ℝ | IsLapEigenvalue k μ ∧ μ ≠ 0} 2 ∧
+        ∀ μ : ℝ, IsLapEigenvalue k μ → μ ≠ 0 → 2 ≤ μ := by
+  intro k hk
+  have lower : ∀ μ : ℝ, IsLapEigenvalue k μ → μ ≠ 0 → 2 ≤ μ := by
+    intro μ hμ hμ0
+    obtain ⟨s, hs⟩ := eigenvalue_eq_two_mul_wt hμ
+    have hw : wt s ≠ 0 := by
+      intro h
+      apply hμ0
+      rw [hs, h]
+      norm_num
+    have : (1 : ℝ) ≤ (wt s : ℝ) := by
+      have : 1 ≤ wt s := Nat.one_le_iff_ne_zero.mpr hw
+      exact_mod_cast this
+    rw [hs]
+    nlinarith
+  exact ⟨⟨⟨two_isLapEigenvalue hk, by norm_num⟩, fun μ hμ => lower μ hμ.1 hμ.2⟩, lower⟩
 
 end Frontier.Spectral
 
