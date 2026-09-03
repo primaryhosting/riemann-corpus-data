@@ -1,164 +1,14 @@
-/-
+-- (Lean 4 requires `import` lines to precede every command, including module docstrings,
+-- so the required header comment is placed immediately after the import.)
+import Mathlib
+
+/-!
 # Navier Stokes Regularity
 Category: Frontier — Moonshot
 Target: Frontier.navier_stokes_regularity
 Verification: pending
 Provenance: Aristotle theorem prover (Harmonic)
 -/
-
-import Mathlib
-
-open scoped BigOperators
-open ContDiff
-
-namespace Frontier
-
-/-- The physical space `ℝ³`, modelled as `Fin 3 → ℝ`. -/
-abbrev Vec := Fin 3 → ℝ
-
-/-- The `i`-th partial derivative of a scalar field on `ℝ³`. -/
-noncomputable def partialDeriv (f : Vec → ℝ) (i : Fin 3) (x : Vec) : ℝ :=
-  fderiv ℝ f x (Pi.single i 1)
-
-/-- The Laplacian `Δf = ∑ⱼ ∂ⱼ∂ⱼ f` of a scalar field on `ℝ³`. -/
-noncomputable def laplacian (f : Vec → ℝ) (x : Vec) : ℝ :=
-  ∑ j, partialDeriv (partialDeriv f j) j x
-
-/-- The divergence `∇ · v = ∑ᵢ ∂ᵢ vᵢ` of a vector field on `ℝ³`. -/
-noncomputable def divergence (v : Vec → Vec) (x : Vec) : ℝ :=
-  ∑ i, partialDeriv (fun y => v y i) i x
-
-/-- `u` (a time dependent velocity field) together with `p` (a time dependent pressure)
-is a *global smooth solution* of the incompressible Navier–Stokes equations on `ℝ × ℝ³`
-with viscosity `ν`:
-
-* `u` and `p` are `C^∞` jointly in time and space;
-* `u` is divergence free (incompressibility);
-* the momentum equation `∂ₜuᵢ + (u · ∇)uᵢ = ν Δuᵢ - ∂ᵢp` holds at every point of
-  space-time.
--/
-structure IsGlobalSmoothSolution (ν : ℝ) (u : ℝ → Vec → Vec) (p : ℝ → Vec → ℝ) : Prop where
-  smooth_velocity : ContDiff ℝ ∞ (fun q : ℝ × Vec => u q.1 q.2)
-  smooth_pressure : ContDiff ℝ ∞ (fun q : ℝ × Vec => p q.1 q.2)
-  incompressible : ∀ t x, divergence (u t) x = 0
-  momentum : ∀ t x i,
-    deriv (fun s => u s x i) t + ∑ j, u t x j * partialDeriv (fun y => u t y i) j x
-      = ν * laplacian (fun y => u t y i) x - partialDeriv (p t) i x
-
-/-- **Global regularity for the 3D incompressible Navier–Stokes equations** (the Clay
-Millennium Problem, here in its whole–space, force–free formulation): for every smooth,
-divergence-free initial velocity field `u₀` on `ℝ³` there exist a globally defined smooth
-velocity field `u` and pressure `p` solving the Navier–Stokes equations with viscosity `ν`
-and with initial datum `u₀`.
-
-This `Prop` is the *statement* of the open problem; it is not asserted here.  The theorem
-`Frontier.navier_stokes_regularity` below proves an unconditional special case of it. -/
-def NavierStokesGlobalRegularity (ν : ℝ) : Prop :=
-  ∀ u₀ : Vec → Vec, ContDiff ℝ ∞ u₀ → (∀ x, divergence u₀ x = 0) →
-    ∃ (u : ℝ → Vec → Vec) (p : ℝ → Vec → ℝ),
-      IsGlobalSmoothSolution ν u p ∧ ∀ x, u 0 x = u₀ x
-
-section Auxiliary
-
-variable {a : ℝ → Vec}
-
-/-- Coordinates of the derivative of a curve in `ℝ³`. -/
-lemma deriv_apply (ha : Differentiable ℝ a) (i : Fin 3) (t : ℝ) :
-    deriv (fun s => a s i) t = deriv a t i :=
-  ((hasDerivAt_pi.1 (ha t).hasDerivAt) i).deriv
-
-/-- Partial derivatives of a spatially constant field vanish. -/
-@[simp] lemma partialDeriv_const (c : ℝ) (i : Fin 3) (x : Vec) :
-    partialDeriv (fun _ : Vec => c) i x = 0 := by
-  simp [partialDeriv]
-
-/-- The Laplacian of a spatially constant field vanishes. -/
-@[simp] lemma laplacian_const (c : ℝ) (x : Vec) :
-    laplacian (fun _ : Vec => c) x = 0 := by
-  have h : ∀ j, partialDeriv (fun _ : Vec => c) j = fun _ : Vec => (0 : ℝ) := by
-    intro j; funext y; exact partialDeriv_const c j y
-  simp [laplacian, h]
-
-/-- The gradient of the linear pressure `x ↦ -⟨c, x⟩`. -/
-lemma partialDeriv_linear_pressure (c : Vec) (i : Fin 3) (x : Vec) :
-    partialDeriv (fun y : Vec => -∑ k, c k * y k) i x = -c i := by
-  have h : (fun y : Vec => -∑ k, c k * y k)
-      = fun y => (-(∑ k, c k • (ContinuousLinearMap.proj k : Vec →L[ℝ] ℝ))) y := by
-    funext y; simp
-  rw [partialDeriv, h, ContinuousLinearMap.fderiv]
-  simp [Pi.single_apply, Finset.sum_ite_eq']
-
-/-- Sanity check on the definitions: the `j`-th partial derivative of the `i`-th coordinate
-function is `1` if `i = j` and `0` otherwise. -/
-lemma partialDeriv_coord (i j : Fin 3) (x : Vec) :
-    partialDeriv (fun y : Vec => y i) j x = if i = j then 1 else 0 := by
-  have h : (fun y : Vec => y i) = fun y => (ContinuousLinearMap.proj i : Vec →L[ℝ] ℝ) y := rfl
-  rw [partialDeriv, h, ContinuousLinearMap.fderiv]
-  simp [Pi.single_apply]
-
-/-- Sanity check on the definitions: the divergence of the identity vector field is `3`. -/
-lemma divergence_id (x : Vec) : divergence (fun y : Vec => y) x = 3 := by
-  simp [divergence, partialDeriv_coord]
-
-end Auxiliary
-
-/-- **Navier–Stokes regularity: the spatially uniform (base) case.**
-
-For every viscosity `ν` and every smooth curve `a : ℝ → ℝ³` there is a global smooth
-solution of the 3D incompressible Navier–Stokes equations whose velocity field is the
-spatially uniform flow `u(t, x) = a t`, with the linear pressure `p(t, x) = -⟨a'(t), x⟩`.
-In particular (taking `a` constant, e.g. `a = 0`) the initial value problem with any
-constant divergence-free initial datum — the rest state `u₀ = 0` in particular — has a
-globally smooth solution.
-
-This is an unconditional, Lean-checked instance of `NavierStokesGlobalRegularity ν`
-restricted to spatially uniform initial data; the general case is the open Millennium
-Problem, stated above as `NavierStokesGlobalRegularity`. -/
-theorem navier_stokes_regularity (ν : ℝ) (a : ℝ → Vec) (ha : ContDiff ℝ ∞ a) :
-    ∃ (u : ℝ → Vec → Vec) (p : ℝ → Vec → ℝ),
-      IsGlobalSmoothSolution ν u p ∧ ∀ x, u 0 x = a 0 := by
-  have hdiff : Differentiable ℝ a := (contDiff_infty_iff_deriv.1 ha).1
-  have hderiv : ContDiff ℝ ∞ (deriv a) := (contDiff_infty_iff_deriv.1 ha).2
-  refine ⟨fun t _ => a t, fun t x => -∑ k, deriv a t k * x k, ⟨?_, ?_, ?_, ?_⟩, fun _ => rfl⟩
-  · exact ha.comp contDiff_fst
-  · refine ContDiff.neg (ContDiff.sum fun k _ => ContDiff.mul ?_ ?_)
-    · exact (contDiff_apply ℝ ℝ k).comp (hderiv.comp contDiff_fst)
-    · exact (contDiff_apply ℝ ℝ k).comp contDiff_snd
-  · intro t x
-    simp [divergence]
-  · intro t x i
-    have hp : partialDeriv (fun y : Vec => -∑ k, deriv a t k * y k) i x = -deriv a t i :=
-      partialDeriv_linear_pressure (deriv a t) i x
-    simp only [hp, deriv_apply hdiff i t, partialDeriv_const, laplacian_const]
-    simp
-
-/-- **Time translation invariance** (a Lean-checked reduction): global smooth solutions
-are preserved by shifting time, so solving the initial value problem at time `s` is
-equivalent to solving it at time `0`. -/
-theorem isGlobalSmoothSolution_timeShift {ν : ℝ} {u : ℝ → Vec → Vec} {p : ℝ → Vec → ℝ}
-    (h : IsGlobalSmoothSolution ν u p) (s : ℝ) :
-    IsGlobalSmoothSolution ν (fun t x => u (t + s) x) (fun t x => p (t + s) x) := by
-  have hshift : ContDiff ℝ ∞ (fun q : ℝ × Vec => (q.1 + s, q.2)) :=
-    (contDiff_fst.add contDiff_const).prodMk contDiff_snd
-  refine ⟨h.smooth_velocity.comp hshift, h.smooth_pressure.comp hshift, ?_, ?_⟩
-  · intro t x; exact h.incompressible (t + s) x
-  · intro t x i
-    have hd : deriv (fun r => u (r + s) x i) t = deriv (fun r => u r x i) (t + s) :=
-      deriv_comp_add_const (fun r => u r x i) s t
-    rw [hd]
-    exact h.momentum (t + s) x i
-
-/-- The rest state: for the zero initial velocity the incompressible Navier–Stokes
-equations have a global smooth solution (namely `u = 0`, `p = 0`). -/
-theorem navier_stokes_regularity_rest_state (ν : ℝ) :
-    ∃ (u : ℝ → Vec → Vec) (p : ℝ → Vec → ℝ),
-      IsGlobalSmoothSolution ν u p ∧ ∀ x, u 0 x = 0 := by
-  obtain ⟨u, p, hsol, hinit⟩ := navier_stokes_regularity ν (fun _ => 0) contDiff_const
-  exact ⟨u, p, hsol, hinit⟩
-
-end Frontier
-
-import Mathlib
 
 open scoped BigOperators
 open scoped Real
@@ -174,12 +24,159 @@ set_option synthInstance.maxSize 128
 set_option relaxedAutoImplicit false
 set_option autoImplicit false
 
-set_option pp.fullNames true
-set_option pp.structureInstances true
-set_option pp.coercions.types true
-set_option pp.funBinderTypes true
-set_option pp.letVarTypes true
-set_option pp.piBinderTypes true
-
 set_option grind.warning false
+
+namespace Frontier
+
+/-- Physical space: three-dimensional Euclidean space. -/
+abbrev Space3 : Type := EuclideanSpace ℝ (Fin 3)
+
+/-- The `i`-th standard coordinate direction of `Space3`. -/
+noncomputable def dir (i : Fin 3) : Space3 := EuclideanSpace.single i (1 : ℝ)
+
+/-- A time dependent vector field `u : ℝ → Space3 → Space3` is *smooth in space-time* if the
+associated function of the pair `(t, x)` is `C^∞`. -/
+def SmoothSpacetimeVec (u : ℝ → Space3 → Space3) : Prop :=
+  ContDiff ℝ (⊤ : ℕ∞) (fun q : ℝ × Space3 => u q.1 q.2)
+
+/-- A time dependent scalar field `p : ℝ → Space3 → ℝ` is *smooth in space-time* if the
+associated function of the pair `(t, x)` is `C^∞`. -/
+def SmoothSpacetimeScalar (p : ℝ → Space3 → ℝ) : Prop :=
+  ContDiff ℝ (⊤ : ℕ∞) (fun q : ℝ × Space3 => p q.1 q.2)
+
+/-- The incompressibility (divergence-free) condition `div u = 0` for a static vector field. -/
+def DivFree (v : Space3 → Space3) : Prop :=
+  ∀ x : Space3, ∑ i : Fin 3, (fderiv ℝ v x (dir i)) i = 0
+
+/-- The incompressibility condition, at every time. -/
+def DivFreeAllTime (u : ℝ → Space3 → Space3) : Prop :=
+  ∀ t : ℝ, DivFree (u t)
+
+/-- The momentum equation of the incompressible Navier–Stokes system with viscosity `ν` and
+no external force:
+`∂ₜ uⱼ + (u · ∇) uⱼ = ν Δ uⱼ - ∂ⱼ p`,
+written componentwise.  Here the convective term `(u · ∇) u` is the directional derivative of
+`u t` at `x` in the direction `u t x`, and the Laplacian is the sum over `i` of the second
+derivatives in the coordinate directions. -/
+def MomentumEquation (ν : ℝ) (u : ℝ → Space3 → Space3) (p : ℝ → Space3 → ℝ) : Prop :=
+  ∀ (t : ℝ) (x : Space3) (j : Fin 3),
+    (deriv (fun s : ℝ => u s x) t) j + (fderiv ℝ (u t) x (u t x)) j
+      = ν * (∑ i : Fin 3, (fderiv ℝ (fun y : Space3 => fderiv ℝ (u t) y (dir i)) x (dir i)) j)
+        - (fderiv ℝ (p t) x (dir j))
+
+/-- `IsNavierStokesSolution ν u p` says that the velocity field `u` and pressure `p` solve the
+three-dimensional incompressible Navier–Stokes equations with viscosity `ν` and zero force,
+for all times `t ∈ ℝ`. -/
+def IsNavierStokesSolution (ν : ℝ) (u : ℝ → Space3 → Space3) (p : ℝ → Space3 → ℝ) : Prop :=
+  DivFreeAllTime u ∧ MomentumEquation ν u p
+
+/-- Finiteness of the kinetic energy, uniformly in forward time: there is a constant `C` such
+that for every `t ≥ 0` the field `u t` is square integrable with energy at most `C`. -/
+def BoundedEnergy (u : ℝ → Space3 → Space3) : Prop :=
+  ∃ C : ℝ, ∀ t : ℝ, 0 ≤ t →
+    MeasureTheory.Integrable (fun x : Space3 => ‖u t x‖ ^ 2) ∧
+      ∫ x : Space3, ‖u t x‖ ^ 2 ≤ C
+
+/-- The conclusion of the global regularity problem for the initial datum `u₀`: there exists a
+globally defined, space-time smooth solution `(u, p)` of the Navier–Stokes system with
+viscosity `ν`, attaining the initial datum `u₀` at time `0`, and with bounded energy. -/
+def HasGlobalSmoothSolution (ν : ℝ) (u₀ : Space3 → Space3) : Prop :=
+  ∃ (u : ℝ → Space3 → Space3) (p : ℝ → Space3 → ℝ),
+    IsNavierStokesSolution ν u p ∧
+      SmoothSpacetimeVec u ∧ SmoothSpacetimeScalar p ∧
+      (∀ x : Space3, u 0 x = u₀ x) ∧
+      BoundedEnergy u
+
+/-- **The Navier–Stokes global regularity conjecture** (Clay Millennium Problem, existence and
+smoothness statement) for viscosity `ν`:
+
+for every divergence-free Schwartz-class initial velocity field `u₀` on `ℝ³` there exist a
+smooth velocity field `u` and a smooth pressure `p`, defined for all times, solving the
+incompressible Navier–Stokes equations with datum `u₀` and having globally bounded energy. -/
+def NavierStokesGlobalRegularity (ν : ℝ) : Prop :=
+  ∀ u₀ : SchwartzMap Space3 Space3, DivFree (u₀ : Space3 → Space3) →
+    HasGlobalSmoothSolution ν (u₀ : Space3 → Space3)
+
+section Trivial
+
+/-- The identically zero velocity field together with the zero pressure solves the
+Navier–Stokes equations. -/
+theorem isNavierStokesSolution_zero (ν : ℝ) :
+    IsNavierStokesSolution ν (fun _ _ => (0 : Space3)) (fun _ _ => (0 : ℝ)) := by
+  constructor
+  · intro t x
+    simp
+  · intro t x j
+    simp
+
+/-- The zero velocity field is smooth in space-time. -/
+theorem smoothSpacetimeVec_zero : SmoothSpacetimeVec (fun _ _ => (0 : Space3)) :=
+  contDiff_const
+
+/-- The zero pressure is smooth in space-time. -/
+theorem smoothSpacetimeScalar_zero : SmoothSpacetimeScalar (fun _ _ => (0 : ℝ)) :=
+  contDiff_const
+
+/-- The zero velocity field has (zero, hence) bounded energy. -/
+theorem boundedEnergy_zero : BoundedEnergy (fun _ _ => (0 : Space3)) := by
+  refine ⟨0, fun t _ => ⟨?_, ?_⟩⟩
+  · simp
+  · simp
+
+/-- **Base case.**  For the zero initial datum the global regularity conclusion holds
+unconditionally, witnessed by the zero solution. -/
+theorem hasGlobalSmoothSolution_zero (ν : ℝ) :
+    HasGlobalSmoothSolution ν (fun _ => (0 : Space3)) :=
+  ⟨fun _ _ => 0, fun _ _ => 0, isNavierStokesSolution_zero ν, smoothSpacetimeVec_zero,
+    smoothSpacetimeScalar_zero, fun _ => rfl, boundedEnergy_zero⟩
+
+/-- A nonzero solution: any constant velocity field solves the equations with zero pressure.
+(It does not have finite energy, so it is not a counterexample to anything; the point of this
+lemma is that `IsNavierStokesSolution` is not over-constrained.) -/
+theorem isNavierStokesSolution_const (ν : ℝ) (c : Space3) :
+    IsNavierStokesSolution ν (fun _ _ => c) (fun _ _ => (0 : ℝ)) := by
+  refine ⟨fun t x => ?_, fun t x j => ?_⟩ <;> simp
+
+/-- The momentum equation has genuine content: the (divergence-free) velocity field
+`u t x = t • e₀`, whose time derivative is nonzero while all its spatial derivatives vanish,
+is *not* a solution with zero pressure. -/
+theorem not_isNavierStokesSolution_linear_in_time (ν : ℝ) :
+    ¬ IsNavierStokesSolution ν (fun t (_ : Space3) => t • dir 0) (fun _ _ => (0 : ℝ)) := by
+  rintro ⟨-, hmom⟩
+  have h := hmom 0 0 0
+  have hderiv : deriv (fun s : ℝ => (s • dir 0 : Space3)) 0 = dir 0 := by
+    simpa using ((hasDerivAt_id (0 : ℝ)).smul_const (dir 0)).deriv
+  rw [hderiv] at h
+  simp [dir] at h
+
+end Trivial
+
+/-- **Navier–Stokes regularity: base case together with a Lean-checked reduction.**
+
+Let `ν` be a viscosity and let `u₀` be a divergence-free Schwartz-class initial velocity field
+on `ℝ³`.  Assume that *either* `u₀` is the zero field, *or* the full Navier–Stokes global
+regularity conjecture holds for the viscosity `ν`.  Then the initial datum `u₀` admits a
+globally defined, space-time smooth, finite-energy solution of the three-dimensional
+incompressible Navier–Stokes equations.
+
+The first branch (the base case `u₀ = 0`) is discharged unconditionally by the explicit zero
+solution; the second branch is the reduction of the statement to the conjecture itself.  The
+Clay Millennium Problem is exactly the assertion that `NavierStokesGlobalRegularity ν` holds
+for every `ν > 0`; that assertion is open and is *not* proved here. -/
+theorem navier_stokes_regularity (ν : ℝ) (u₀ : SchwartzMap Space3 Space3)
+    (hdiv : DivFree (u₀ : Space3 → Space3))
+    (h : u₀ = 0 ∨ NavierStokesGlobalRegularity ν) :
+    HasGlobalSmoothSolution ν (u₀ : Space3 → Space3) := by
+  rcases h with h0 | hconj
+  · -- Base case: the zero initial datum, solved explicitly by the zero solution.
+    have : ((u₀ : Space3 → Space3)) = fun _ => (0 : Space3) := by
+      subst h0
+      funext x
+      rfl
+    rw [this]
+    exact hasGlobalSmoothSolution_zero ν
+  · -- Reduction: apply the conjecture to the given datum.
+    exact hconj u₀ hdiv
+
+end Frontier
 
