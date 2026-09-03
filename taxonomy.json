@@ -1,7 +1,7 @@
 {
  "generated_from": "scripts/classify_corpus.py",
  "fields": {
-  "Mathematics": 832,
+  "Mathematics": 833,
   "Physics": 262,
   "Brockian Program": 88,
   "Computer Science": 88,
@@ -14,7 +14,7 @@
   "Mathematics › Analysis / Topology": 98,
   "Physics › Physics": 96,
   "Mathematics › Algebra / Group Theory": 94,
-  "Mathematics › Mathematics (general)": 63,
+  "Mathematics › Mathematics (general)": 64,
   "Mathematics › Combinatorics": 54,
   "Computer Science › Theory of Computation": 53,
   "Physics › Quantum Physics": 51,
@@ -33,7 +33,7 @@
   "Brockian Program › Riemann / Zeta": 1
  },
  "source_programs": {
-  "Other": 333,
+  "Other": 334,
   "Brockian program": 283,
   "Frontier attempts": 162,
   "Core mathematics": 160,
@@ -53,7 +53,7 @@
    "Riemann / Zeta": 109,
    "Analysis / Topology": 98,
    "Algebra / Group Theory": 94,
-   "Mathematics (general)": 63,
+   "Mathematics (general)": 64,
    "Combinatorics": 54,
    "Set Theory": 43,
    "Moonshine / Modular": 6
