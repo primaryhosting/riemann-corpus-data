@@ -28,32 +28,27 @@ namespace QPhys
 
 open Matrix
 
-/-- **Spectral theorem, finite-dimensional case.**
-Every Hermitian matrix `A` over `ℂ` is unitarily diagonalizable with *real* eigenvalues:
-there is a unitary matrix `U` (i.e. `Uᴴ * U = 1` and `U * Uᴴ = 1`) and a real-valued
-function `d` on the index type such that `A = U * diagonal (d) * Uᴴ`.
-Moreover the `i`-th column of `U` is an eigenvector of `A` with real eigenvalue `d i`. -/
-theorem spectral_theorem_finite {n : Type*} [Fintype n] [DecidableEq n]
-    (A : Matrix n n ℂ) (hA : A.IsHermitian) :
+/-- **Spectral theorem (finite dimensions).**
+Every Hermitian matrix `A` over `ℂ` is unitarily diagonalizable with real eigenvalues:
+there exist a unitary matrix `U` (i.e. `Uᴴ * U = 1` and `U * Uᴴ = 1`) and a family of
+*real* numbers `d : n → ℝ` such that `A = U * diagonal d * Uᴴ`, and the `i`-th column of
+`U` is an eigenvector of `A` for the eigenvalue `d i`. -/
+theorem spectral_theorem_finite {n : Type*} [Fintype n] [DecidableEq n] {A : Matrix n n ℂ}
+    (hA : A.IsHermitian) :
     ∃ (U : Matrix n n ℂ) (d : n → ℝ),
       Uᴴ * U = 1 ∧ U * Uᴴ = 1 ∧
-      A = U * Matrix.diagonal (fun i => ((d i : ℝ) : ℂ)) * Uᴴ ∧
-      ∀ i, A *ᵥ (fun j => U j i) = ((d i : ℝ) : ℂ) • (fun j => U j i) := by
-  classical
-  refine ⟨(hA.eigenvectorUnitary : Matrix n n ℂ), hA.eigenvalues, ?_, ?_, ?_, ?_⟩
-  · rw [← Matrix.star_eq_conjTranspose]
-    exact Unitary.star_mul_self_of_mem hA.eigenvectorUnitary.2
-  · rw [← Matrix.star_eq_conjTranspose]
-    exact Unitary.mul_star_self_of_mem hA.eigenvectorUnitary.2
-  · have := hA.spectral_theorem
-    simpa [Unitary.conjStarAlgAut_apply, Matrix.conjTranspose, Function.comp_def,
-      mul_assoc] using this
+      A = U * diagonal (fun i => (d i : ℂ)) * Uᴴ ∧
+      ∀ i, A *ᵥ (fun k => U k i) = (d i : ℂ) • (fun k => U k i) := by
+  refine ⟨hA.eigenvectorUnitary, hA.eigenvalues, hA.eigenvectorUnitary.2.1,
+    hA.eigenvectorUnitary.2.2, ?_, ?_⟩
+  · conv_lhs => rw [hA.spectral_theorem]
+    simp [Unitary.conjStarAlgAut_apply, Function.comp_def]
+    rfl
   · intro i
-    have h := hA.mulVec_eigenvectorBasis i
-    have hcol : (fun j => (hA.eigenvectorUnitary : Matrix n n ℂ) j i)
-        = ⇑(hA.eigenvectorBasis i) := rfl
-    rw [hcol, h]
-    ext j
+    have hcol : (fun k => (hA.eigenvectorUnitary : Matrix n n ℂ) k i) = ⇑(hA.eigenvectorBasis i) :=
+      rfl
+    rw [hcol, hA.mulVec_eigenvectorBasis i]
+    ext k
     simp [Complex.real_smul]
 
 end QPhys

@@ -1,21 +1,3 @@
-/-
-# Sq Ge Linear
-Category: Zeta-23 §3 Linear Algebra (re-derivation)
-Target: Zeta23Redux.LinAlg.sq_ge_linear
-Verification: pending
-Provenance: Aristotle theorem prover (Harmonic)
--/
-
-import Mathlib
-
-namespace Zeta23Redux.LinAlg
-
-/-- For all real `x`, `c`: `c * x - c ^ 2 / 4 ≤ x ^ 2`, since this is `(x - c / 2) ^ 2 ≥ 0`. -/
-theorem sq_ge_linear (x c : ℝ) : c * x - c ^ 2 / 4 ≤ x ^ 2 := by
-  nlinarith [sq_nonneg (x - c / 2)]
-
-end Zeta23Redux.LinAlg
-
 import Mathlib
 
 open scoped BigOperators
@@ -40,4 +22,21 @@ set_option pp.letVarTypes true
 set_option pp.piBinderTypes true
 
 set_option grind.warning false
+
+import Mathlib
+/-!
+# Sq Ge Linear
+Category: Zeta-23 §3 Linear Algebra (re-derivation)
+Target: Zeta23Redux.LinAlg.sq_ge_linear
+Verification: pending
+Provenance: Aristotle theorem prover (Harmonic)
+-/
+
+namespace Zeta23Redux.LinAlg
+
+/-- For all real `x` and `c`, `c * x - c ^ 2 / 4 ≤ x ^ 2`, i.e. `(x - c / 2) ^ 2 ≥ 0`. -/
+theorem sq_ge_linear (x c : ℝ) : c * x - c ^ 2 / 4 ≤ x ^ 2 := by
+  nlinarith [sq_nonneg (x - c / 2)]
+
+end Zeta23Redux.LinAlg
 
