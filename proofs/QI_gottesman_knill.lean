@@ -1,3 +1,173 @@
+/-
+# Gottesman Knill
+Category: Frontier Qi
+Target: QI.gottesman_knill
+Verification: pending
+Provenance: Aristotle theorem prover (Harmonic)
+-/
+
+import Mathlib
+
+open scoped BigOperators
+open scoped Classical
+
+set_option maxHeartbeats 2000000
+set_option linter.unusedSectionVars false
+
+namespace QI
+
+open Matrix
+
+/-! ## Bit strings -/
+
+/-- Bit strings of length `n`; `Bits n` indexes the computational basis of `n` qubits. -/
+abbrev Bits (n : ℕ) := Fin n → Bool
+
+/-- Bitwise xor of two bit strings. -/
+def bxor {n : ℕ} (u v : Bits n) : Bits n := fun j => xor (u j) (v j)
+
+/-- The all-zero bit string. -/
+def bzero (n : ℕ) : Bits n := fun _ => false
+
+/-- The bit string with a single `1` in position `k`. -/
+def unitb {n : ℕ} (k : Fin n) : Bits n := fun j => decide (j = k)
+
+/-- `bsgn a b = (-1) ^ ⟪a, b⟫` where `⟪a,b⟫ = ∑ j, a j * b j`. -/
+def bsgn {n : ℕ} (a b : Bits n) : ℂ := ∏ j, if a j && b j then (-1 : ℂ) else 1
+
+@[simp] lemma bxor_self {n : ℕ} (u : Bits n) : bxor u u = bzero n := by
+  funext j; simp [bxor, bzero]
+
+@[simp] lemma bxor_zero {n : ℕ} (u : Bits n) : bxor u (bzero n) = u := by
+  funext j; simp [bxor, bzero]
+
+@[simp] lemma zero_bxor {n : ℕ} (u : Bits n) : bxor (bzero n) u = u := by
+  funext j; simp [bxor, bzero]
+
+lemma bxor_comm {n : ℕ} (u v : Bits n) : bxor u v = bxor v u := by
+  funext j; simp [bxor, Bool.xor_comm]
+
+lemma bxor_assoc {n : ℕ} (u v w : Bits n) : bxor (bxor u v) w = bxor u (bxor v w) := by
+  funext j; simp [bxor]
+
+@[simp] lemma bxor_cancel {n : ℕ} (u v : Bits n) : bxor (bxor u v) v = u := by
+  rw [bxor_assoc, bxor_self, bxor_zero]
+
+@[simp] lemma bxor_cancel' {n : ℕ} (u v : Bits n) : bxor u (bxor u v) = v := by
+  rw [← bxor_assoc, bxor_self, zero_bxor]
+
+@[simp] lemma bxor_apply {n : ℕ} (u v : Bits n) (j : Fin n) : bxor u v j = xor (u j) (v j) := rfl
+
+@[simp] lemma bzero_apply {n : ℕ} (j : Fin n) : bzero n j = false := rfl
+
+@[simp] lemma unitb_apply_self {n : ℕ} (k : Fin n) : unitb k k = true := by simp [unitb]
+
+lemma bsgn_bxor_right {n : ℕ} (a b c : Bits n) : bsgn a (bxor b c) = bsgn a b * bsgn a c := by
+  simp only [bsgn, bxor, ← Finset.prod_mul_distrib]
+  refine Finset.prod_congr rfl fun j _ => ?_
+  obtain hA | hA := Bool.eq_false_or_eq_true (a j) <;>
+    obtain hB | hB := Bool.eq_false_or_eq_true (b j) <;>
+      obtain hC | hC := Bool.eq_false_or_eq_true (c j) <;> simp [hA, hB, hC]
+
+lemma bsgn_bxor_left {n : ℕ} (a b c : Bits n) : bsgn (bxor a b) c = bsgn a c * bsgn b c := by
+  simp only [bsgn, bxor, ← Finset.prod_mul_distrib]
+  refine Finset.prod_congr rfl fun j _ => ?_
+  obtain hA | hA := Bool.eq_false_or_eq_true (a j) <;>
+    obtain hB | hB := Bool.eq_false_or_eq_true (b j) <;>
+      obtain hC | hC := Bool.eq_false_or_eq_true (c j) <;> simp [hA, hB, hC]
+
+@[simp] lemma bsgn_zero_left {n : ℕ} (b : Bits n) : bsgn (bzero n) b = 1 := by
+  simp [bsgn, bzero]
+
+@[simp] lemma bsgn_zero_right {n : ℕ} (a : Bits n) : bsgn a (bzero n) = 1 := by
+  simp [bsgn, bzero]
+
+lemma bsgn_comm {n : ℕ} (a b : Bits n) : bsgn a b = bsgn b a := by
+  simp only [bsgn]
+  refine Finset.prod_congr rfl fun j _ => ?_
+  obtain hA | hA := Bool.eq_false_or_eq_true (a j) <;>
+    obtain hB | hB := Bool.eq_false_or_eq_true (b j) <;> simp [hA, hB]
+
+lemma bsgn_unitb_left {n : ℕ} (k : Fin n) (v : Bits n) :
+    bsgn (unitb k) v = if v k then -1 else 1 := by
+  simp only [bsgn]
+  rw [Finset.prod_eq_single k]
+  · simp [unitb]
+  · intro j _ hj; simp [unitb, hj]
+  · intro h; exact absurd (Finset.mem_univ _) h
+
+lemma bsgn_unitb_right {n : ℕ} (k : Fin n) (v : Bits n) :
+    bsgn v (unitb k) = if v k then -1 else 1 := by
+  rw [bsgn_comm, bsgn_unitb_left]
+
+lemma bsgn_star {n : ℕ} (a b : Bits n) : star (bsgn a b) = bsgn a b := by
+  show (starRingEnd ℂ) (bsgn a b) = bsgn a b
+  simp only [bsgn, map_prod]
+  refine Finset.prod_congr rfl fun j _ => ?_
+  obtain hA | hA := Bool.eq_false_or_eq_true (a j) <;>
+    obtain hB | hB := Bool.eq_false_or_eq_true (b j) <;> simp [hA, hB]
+
+lemma bsgn_sq {n : ℕ} (a b : Bits n) : bsgn a b * bsgn a b = 1 := by
+  simp only [bsgn, ← Finset.prod_mul_distrib]
+  refine Finset.prod_eq_one fun j _ => ?_
+  obtain hA | hA := Bool.eq_false_or_eq_true (a j) <;>
+    obtain hB | hB := Bool.eq_false_or_eq_true (b j) <;> simp [hA, hB]
+
+lemma update_eq_bxor_unitb {n : ℕ} (x : Bits n) (k : Fin n) (b : Bool) (h : b = !(x k)) :
+    Function.update x k b = bxor x (unitb k) := by
+  funext j
+  by_cases hj : j = k
+  · subst hj; simp [h, Function.update_self]
+  · simp [unitb, hj]
+
+lemma update_eq_self' {n : ℕ} (x : Bits n) (k : Fin n) (b : Bool) (h : b = x k) :
+    Function.update x k b = x := by
+  subst h; exact Function.update_eq_self k x
+
+/-! ## Pauli operators as matrices -/
+
+/-- `Pmat x z` is the Pauli operator `X^x Z^z` acting on `n` qubits:
+it maps the computational basis vector `|v⟩` to `(-1)^{z·v} |v ⊕ x⟩`. -/
+def Pmat {n : ℕ} (x z : Bits n) : Matrix (Bits n) (Bits n) ℂ :=
+  Matrix.of fun u v => if u = bxor v x then bsgn z v else 0
+
+@[simp] lemma Pmat_apply {n : ℕ} (x z u v : Bits n) :
+    Pmat x z u v = if u = bxor v x then bsgn z v else 0 := rfl
+
+@[simp] lemma Pmat_zero {n : ℕ} : Pmat (bzero n) (bzero n) = 1 := by
+  ext u v
+  simp [Pmat, Matrix.one_apply]
+
+/-- Multiplication rule for Pauli operators. -/
+lemma pmul {n : ℕ} (x1 z1 x2 z2 : Bits n) :
+    Pmat x1 z1 * Pmat x2 z2 = bsgn z1 x2 • Pmat (bxor x1 x2) (bxor z1 z2) := by
+  ext u v
+  rw [Matrix.mul_apply, Finset.sum_eq_single (bxor v x2)]
+  · have hcond : bxor (bxor v x2) x1 = bxor v (bxor x1 x2) := by
+      rw [bxor_assoc, bxor_comm x2 x1]
+    simp only [Pmat_apply, Matrix.smul_apply, smul_eq_mul, hcond, if_true]
+    by_cases h : u = bxor v (bxor x1 x2)
+    · rw [if_pos h, if_pos h, bsgn_bxor_right, bsgn_bxor_left]; ring
+    · rw [if_neg h, if_neg h]; ring
+  · intro w _ hw
+    simp only [Pmat_apply]
+    rw [if_neg hw, mul_zero]
+  · intro h; exact absurd (Finset.mem_univ _) h
+
+lemma Pmat_conjTranspose {n : ℕ} (x z : Bits n) :
+    (Pmat x z)ᴴ = bsgn z x • Pmat x z := by
+  ext u v
+  simp only [Matrix.conjTranspose_apply, Pmat_apply, Matrix.smul_apply, smul_eq_mul]
+  by_cases h : u = bxor v x
+  · have h' : v = bxor u x := by rw [h, bxor_cancel]
+    rw [if_pos h, if_pos h', bsgn_star, h, bsgn_bxor_right]
+    ring
+  · have h' : ¬ v = bxor u x := by
+      intro hv; exact h (by rw [hv, bxor_cancel])
+    rw [if_neg h, if_neg h', star_zero, mul_zero]
+
+end QI
+
 import Mathlib
 
 open scoped BigOperators
@@ -22,325 +192,4 @@ set_option pp.letVarTypes true
 set_option pp.piBinderTypes true
 
 set_option grind.warning false
-
-/-
-# The `n`-qubit Pauli group, in symplectic (efficient) form
-
-This file sets up the algebraic infrastructure needed for the Gottesman–Knill theorem:
-
-* computational basis states of `n` qubits are indexed by bit strings `Bits n = Fin n → ZMod 2`;
-* the Pauli operator `X^x Z^z` is the explicit complex matrix `pauliMat x z`;
-* `PS n` is the *symbolic* Pauli group: a phase in `ZMod 4` together with two bit strings,
-  i.e. `2 * n + 2` bits of classical data;
-* `rep : PS n →* Matrix (Bits n) (Bits n) ℂ` turns symbolic Paulis into matrices, and is a
-  monoid homomorphism. This is what makes the classical bookkeeping faithful.
--/
-import Mathlib
-
-namespace QI
-
-open scoped BigOperators
-open Matrix
-
-/-- Bit strings of length `n`: both computational basis labels and symplectic vectors. -/
-abbrev Bits (n : ℕ) : Type := Fin n → ZMod 2
-
-variable {n : ℕ}
-
-/-- The `𝔽₂`-valued inner product of two bit strings. -/
-def dotB (u v : Bits n) : ZMod 2 := ∑ i, u i * v i
-
-/-- `(-1)^b` for a bit `b`. -/
-def sgnB (b : ZMod 2) : ℂ := if b = 0 then 1 else -1
-
-/-- The doubling homomorphism `ZMod 2 → ZMod 4`, used to record signs inside phases. -/
-def toZ4 (b : ZMod 2) : ZMod 4 := if b = 0 then 0 else 2
-
-/-- `i^k` for `k : ZMod 4`. -/
-noncomputable def iPow (k : ZMod 4) : ℂ := Complex.I ^ k.val
-
-lemma zmod2_cases (a : ZMod 2) : a = 0 ∨ a = 1 := by revert a; decide
-
-lemma sgnB_add (a b : ZMod 2) : sgnB (a + b) = sgnB a * sgnB b := by
-  rcases zmod2_cases a with ha | ha <;> rcases zmod2_cases b with hb | hb <;> subst ha <;> subst hb
-  · norm_num [sgnB]
-  · norm_num [sgnB]
-  · norm_num [sgnB]
-  · rw [show ((1 : ZMod 2) + 1) = 0 from by decide]
-    norm_num [sgnB]
-
-lemma sgnB_zero : sgnB (0 : ZMod 2) = 1 := by simp [sgnB]
-
-@[simp] lemma toZ4_zero : toZ4 (0 : ZMod 2) = 0 := rfl
-
-lemma toZ4_add (a b : ZMod 2) : toZ4 (a + b) = toZ4 a + toZ4 b := by
-  revert a b; decide +kernel
-
-lemma iPow_zero : iPow (0 : ZMod 4) = 1 := by simp [iPow]
-
-lemma iPow_add (k l : ZMod 4) : iPow (k + l) = iPow k * iPow l := by
-  have h : ∀ m : ZMod 4, m = 0 ∨ m = 1 ∨ m = 2 ∨ m = 3 := by decide +kernel
-  rcases h k with hk | hk | hk | hk <;> rcases h l with hl | hl | hl | hl <;>
-    subst hk <;> subst hl <;>
-    simp [iPow, ZMod.val, pow_succ, Complex.I_mul_I] <;> ring_nf <;>
-    simp [Complex.I_mul_I] <;> ring
-
-lemma iPow_toZ4 (b : ZMod 2) : iPow (toZ4 b) = sgnB b := by
-  rcases zmod2_cases b with hb | hb <;> subst hb <;>
-    simp [iPow, toZ4, sgnB, ZMod.val, Complex.I_mul_I] <;>
-    norm_num [pow_succ, Complex.I_mul_I]
-
-/-! ### Bilinearity of the symplectic form -/
-
-lemma dotB_zero_left (v : Bits n) : dotB 0 v = 0 := by simp [dotB]
-
-lemma dotB_zero_right (u : Bits n) : dotB u 0 = 0 := by simp [dotB]
-
-lemma dotB_add_left (u v w : Bits n) : dotB (u + v) w = dotB u w + dotB v w := by
-  simp [dotB, add_mul, Finset.sum_add_distrib]
-
-lemma dotB_add_right (u v w : Bits n) : dotB u (v + w) = dotB u v + dotB u w := by
-  simp [dotB, mul_add, Finset.sum_add_distrib]
-
-/-! ### Pauli matrices -/
-
-/-- The matrix of the Pauli operator `X^x Z^z` acting on the computational basis:
-`(X^x Z^z) |a⟩ = (-1)^{z·a} |a + x⟩`. -/
-def pauliMat (x z : Bits n) : Matrix (Bits n) (Bits n) ℂ :=
-  Matrix.of fun b a => if b = a + x then sgnB (dotB z a) else 0
-
-lemma pauliMat_apply (x z : Bits n) (b a : Bits n) :
-    pauliMat x z b a = if b = a + x then sgnB (dotB z a) else 0 := rfl
-
-lemma pauliMat_zero_zero : pauliMat (0 : Bits n) 0 = 1 := by
-  ext b a
-  by_cases h : b = a <;>
-    simp [pauliMat, Matrix.one_apply, h, dotB_zero_left, sgnB_zero, eq_comm]
-
-/-- The multiplication rule of Pauli operators. -/
-lemma pauliMat_mul (x z x' z' : Bits n) :
-    pauliMat x z * pauliMat x' z' = sgnB (dotB z x') • pauliMat (x + x') (z + z') := by
-  ext b a
-  rw [Matrix.mul_apply]
-  rw [Finset.sum_eq_single (a + x')]
-  · by_cases h : b = a + x' + x
-    · have h3 : a + x' + x = a + (x + x') := by ring
-      rw [pauliMat_apply, pauliMat_apply, Matrix.smul_apply, pauliMat_apply, smul_eq_mul,
-        if_pos h, if_pos rfl, if_pos (h.trans h3)]
-      rw [dotB_add_right, dotB_add_left, sgnB_add, sgnB_add]
-      ring
-    · have h2 : ¬ b = a + (x + x') := by
-        intro hc; exact h (by rw [hc]; ring)
-      simp [pauliMat_apply, h, h2]
-  · intro c _ hc
-    simp [pauliMat_apply, hc]
-  · intro h
-    exact absurd (Finset.mem_univ _) h
-
-/-! ### The symbolic Pauli group `PS n` -/
-
-/-- A symbolic Pauli operator: the phase exponent `ph` (a power of `i`) together with the
-`X`-part `x` and the `Z`-part `z`.  This is exactly `2 * n + 2` bits of classical data. -/
-@[ext]
-structure PS (n : ℕ) where
-  ph : ZMod 4
-  x : Bits n
-  z : Bits n
-
-namespace PS
-
-instance : Mul (PS n) :=
-  ⟨fun p q => ⟨p.ph + q.ph + toZ4 (dotB p.z q.x), p.x + q.x, p.z + q.z⟩⟩
-
-instance : One (PS n) := ⟨⟨0, 0, 0⟩⟩
-
-@[simp] lemma mul_ph (p q : PS n) : (p * q).ph = p.ph + q.ph + toZ4 (dotB p.z q.x) := rfl
-@[simp] lemma mul_x (p q : PS n) : (p * q).x = p.x + q.x := rfl
-@[simp] lemma mul_z (p q : PS n) : (p * q).z = p.z + q.z := rfl
-@[simp] lemma one_ph : (1 : PS n).ph = 0 := rfl
-@[simp] lemma one_x : (1 : PS n).x = 0 := rfl
-@[simp] lemma one_z : (1 : PS n).z = 0 := rfl
-
-instance : Monoid (PS n) where
-  mul_assoc p q r := by
-    ext
-    · simp only [mul_ph, mul_x, mul_z, dotB_add_left, dotB_add_right, toZ4_add]
-      ring
-    · simp [add_assoc]
-    · simp [add_assoc]
-  one_mul p := by ext <;> simp [dotB_zero_left]
-  mul_one p := by ext <;> simp [dotB_zero_right]
-
-end PS
-
-/-- The matrix representation of a symbolic Pauli. -/
-noncomputable def rep (p : PS n) : Matrix (Bits n) (Bits n) ℂ :=
-  iPow p.ph • pauliMat p.x p.z
-
-lemma rep_one : rep (1 : PS n) = 1 := by
-  simp [rep, iPow_zero, pauliMat_zero_zero]
-
-lemma rep_mul (p q : PS n) : rep (p * q) = rep p * rep q := by
-  simp only [rep, PS.mul_ph, PS.mul_x, PS.mul_z, Matrix.smul_mul, Matrix.mul_smul,
-    pauliMat_mul, iPow_add, iPow_toZ4, smul_smul]
-  ring_nf
-
-/-- `rep` as a monoid homomorphism from the symbolic Pauli group to matrices. -/
-noncomputable def repHom : PS n →* Matrix (Bits n) (Bits n) ℂ where
-  toFun := rep
-  map_one' := rep_one
-  map_mul' := rep_mul
-
-@[simp] lemma repHom_apply (p : PS n) : (repHom p : Matrix (Bits n) (Bits n) ℂ) = rep p := rfl
-
-/-! ### Generators -/
-
-/-- The `i`-th standard basis bit string. -/
-def eB (i : Fin n) : Bits n := Pi.single i 1
-
-/-- The symbolic Pauli `X_i`. -/
-def gX (i : Fin n) : PS n := ⟨0, eB i, 0⟩
-
-/-- The symbolic Pauli `Z_i`. -/
-def gZ (i : Fin n) : PS n := ⟨0, 0, eB i⟩
-
-lemma dotB_eB (z : Bits n) (i : Fin n) : dotB z (eB i) = z i := by
-  simp [dotB, eB, Pi.single_apply, Finset.sum_ite_eq']
-
-lemma dotB_eB_left (i : Fin n) (z : Bits n) : dotB (eB i) z = z i := by
-  simp [dotB, eB, Pi.single_apply, Finset.sum_ite_eq']
-
-end QI
-
-/-
-# Clifford gates and the tableau (symplectic) description of their action
-
-A Clifford gate is a unitary `U` that conjugates every Pauli operator to a Pauli operator.
-Since the Pauli group is generated by `X_1, …, X_n, Z_1, …, Z_n`, such a gate is completely
-described by the `2 * n` symbolic Paulis `imX j`, `imZ j` — the classical *tableau* of the gate,
-which is only `2 * n * (2 * n + 2)` bits of data.
-
-The main result of this file, `Clifford.conj_rep`, shows that this finite data determines the
-conjugation action on *every* Pauli, via the explicit classical computation `conjPS`.
--/
-import RequestProject.QI.Pauli
-
-namespace QI
-
-open scoped BigOperators
-open Matrix
-
-variable {n : ℕ}
-
-/-- A Clifford gate on `n` qubits, together with its tableau: the images of the generators
-`X_j` and `Z_j` under conjugation. -/
-structure Clifford (n : ℕ) where
-  /-- The unitary matrix implementing the gate. -/
-  U : Matrix (Bits n) (Bits n) ℂ
-  /-- The gate is unitary. -/
-  unitary : U * Uᴴ = 1
-  /-- Tableau: the image of `X_j` under conjugation by `U`. -/
-  imX : Fin n → PS n
-  /-- Tableau: the image of `Z_j` under conjugation by `U`. -/
-  imZ : Fin n → PS n
-  /-- `U X_j U⁻¹ = imX j`. -/
-  conjX : ∀ j, U * rep (gX j) = rep (imX j) * U
-  /-- `U Z_j U⁻¹ = imZ j`. -/
-  conjZ : ∀ j, U * rep (gZ j) = rep (imZ j) * U
-
-/-- Ordered product of the images of the generators selected by the bit string `b`. -/
-def genProd (f : Fin n → PS n) (b : Bits n) : PS n :=
-  ((List.finRange n).map (fun j => if b j = 1 then f j else 1)).prod
-
-/-- The conjugate of a symbolic Pauli `p` by a Clifford gate, computed from the tableau. -/
-def conjPS (C : Clifford n) (p : PS n) : PS n :=
-  (⟨p.ph, 0, 0⟩ : PS n) * genProd C.imX p.x * genProd C.imZ p.z
-
-lemma rep_phase (k : ZMod 4) : rep (⟨k, 0, 0⟩ : PS n) = iPow k • (1 : Matrix (Bits n) (Bits n) ℂ) := by
-  simp [rep, pauliMat_zero_zero]
-
-lemma phase_comm (k : ZMod 4) (M : Matrix (Bits n) (Bits n) ℂ) :
-    M * rep (⟨k, 0, 0⟩ : PS n) = rep (⟨k, 0, 0⟩ : PS n) * M := by
-  simp [rep_phase, Matrix.mul_smul, Matrix.smul_mul]
-
-/-! ### The generator products compute the Pauli they should -/
-
-private lemma prod_gX_list (l : List (Fin n)) (b : Bits n) :
-    ((l.map (fun j => if b j = 1 then gX j else 1)).prod)
-      = ⟨0, (l.map (fun j => if b j = 1 then eB j else 0)).sum, 0⟩ := by
-  induction l with
-  | nil => rfl
-  | cons j l ih =>
-    simp only [List.map_cons, List.prod_cons, List.sum_cons, ih]
-    by_cases hb : b j = 1 <;> · ext <;> simp [hb, gX, dotB_zero_left]
-
-private lemma prod_gZ_list (l : List (Fin n)) (b : Bits n) :
-    ((l.map (fun j => if b j = 1 then gZ j else 1)).prod)
-      = ⟨0, 0, (l.map (fun j => if b j = 1 then eB j else 0)).sum⟩ := by
-  induction l with
-  | nil => rfl
-  | cons j l ih =>
-    simp only [List.map_cons, List.prod_cons, List.sum_cons, ih]
-    by_cases hb : b j = 1 <;> · ext <;> simp [hb, gZ, dotB_zero_right]
-
-private lemma sum_single_eq (b : Bits n) :
-    ((List.finRange n).map (fun j => if b j = 1 then eB j else 0)).sum = b := by
-  rw [← Fin.sum_univ_def]
-  funext k
-  rw [Finset.sum_apply]
-  rw [Finset.sum_eq_single k]
-  · rcases zmod2_cases (b k) with h | h <;> simp [h, eB, Pi.single_apply]
-  · intro j _ hj
-    by_cases hb : b j = 1 <;> simp [hb, eB, Pi.single_eq_of_ne (Ne.symm hj)]
-  · intro h; exact absurd (Finset.mem_univ _) h
-
-@[simp] lemma genProd_gX (b : Bits n) : genProd gX b = ⟨0, b, 0⟩ := by
-  rw [genProd, prod_gX_list, sum_single_eq]
-
-@[simp] lemma genProd_gZ (b : Bits n) : genProd gZ b = ⟨0, 0, b⟩ := by
-  rw [genProd, prod_gZ_list, sum_single_eq]
-
-/-- Every symbolic Pauli factors as a phase times a product of `X` generators times a product
-of `Z` generators. -/
-lemma ps_factor (p : PS n) :
-    p = (⟨p.ph, 0, 0⟩ : PS n) * genProd gX p.x * genProd gZ p.z := by
-  ext <;> simp [dotB_zero_left, dotB_zero_right]
-
-/-! ### Conjugation of an arbitrary Pauli is computed by the tableau -/
-
-private lemma conj_gen_list (M : Matrix (Bits n) (Bits n) ℂ) (F G : Fin n → PS n)
-    (h : ∀ j, M * rep (F j) = rep (G j) * M) (l : List (Fin n)) (b : Bits n) :
-    M * rep ((l.map (fun j => if b j = 1 then F j else 1)).prod)
-      = rep ((l.map (fun j => if b j = 1 then G j else 1)).prod) * M := by
-  induction l with
-  | nil => simp [rep_one]
-  | cons j l ih =>
-    simp only [List.map_cons, List.prod_cons, rep_mul]
-    have hj : M * rep (if b j = 1 then F j else 1) = rep (if b j = 1 then G j else 1) * M := by
-      by_cases hb : b j = 1
-      · simpa [hb] using h j
-      · simp [hb, rep_one]
-    rw [← Matrix.mul_assoc, hj, Matrix.mul_assoc, ih, ← Matrix.mul_assoc]
-
-lemma conj_genProd (C : Clifford n) (b : Bits n) :
-    C.U * rep (genProd gX b) = rep (genProd C.imX b) * C.U :=
-  conj_gen_list C.U gX C.imX C.conjX _ b
-
-lemma conj_genProdZ (C : Clifford n) (b : Bits n) :
-    C.U * rep (genProd gZ b) = rep (genProd C.imZ b) * C.U :=
-  conj_gen_list C.U gZ C.imZ C.conjZ _ b
-
-/-- **The tableau determines the conjugation action.**  For every Pauli `p`,
-`U (rep p) = (rep (conjPS C p)) U`, where `conjPS` is a purely classical computation on the
-`2n(2n+2)`-bit tableau of the gate. -/
-theorem Clifford.conj_rep (C : Clifford n) (p : PS n) :
-    C.U * rep p = rep (conjPS C p) * C.U := by
-  have hX := conj_genProd C p.x
-  have hZ := conj_genProdZ C p.z
-  conv_lhs => rw [ps_factor p]
-  simp only [conjPS, rep_mul, Matrix.mul_assoc]
-  rw [← Matrix.mul_assoc, phase_comm, Matrix.mul_assoc, ← Matrix.mul_assoc C.U, hX,
-    Matrix.mul_assoc, hZ]
-
-end QI
 
