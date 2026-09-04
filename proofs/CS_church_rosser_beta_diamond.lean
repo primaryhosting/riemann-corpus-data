@@ -6,227 +6,199 @@ Verification: pending
 Provenance: Aristotle theorem prover (Harmonic)
 -/
 
-set_option maxHeartbeats 1000000
-set_option relaxedAutoImplicit false
 set_option autoImplicit false
 
 namespace CS
 
-/-! ## Untyped λ-terms in de Bruijn representation -/
-
-/-- Untyped λ-terms with de Bruijn indices. -/
-inductive Lam : Type
-  | var : ℕ → Lam
-  | app : Lam → Lam → Lam
-  | lam : Lam → Lam
+/-- Untyped λ-terms in de Bruijn representation: `var n` is the variable with de Bruijn
+index `n`, `app` is application and `lam` is abstraction. -/
+inductive Term where
+  | var : Nat → Term
+  | app : Term → Term → Term
+  | lam : Term → Term
   deriving DecidableEq
 
-namespace Lam
+namespace Term
 
-/-- Lift a renaming under a binder. -/
-def upr (r : ℕ → ℕ) : ℕ → ℕ
-  | 0 => 0
-  | i + 1 => r i + 1
+/-- `lift c t` increments every free variable of `t` whose index is `≥ c`. -/
+def lift : Nat → Term → Term
+  | c, var n => if n < c then var n else var (n + 1)
+  | c, app a b => app (lift c a) (lift c b)
+  | c, lam a => lam (lift (c + 1) a)
 
-/-- Apply a renaming of de Bruijn indices to a term. -/
-def ren (r : ℕ → ℕ) : Lam → Lam
-  | var i => var (r i)
-  | app a b => app (ren r a) (ren r b)
-  | lam a => lam (ren (upr r) a)
+/-- `subst a k b` substitutes `b` for the variable with de Bruijn index `k` in `a`,
+decrementing the free variables with larger indices. -/
+def subst : Term → Nat → Term → Term
+  | var n, k, b => if n < k then var n else if n = k then b else var (n - 1)
+  | app a₁ a₂, k, b => app (subst a₁ k b) (subst a₂ k b)
+  | lam a, k, b => lam (subst a (k + 1) (lift 0 b))
 
-/-- Lift a substitution under a binder. -/
-def up (σ : ℕ → Lam) : ℕ → Lam
-  | 0 => var 0
-  | i + 1 => ren Nat.succ (σ i)
+@[simp] theorem lift_var (c n : Nat) :
+    lift c (var n) = if n < c then var n else var (n + 1) := rfl
+@[simp] theorem lift_app (c : Nat) (a b : Term) :
+    lift c (app a b) = app (lift c a) (lift c b) := rfl
+@[simp] theorem lift_lam (c : Nat) (a : Term) :
+    lift c (lam a) = lam (lift (c + 1) a) := rfl
 
-/-- Apply a (parallel) substitution to a term. -/
-def sub (σ : ℕ → Lam) : Lam → Lam
-  | var i => σ i
-  | app a b => app (sub σ a) (sub σ b)
-  | lam a => lam (sub (up σ) a)
+@[simp] theorem subst_var (n k : Nat) (b : Term) :
+    subst (var n) k b = if n < k then var n else if n = k then b else var (n - 1) := rfl
+@[simp] theorem subst_app (a₁ a₂ : Term) (k : Nat) (b : Term) :
+    subst (app a₁ a₂) k b = app (subst a₁ k b) (subst a₂ k b) := rfl
+@[simp] theorem subst_lam (a : Term) (k : Nat) (b : Term) :
+    subst (lam a) k b = lam (subst a (k + 1) (lift 0 b)) := rfl
 
-/-- Extend a substitution with a new term for index `0`. -/
-def cons (t : Lam) (σ : ℕ → Lam) : ℕ → Lam
-  | 0 => t
-  | i + 1 => σ i
+/-- Tactic handling the (index-arithmetic) variable cases of the substitution lemmas. -/
+local macro "var_case" : tactic =>
+  `(tactic| (simp only [lift_var, subst_var]; repeat' (first | omega | split | simp_all)))
 
-/-- The substitution performed by a β-step: `(λ a) b ↝ beta a b`. -/
-def beta (a b : Lam) : Lam := sub (cons b var) a
+/-- Two liftings commute. -/
+theorem lift_lift (t : Term) (i j : Nat) (h : i ≤ j) :
+    lift (j + 1) (lift i t) = lift i (lift j t) := by
+  induction t generalizing i j with
+  | var n => var_case
+  | app a b iha ihb => simp [iha i j h, ihb i j h]
+  | lam a ih => simp [ih (i + 1) (j + 1) (by omega)]
 
-/-! ### The σ-algebra laws for renaming and substitution -/
+/-- Lifting at a cutoff at or above the substituted index. -/
+theorem lift_subst_high (a : Term) : ∀ (k c : Nat) (b : Term), k ≤ c →
+    lift c (subst a k b) = subst (lift (c + 1) a) k (lift c b) := by
+  induction a with
+  | var n => intro k c b h; var_case
+  | app a₁ a₂ ih1 ih2 => intro k c b h; simp [ih1 k c b h, ih2 k c b h]
+  | lam a ih =>
+      intro k c b h
+      simp only [subst_lam, lift_lam]
+      rw [ih (k + 1) (c + 1) (lift 0 b) (by omega), lift_lift b 0 c (Nat.zero_le _)]
 
-theorem upr_comp (r s : ℕ → ℕ) : ∀ i, upr r (upr s i) = upr (fun j => r (s j)) i
-  | 0 => rfl
-  | _ + 1 => rfl
+/-- Lifting at a cutoff at or below the substituted index. -/
+theorem lift_subst_low (a : Term) : ∀ (k c : Nat) (b : Term), c ≤ k →
+    lift c (subst a k b) = subst (lift c a) (k + 1) (lift c b) := by
+  induction a with
+  | var n => intro k c b h; var_case
+  | app a₁ a₂ ih1 ih2 => intro k c b h; simp [ih1 k c b h, ih2 k c b h]
+  | lam a ih =>
+      intro k c b h
+      simp only [subst_lam, lift_lam]
+      rw [ih (k + 1) (c + 1) (lift 0 b) (by omega), lift_lift b 0 c (Nat.zero_le _)]
 
-theorem ren_ren (r s : ℕ → ℕ) :
-    ∀ t : Lam, ren r (ren s t) = ren (fun j => r (s j)) t
-  | var _ => rfl
-  | app a b => by simp [ren, ren_ren r s a, ren_ren r s b]
-  | lam a => by
-      simp only [ren, ren_ren (upr r) (upr s) a]
-      exact congrArg lam (congrArg (fun f => ren f a) (funext (upr_comp r s)))
+/-- Substituting for a freshly created variable does nothing. -/
+@[simp] theorem subst_lift_self (a : Term) : ∀ (i : Nat) (b : Term), subst (lift i a) i b = a := by
+  induction a with
+  | var n => intro i b; var_case
+  | app a₁ a₂ ih1 ih2 => intro i b; simp [ih1, ih2]
+  | lam a ih => intro i b; simp [ih]
 
-theorem sub_ren (σ : ℕ → Lam) (r : ℕ → ℕ) :
-    ∀ t : Lam, sub σ (ren r t) = sub (fun j => σ (r j)) t
-  | var _ => rfl
-  | app a b => by simp [ren, sub, sub_ren σ r a, sub_ren σ r b]
-  | lam a => by
-      simp only [ren, sub, sub_ren (up σ) (upr r) a]
-      refine congrArg lam (congrArg (fun f => sub f a) (funext ?_))
-      rintro (_ | i) <;> rfl
+/-- The substitution (composition) lemma. -/
+theorem subst_subst (a : Term) : ∀ (i j : Nat) (b c : Term), i ≤ j →
+    subst (subst a i b) j c = subst (subst a (j + 1) (lift i c)) i (subst b j c) := by
+  induction a with
+  | var n => intro i j b c h; var_case
+  | app a₁ a₂ ih1 ih2 => intro i j b c h; simp [ih1 i j b c h, ih2 i j b c h]
+  | lam a ih =>
+      intro i j b c h
+      simp only [subst_lam]
+      rw [ih (i + 1) (j + 1) (lift 0 b) (lift 0 c) (by omega),
+        lift_lift c 0 i (Nat.zero_le _), lift_subst_low b j 0 c (Nat.zero_le _)]
 
-theorem ren_sub (r : ℕ → ℕ) (σ : ℕ → Lam) :
-    ∀ t : Lam, ren r (sub σ t) = sub (fun j => ren r (σ j)) t
-  | var _ => rfl
-  | app a b => by simp [ren, sub, ren_sub r σ a, ren_sub r σ b]
-  | lam a => by
-      simp only [ren, sub, ren_sub (upr r) (up σ) a]
-      refine congrArg lam (congrArg (fun f => sub f a) (funext ?_))
-      rintro (_ | i)
-      · rfl
-      · simp only [up, ren_ren]
-        rfl
+end Term
 
-theorem sub_sub (σ τ : ℕ → Lam) :
-    ∀ t : Lam, sub σ (sub τ t) = sub (fun j => sub σ (τ j)) t
-  | var _ => rfl
-  | app a b => by simp [sub, sub_sub σ τ a, sub_sub σ τ b]
-  | lam a => by
-      simp only [sub, sub_sub (up σ) (up τ) a]
-      refine congrArg lam (congrArg (fun f => sub f a) (funext ?_))
-      rintro (_ | i)
-      · rfl
-      · simp only [up, sub_ren, ren_sub]
-        rfl
+open Term
 
-theorem sub_var : ∀ t : Lam, sub var t = t
-  | var _ => rfl
-  | app a b => by simp [sub, sub_var a, sub_var b]
-  | lam a => by
-      simp only [sub]
-      refine congrArg lam ?_
-      have : up var = var := by funext i; cases i <;> rfl
-      rw [this, sub_var a]
+/-- One-step parallel β-reduction: any set of β-redexes present in a term may be
+contracted simultaneously. -/
+inductive Par : Term → Term → Prop
+  | var (n : Nat) : Par (var n) (var n)
+  | app {s s' t t' : Term} : Par s s' → Par t t' → Par (app s t) (app s' t')
+  | lam {t t' : Term} : Par t t' → Par (lam t) (lam t')
+  | beta {s s' t t' : Term} : Par s s' → Par t t' → Par (app (lam s) t) (subst s' 0 t')
 
-/-- Renaming commutes with a single β-substitution. -/
-theorem ren_beta (r : ℕ → ℕ) (a b : Lam) :
-    ren r (beta a b) = beta (ren (upr r) a) (ren r b) := by
-  simp only [beta, ren_sub, sub_ren]
-  refine congrArg (fun f => sub f a) (funext ?_)
-  rintro (_ | i) <;> rfl
+theorem Par.refl (t : Term) : Par t t := by
+  induction t with
+  | var n => exact Par.var n
+  | app a b iha ihb => exact Par.app iha ihb
+  | lam a ih => exact Par.lam ih
 
-/-- Substitution commutes with a single β-substitution. -/
-theorem sub_beta (σ : ℕ → Lam) (a b : Lam) :
-    sub σ (beta a b) = beta (sub (up σ) a) (sub σ b) := by
-  simp only [beta, sub_sub]
-  refine congrArg (fun f => sub f a) (funext ?_)
-  rintro (_ | i)
-  · rfl
-  · simp only [cons, up, sub_ren]
-    exact (sub_var _).symm ▸ rfl
+theorem Par.lam_inv {t u : Term} (h : Par (Term.lam t) u) :
+    ∃ u', u = Term.lam u' ∧ Par t u' := by
+  cases h with
+  | lam h => exact ⟨_, rfl, h⟩
 
-/-! ## Parallel one-step β-reduction -/
-
-/-- One-step parallel β-reduction. -/
-inductive Par : Lam → Lam → Prop
-  | var (i : ℕ) : Par (var i) (var i)
-  | app {a a' b b' : Lam} : Par a a' → Par b b' → Par (app a b) (app a' b')
-  | lam {a a' : Lam} : Par a a' → Par (lam a) (lam a')
-  | beta {a a' b b' : Lam} : Par a a' → Par b b' → Par (app (lam a) b) (beta a' b')
-
-theorem Par.refl : ∀ t : Lam, Par t t
-  | var i => Par.var i
-  | app a b => Par.app (Par.refl a) (Par.refl b)
-  | lam a => Par.lam (Par.refl a)
-
-theorem Par.ren {a b : Lam} (h : Par a b) : ∀ r : ℕ → ℕ, Par (Lam.ren r a) (Lam.ren r b) := by
+/-- Parallel reduction is preserved by lifting. -/
+theorem Par.lift {s s' : Term} (h : Par s s') :
+    ∀ c : Nat, Par (Term.lift c s) (Term.lift c s') := by
   induction h with
-  | var i => intro r; exact Par.var _
-  | app _ _ iha ihb => intro r; exact Par.app (iha r) (ihb r)
-  | lam _ ih => intro r; exact Par.lam (ih _)
-  | beta _ _ iha ihb =>
-      intro r
-      rw [Lam.ren_beta]
-      exact Par.beta (iha (upr r)) (ihb r)
+  | var n => intro c; simp only [lift_var]; split <;> exact Par.var _
+  | app _ _ ih1 ih2 => intro c; exact Par.app (ih1 c) (ih2 c)
+  | lam _ ih => intro c; exact Par.lam (ih (c + 1))
+  | @beta s s' t t' _ _ ih1 ih2 =>
+      intro c
+      have h := Par.beta (ih1 (c + 1)) (ih2 c)
+      rw [lift_subst_high s' 0 c t' (Nat.zero_le _)]
+      exact h
 
-theorem Par.up {σ τ : ℕ → Lam} (h : ∀ i, Par (σ i) (τ i)) :
-    ∀ i, Par (Lam.up σ i) (Lam.up τ i) := by
-  rintro (_ | i)
-  · exact Par.var 0
-  · exact (h i).ren Nat.succ
+/-- Parallel reduction is preserved by substitution. -/
+theorem Par.subst {a a' : Term} (ha : Par a a') :
+    ∀ {b b' : Term}, Par b b' → ∀ k : Nat, Par (Term.subst a k b) (Term.subst a' k b') := by
+  induction ha with
+  | var n =>
+      intro b b' hb k
+      simp only [subst_var]
+      split
+      · exact Par.var _
+      · split
+        · exact hb
+        · exact Par.var _
+  | app _ _ ih1 ih2 => intro b b' hb k; exact Par.app (ih1 hb k) (ih2 hb k)
+  | lam _ ih => intro b b' hb k; exact Par.lam (ih (hb.lift 0) (k + 1))
+  | @beta s s' t t' _ _ ih1 ih2 =>
+      intro b b' hb k
+      have h := Par.beta (ih1 (hb.lift 0) (k + 1)) (ih2 hb k)
+      rw [Term.subst_app, Term.subst_lam, subst_subst s' 0 k t' b' (Nat.zero_le _)]
+      exact h
 
-theorem Par.sub {a b : Lam} (h : Par a b) :
-    ∀ {σ τ : ℕ → Lam}, (∀ i, Par (σ i) (τ i)) → Par (Lam.sub σ a) (Lam.sub τ b) := by
-  induction h with
-  | var i => intro σ τ hst; exact hst i
-  | app _ _ iha ihb => intro σ τ hst; exact Par.app (iha hst) (ihb hst)
-  | lam _ ih => intro σ τ hst; exact Par.lam (ih (Par.up hst))
-  | beta _ _ iha ihb =>
-      intro σ τ hst
-      rw [Lam.sub_beta]
-      exact Par.beta (iha (Par.up hst)) (ihb hst)
+/-- The complete development of a term: all β-redexes currently present are contracted. -/
+def dev : Term → Term
+  | .var n => .var n
+  | .app (.var n) t => .app (.var n) (dev t)
+  | .app (.app a b) t => .app (dev (.app a b)) (dev t)
+  | .app (.lam s) t => Term.subst (dev s) 0 (dev t)
+  | .lam t => .lam (dev t)
 
-/-- Parallel reduction is compatible with β-substitution. -/
-theorem Par.betaCongr {a a' b b' : Lam} (ha : Par a a') (hb : Par b b') :
-    Par (Lam.beta a b) (Lam.beta a' b') := by
-  refine ha.sub ?_
-  rintro (_ | i)
-  · exact hb
-  · exact Par.var i
-
-/-! ## Takahashi's complete development -/
-
-/-- The complete development of a term: contract all β-redexes present. -/
-def dev : Lam → Lam
-  | var i => var i
-  | app (lam a) b => beta (dev a) (dev b)
-  | app a b => app (dev a) (dev b)
-  | lam a => lam (dev a)
-
-theorem dev_app_lam (a b : Lam) : dev (app (lam a) b) = beta (dev a) (dev b) := rfl
-
-theorem dev_app_var (i : ℕ) (b : Lam) : dev (app (var i) b) = app (var i) (dev b) := rfl
-
-theorem dev_app_app (a₁ a₂ b : Lam) :
-    dev (app (app a₁ a₂) b) = app (dev (app a₁ a₂)) (dev b) := rfl
-
-/-- Takahashi's key "triangle" property: every parallel reduct of `t` parallel-reduces
+/-- Takahashi's triangle property: every one-step parallel reduct of `t` parallel-reduces
 to the complete development of `t`. -/
-theorem Par.triangle {t u : Lam} (h : Par t u) : Par u (dev t) := by
+theorem Par.triangle {t u : Term} (h : Par t u) : Par u (dev t) := by
   induction h with
-  | var i => exact Par.var i
-  | @app a a' b b' hab _ iha ihb =>
-      cases a with
-      | var i =>
-          cases hab
-          rw [dev_app_var]
-          exact Par.app (Par.var i) ihb
-      | app a₁ a₂ =>
-          rw [dev_app_app]
-          exact Par.app iha ihb
-      | lam c =>
-          cases hab with
-          | lam hc =>
-              rw [dev_app_lam]
-              rename_i c' _
-              have : Par (Lam.lam c') (Lam.lam (dev c)) := iha
-              cases this with
-              | lam hc' => exact Par.beta hc' ihb
+  | var n => exact Par.var n
+  | @app s s' t t' hs _ ihs iht =>
+      cases s with
+      | var n =>
+          cases hs
+          exact Par.app (Par.var n) iht
+      | app a b => exact Par.app ihs iht
+      | lam s₀ =>
+          obtain ⟨s₁, rfl, _⟩ := hs.lam_inv
+          obtain ⟨s₂, hs₂, hpar⟩ := ihs.lam_inv
+          have hd : dev (Term.lam s₀) = Term.lam (dev s₀) := rfl
+          rw [hd] at hs₂
+          cases hs₂
+          show Par _ (Term.subst (dev s₀) 0 (dev t))
+          exact Par.beta hpar iht
   | lam _ ih => exact Par.lam ih
-  | beta _ _ iha ihb =>
-      rw [dev_app_lam]
-      exact Par.betaCongr iha ihb
+  | @beta s s' t t' _ _ ih1 ih2 =>
+      show Par _ (Term.subst (dev s) 0 (dev t))
+      exact ih1.subst ih2 0
 
-end Lam
+/-- Sanity check: contracting the redex `(λx. x) y` is a one-step parallel reduction. -/
+example : Par (Term.app (Term.lam (Term.var 0)) (Term.var 3)) (Term.var 3) := by
+  have h := Par.beta (Par.var 0) (Par.var 3)
+  simpa using h
 
-/-- **Church–Rosser, diamond property for parallel β-reduction.**
-One-step parallel β-reduction in the untyped λ-calculus has the diamond property:
-if `t` parallel-reduces to both `u` and `v`, then `u` and `v` have a common
-parallel reduct. -/
-theorem church_rosser_beta_diamond {t u v : Lam} (hu : Lam.Par t u) (hv : Lam.Par t v) :
-    ∃ w : Lam, Lam.Par u w ∧ Lam.Par v w :=
-  ⟨Lam.dev t, hu.triangle, hv.triangle⟩
+/-- **Diamond property of one-step parallel β-reduction.**
+If a λ-term `t` parallel-reduces in one step both to `u` and to `v`, then `u` and `v`
+have a common one-step parallel reduct (namely the complete development of `t`). -/
+theorem church_rosser_beta_diamond {t u v : Term} (hu : Par t u) (hv : Par t v) :
+    ∃ w, Par u w ∧ Par v w :=
+  ⟨dev t, hu.triangle, hv.triangle⟩
 
 end CS
 
