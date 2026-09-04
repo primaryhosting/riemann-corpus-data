@@ -6,27 +6,26 @@ Verification: pending
 Provenance: Aristotle theorem prover (Harmonic)
 -/
 
+set_option relaxedAutoImplicit false
 set_option autoImplicit false
 
 namespace PCA
 
-section
+section PCA
+
 variable {P R : Type}
 
-/-- A principal `c` can access a resource `r` when `r` is in `c`'s scope, or `c` is
-privileged, or `r` is unowned. -/
+/-- A principal `c` can access a resource `r` when `r` is in `c`'s scope, or one of the
+"escape hatches" applies: `c` is privileged, or `r` is unowned. -/
 def canAccess (inScope : P → R → Prop) (isPriv : P → Prop) (isUnowned : R → Prop)
     (c : P) (r : R) : Prop := inScope c r ∨ isPriv c ∨ isUnowned r
 
-/-- Adding escapes only enlarges access: if `c` has `r` in scope, then `c` can access `r`. -/
-theorem escape_monotone (inScope : P → R → Prop) (isPriv : P → Prop)
-    (isUnowned : R → Prop) (c : P) (r : R) (h : inScope c r) :
-    canAccess inScope isPriv isUnowned c r :=
+/-- Adding escapes only enlarges access: being in scope suffices for access. -/
+theorem escape_monotone (inScope : P → R → Prop) (isPriv : P → Prop) (isUnowned : R → Prop)
+    (c : P) (r : R) (h : inScope c r) : canAccess inScope isPriv isUnowned c r :=
   Or.inl h
-
-end
 
 end PCA
 
-#print axioms PCA.escape_monotone
+end PCA
 
