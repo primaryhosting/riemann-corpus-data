@@ -1,4 +1,4 @@
-/-
+/-!
 # Spin Statistics
 Category: Frontier Physics
 Target: Frontier.spin_statistics
@@ -22,185 +22,149 @@ set_option synthInstance.maxSize 128
 set_option relaxedAutoImplicit false
 set_option autoImplicit false
 
+set_option pp.fullNames true
+set_option pp.structureInstances true
+set_option pp.coercions.types true
+set_option pp.funBinderTypes true
+set_option pp.letVarTypes true
+set_option pp.piBinderTypes true
+
 set_option grind.warning false
 
 namespace Frontier
 
-/-!
-## The spin–statistics connection
+/-! ## Minkowski spacetime -/
 
-The spin–statistics theorem of relativistic quantum field theory states that a field of
-integer spin must be quantized with commutators (Bose statistics) and a field of
-half-odd-integer spin with anticommutators (Fermi statistics); equivalently, the exchange
-phase of a field of spin `j` is `(-1)^(2j)`.  Quantizing with the *wrong* statistics forces
-the field to vanish identically (Pauli's argument, in the Wightman framework:
-Streater–Wightman, *PCT, Spin and Statistics, and All That*).
+/-- Minkowski spacetime `ℝ⁴`, with coordinates indexed by `Fin 4`
+(coordinate `0` is time, coordinates `1,2,3` are space). -/
+abbrev Spacetime : Type := Fin 4 → ℝ
 
-Below, spin is recorded by the natural number `s = 2j` ("twice the spin"), so that integer
-spin means `Even s` and half-odd-integer spin means `Odd s`.  The exchange phase is
-`exchangePhase s = (-1)^s`.
+/-- The Minkowski quadratic form with signature `(+,-,-,-)`. -/
+def minkowskiSq (v : Spacetime) : ℝ :=
+  (v 0) ^ 2 - ((v 1) ^ 2 + (v 2) ^ 2 + (v 3) ^ 2)
 
-The main theorem `Frontier.spin_statistics` is the Pauli argument, formalized as a
-Lean-checked *reduction*: from
-* the abstract Wightman data (a complex inner-product space of states, a vacuum vector,
-  smeared field operators together with their adjoints), and
-* the identity relating the two orders of the two-point function which the analytic
-  continuation step of the proof (Lorentz covariance + locality + edge-of-the-wedge)
-  produces, carrying the sign `ε · (-1)^s`,
+/-- Two spacetime points are *spacelike separated* when their difference has
+negative Minkowski square. -/
+def Spacelike (x y : Spacetime) : Prop := minkowskiSq (x - y) < 0
 
-positivity of the inner product forces the field and its adjoint to annihilate the vacuum
-whenever `ε ≠ (-1)^s`, i.e. whenever the statistics is wrong for the spin.  If in addition
-the vacuum is separating, the field vanishes identically.
+/-- The unit vector in the first spatial direction. -/
+def spatialUnit : Spacetime := fun i => if i = 1 then 1 else 0
 
-The only genuinely nontrivial Mathlib input is positivity of the inner product,
-`inner_self_eq_norm_sq_to_K` together with `inner_self_eq_zero`.
--/
+/-- Points displaced from `x` by a nonzero purely spatial vector are spacelike
+separated from `x`. -/
+lemma spacelike_spatial_shift (x : Spacetime) {c : ℝ} (hc : c ≠ 0) :
+    Spacelike x (x + c • spatialUnit) := by
+  have h : x - (x + c • spatialUnit) = (-c) • spatialUnit := by
+    funext i; simp [Pi.sub_apply, Pi.add_apply, Pi.smul_apply]; ring
+  simp only [Spacelike, h, minkowskiSq, Pi.smul_apply, spatialUnit]
+  norm_num
+  positivity
 
-/-- The exchange phase of a field of spin `j`, where `s = 2j` is twice the spin:
-`(-1)^(2j)`. -/
-def exchangePhase (s : ℕ) : ℤ := (-1) ^ s
+/-- The spatially displaced points converge to `x`. -/
+lemma tendsto_spatial_shift (x : Spacetime) :
+    Filter.Tendsto (fun k : ℕ => x + (1 / (k + 1 : ℝ)) • spatialUnit)
+      Filter.atTop (nhds x) := by
+  have h0 : Filter.Tendsto (fun k : ℕ => (1 / (k + 1 : ℝ))) Filter.atTop (nhds 0) :=
+    tendsto_one_div_add_atTop_nhds_zero_nat
+  have h1 : Filter.Tendsto (fun k : ℕ => (1 / (k + 1 : ℝ)) • spatialUnit)
+      Filter.atTop (nhds ((0 : ℝ) • spatialUnit)) := h0.smul_const spatialUnit
+  have h2 := Filter.Tendsto.const_add x h1
+  simpa using h2
 
-/-- A field has *Bose* statistics exactly when its spin is an integer, i.e. `s = 2j` is even. -/
-def IsBosonic (s : ℕ) : Prop := Even s
+/-! ## The spin–statistics connection
 
-/-- A field has *Fermi* statistics exactly when its spin is half-odd-integral,
-i.e. `s = 2j` is odd. -/
-def IsFermionic (s : ℕ) : Prop := Odd s
+We work with a quantum field `φ` on a complex inner product space `H` with a
+distinguished vacuum vector `Ω`.  The hypotheses below are the standard
+Wightman inputs used in the proof of the spin–statistics theorem:
 
-@[simp] lemma exchangePhase_eq_one_iff (s : ℕ) : exchangePhase s = 1 ↔ IsBosonic s := by
-  simpa [exchangePhase, IsBosonic] using (neg_one_pow_eq_one_iff_even (R := ℤ) (by norm_num))
+* `hherm` : the smeared field operators are hermitian;
+* `hloc`  : *locality with statistics sign* `σ`: at spacelike separation the
+  field operators commute (`σ = 1`, Bose statistics) or anticommute
+  (`σ = -1`, Fermi statistics);
+* `hsym`  : the *two point Wightman function* `W x y = ⟪Ω, φ x (φ y Ω)⟫`
+  satisfies `W x y = (-1)^n * W y x` at spacelike separation, where `n = 2s`
+  is twice the spin.  This is the consequence of Lorentz covariance and the
+  spectral condition (Bargmann–Hall–Wightman symmetry) that carries the spin
+  dependence;
+* `hcont` : the two point function is continuous;
+* `hnontriv` : the field is not identically trivial on the vacuum.
 
-@[simp] lemma exchangePhase_eq_neg_one_iff (s : ℕ) : exchangePhase s = -1 ↔ IsFermionic s := by
-  constructor
-  · intro h
-    rcases Nat.even_or_odd s with he | ho
-    · rw [exchangePhase, he.neg_one_pow] at h; norm_num at h
-    · exact ho
-  · intro h
-    simpa [exchangePhase] using h.neg_one_pow
+The conclusion is the spin–statistics connection: the statistics sign is forced
+to be `(-1)^(2s)`, i.e. integer spin fields are bosons and half-integer spin
+fields are fermions. -/
+theorem spin_statistics
+    {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H]
+    (Ω : H) (φ : Spacetime → H → H) (n : ℕ) (σ : ℂ)
+    (hσ : σ = 1 ∨ σ = -1)
+    (hherm : ∀ (x : Spacetime) (u v : H),
+      (inner u (φ x v) : ℂ) = (inner (φ x u) v : ℂ))
+    (hloc : ∀ x y : Spacetime, Spacelike x y → ∀ v : H, φ x (φ y v) = σ • φ y (φ x v))
+    (hsym : ∀ x y : Spacetime, Spacelike x y →
+      (inner Ω (φ x (φ y Ω)) : ℂ) = (-1 : ℂ) ^ n * (inner Ω (φ y (φ x Ω)) : ℂ))
+    (hcont : ∀ x : Spacetime, Continuous fun y : Spacetime => (inner Ω (φ x (φ y Ω)) : ℂ))
+    (hnontriv : ∃ x : Spacetime, φ x Ω ≠ 0) :
+    σ = (-1 : ℂ) ^ n := by
+  by_contra hne
+  -- wrong statistics: `σ = -(-1)^n`
+  have hsg : σ = -((-1 : ℂ) ^ n) := by
+    rcases Nat.even_or_odd n with he | ho
+    · have hp : (-1 : ℂ) ^ n = 1 := he.neg_one_pow
+      rcases hσ with h | h
+      · exact absurd (by rw [h, hp]) hne
+      · rw [h, hp]
+    · have hp : (-1 : ℂ) ^ n = -1 := ho.neg_one_pow
+      rcases hσ with h | h
+      · rw [h, hp]; ring
+      · exact absurd (by rw [h, hp]) hne
+  -- the two point function vanishes at spacelike separation
+  have hvan : ∀ x y : Spacetime, Spacelike x y → (inner Ω (φ x (φ y Ω)) : ℂ) = 0 := by
+    intro x y hxy
+    have h1 : (inner Ω (φ x (φ y Ω)) : ℂ) = σ * (inner Ω (φ y (φ x Ω)) : ℂ) := by
+      rw [hloc x y hxy Ω, inner_smul_right]
+    have h2 := hsym x y hxy
+    rw [hsg] at h1
+    have : (2 : ℂ) * (inner Ω (φ x (φ y Ω)) : ℂ) = 0 := by
+      rw [h2] at h1 ⊢; ring_nf; ring_nf at h1; linear_combination h1
+    simpa using this
+  -- hence, by continuity, it vanishes on the diagonal
+  obtain ⟨x, hx⟩ := hnontriv
+  have hdiag : (inner Ω (φ x (φ x Ω)) : ℂ) = 0 := by
+    have hlim := (hcont x).continuousAt.tendsto.comp (tendsto_spatial_shift x)
+    have hzero : (fun k : ℕ =>
+        (inner Ω (φ x (φ (x + (1 / (k + 1 : ℝ)) • spatialUnit) Ω)) : ℂ)) = fun _ => 0 := by
+      funext k
+      refine hvan _ _ (spacelike_spatial_shift x ?_)
+      positivity
+    rw [Function.comp_def] at hlim
+    rw [hzero] at hlim
+    exact tendsto_nhds_unique tendsto_const_nhds hlim
+  -- but the diagonal value is the squared norm of `φ x Ω`
+  have hnorm : (inner Ω (φ x (φ x Ω)) : ℂ) = ((‖φ x Ω‖ : ℂ)) ^ 2 := by
+    rw [hherm x Ω (φ x Ω)]
+    exact inner_self_eq_norm_sq_to_K
+  rw [hnorm] at hdiag
+  have : ‖φ x Ω‖ = 0 := by
+    have := pow_eq_zero_iff (n := 2) (by norm_num) |>.1 hdiag
+    exact_mod_cast this
+  exact hx (norm_eq_zero.1 this)
 
-lemma exchangePhase_eq_one_or_neg_one (s : ℕ) :
-    exchangePhase s = 1 ∨ exchangePhase s = -1 :=
-  neg_one_pow_eq_or ℤ s
-
-/-- Abstract Wightman data for a single (smeared) quantum field: a complex inner-product
-space of states, a vacuum vector, an operator `field f` for each test function `f : T`,
-and its adjoint `fieldStar f`. -/
-structure WightmanField (T : Type*) (H : Type*)
-    [NormedAddCommGroup H] [InnerProductSpace ℂ H] where
-  /-- The vacuum state. -/
-  vacuum : H
-  /-- The field operator smeared with a test function. -/
-  field : T → (H →ₗ[ℂ] H)
-  /-- The adjoint (conjugate) field operator. -/
-  fieldStar : T → (H →ₗ[ℂ] H)
-  /-- `fieldStar f` is the adjoint of `field f`. -/
-  adjoint : ∀ (f : T) (x y : H), inner ℂ (field f x) y = inner ℂ x (fieldStar f y)
-
-namespace WightmanField
-
-variable {T H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H]
-
-/-- The adjoint relation, read in the other direction. -/
-lemma adjoint' (F : WightmanField T H) (f : T) (x y : H) :
-    inner ℂ (F.fieldStar f x) y = inner ℂ x (F.field f y) := by
-  have h := F.adjoint f y x
-  have h2 : (starRingEnd ℂ) (inner ℂ (F.field f y) x)
-      = (starRingEnd ℂ) (inner ℂ y (F.fieldStar f x)) := by rw [h]
-  simpa [inner_conj_symm] using h2.symm
-
-/-- The vacuum expectation `⟪Ω, φ(f) φ*(f) Ω⟫` is the squared norm of `φ*(f) Ω`. -/
-lemma inner_vacuum_field_fieldStar (F : WightmanField T H) (f : T) :
-    inner ℂ F.vacuum (F.field f (F.fieldStar f F.vacuum))
-      = (‖F.fieldStar f F.vacuum‖ : ℂ) ^ 2 := by
-  rw [← F.adjoint' f F.vacuum (F.fieldStar f F.vacuum), inner_self_eq_norm_sq_to_K]
-  norm_cast
-
-/-- The vacuum expectation `⟪Ω, φ*(f) φ(f) Ω⟫` is the squared norm of `φ(f) Ω`. -/
-lemma inner_vacuum_fieldStar_field (F : WightmanField T H) (f : T) :
-    inner ℂ F.vacuum (F.fieldStar f (F.field f F.vacuum))
-      = (‖F.field f F.vacuum‖ : ℂ) ^ 2 := by
-  rw [← F.adjoint f F.vacuum (F.field f F.vacuum), inner_self_eq_norm_sq_to_K]
-  norm_cast
-
-/-- The vacuum is *separating* for the field if no nonzero field operator annihilates it. -/
-def SeparatingVacuum (F : WightmanField T H) : Prop :=
-  ∀ f : T, (F.field f F.vacuum = 0 → F.field f = 0) ∧
-           (F.fieldStar f F.vacuum = 0 → F.fieldStar f = 0)
-
-end WightmanField
-
-/-- **Spin–statistics (Pauli's argument), Lean-checked reduction.**
-
-Let `F` be Wightman data for a field of spin `j`, with `s = 2j`, quantized with exchange
-sign `ε ∈ {+1, -1}` (`ε = +1`: commutators/Bose, `ε = -1`: anticommutators/Fermi).
-
-Hypothesis `hW` is the output of the analytic-continuation step of the Wightman proof: the
-two orders of the two-point function at coincident points are related by the sign
-`ε · (-1)^s` (this sign is `+1` precisely for the statistics matching the spin).
-
-If the statistics is *wrong* for the spin, i.e. `ε ≠ (-1)^s`, then both the field and its
-adjoint annihilate the vacuum.  (The proof is pure positivity: the two squared norms
-`‖φ(f)Ω‖²` and `‖φ*(f)Ω‖²` are then negatives of each other, hence both vanish.) -/
-theorem spin_statistics {T H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H]
-    (F : WightmanField T H) (s : ℕ) (ε : ℤ) (hε : ε = 1 ∨ ε = -1)
-    (hwrong : ε ≠ exchangePhase s)
-    (hW : ∀ f : T, inner ℂ F.vacuum (F.field f (F.fieldStar f F.vacuum))
-        = ((ε * exchangePhase s : ℤ) : ℂ) *
-            inner ℂ F.vacuum (F.fieldStar f (F.field f F.vacuum))) :
-    ∀ f : T, F.field f F.vacuum = 0 ∧ F.fieldStar f F.vacuum = 0 := by
-  -- Wrong statistics means the sign produced by the analytic continuation is `-1`.
-  have hsign : ε * exchangePhase s = -1 := by
-    rcases hε with h | h <;> rcases exchangePhase_eq_one_or_neg_one s with h' | h' <;>
-      simp_all
-  intro f
-  have h := hW f
-  rw [F.inner_vacuum_field_fieldStar f, F.inner_vacuum_fieldStar_field f, hsign] at h
-  -- `‖φ*(f)Ω‖² = -‖φ(f)Ω‖²`, with both sides real; positivity forces both to vanish.
-  have hre : ‖F.fieldStar f F.vacuum‖ ^ 2 = -(‖F.field f F.vacuum‖ ^ 2) := by
-    have h' := congrArg Complex.re h
-    simp [← Complex.ofReal_pow] at h'
-    linarith [h']
-  have h1 : ‖F.field f F.vacuum‖ = 0 := by
-    nlinarith [norm_nonneg (F.field f F.vacuum), norm_nonneg (F.fieldStar f F.vacuum),
-      sq_nonneg ‖F.field f F.vacuum‖, sq_nonneg ‖F.fieldStar f F.vacuum‖]
-  have h2 : ‖F.fieldStar f F.vacuum‖ = 0 := by
-    nlinarith [norm_nonneg (F.fieldStar f F.vacuum), sq_nonneg ‖F.fieldStar f F.vacuum‖]
-  exact ⟨norm_eq_zero.mp h1, norm_eq_zero.mp h2⟩
-
-/-- With a separating vacuum, a field quantized with the wrong statistics for its spin
-vanishes identically. -/
-theorem spin_statistics_field_eq_zero {T H : Type*} [NormedAddCommGroup H]
-    [InnerProductSpace ℂ H] (F : WightmanField T H) (s : ℕ) (ε : ℤ) (hε : ε = 1 ∨ ε = -1)
-    (hwrong : ε ≠ exchangePhase s)
-    (hW : ∀ f : T, inner ℂ F.vacuum (F.field f (F.fieldStar f F.vacuum))
-        = ((ε * exchangePhase s : ℤ) : ℂ) *
-            inner ℂ F.vacuum (F.fieldStar f (F.field f F.vacuum)))
-    (hsep : F.SeparatingVacuum) :
-    ∀ f : T, F.field f = 0 ∧ F.fieldStar f = 0 := by
-  intro f
-  obtain ⟨h1, h2⟩ := spin_statistics F s ε hε hwrong hW f
-  exact ⟨(hsep f).1 h1, (hsep f).2 h2⟩
-
-/-- **Base case: a scalar field cannot be a fermion.**  A spin-`0` field (`s = 0`)
-quantized with anticommutators (`ε = -1`) annihilates the vacuum. -/
-theorem spin_statistics_scalar_not_fermionic {T H : Type*} [NormedAddCommGroup H]
-    [InnerProductSpace ℂ H] (F : WightmanField T H)
-    (hW : ∀ f : T, inner ℂ F.vacuum (F.field f (F.fieldStar f F.vacuum))
-        = ((-1 : ℤ) : ℂ) * inner ℂ F.vacuum (F.fieldStar f (F.field f F.vacuum))) :
-    ∀ f : T, F.field f F.vacuum = 0 ∧ F.fieldStar f F.vacuum = 0 := by
-  refine spin_statistics F 0 (-1) (Or.inr rfl) (by decide) ?_
-  simpa [exchangePhase] using hW
-
-/-- **Base case: a spin-`1/2` field cannot be a boson.**  A field with `s = 1`
-quantized with commutators (`ε = 1`) annihilates the vacuum. -/
-theorem spin_statistics_spinor_not_bosonic {T H : Type*} [NormedAddCommGroup H]
-    [InnerProductSpace ℂ H] (F : WightmanField T H)
-    (hW : ∀ f : T, inner ℂ F.vacuum (F.field f (F.fieldStar f F.vacuum))
-        = ((-1 : ℤ) : ℂ) * inner ℂ F.vacuum (F.fieldStar f (F.field f F.vacuum))) :
-    ∀ f : T, F.field f F.vacuum = 0 ∧ F.fieldStar f F.vacuum = 0 := by
-  refine spin_statistics F 1 1 (Or.inl rfl) (by decide) ?_
-  simpa [exchangePhase] using hW
+/-- Sanity check: the hypotheses of `Frontier.spin_statistics` are consistent.
+The one dimensional space `H = ℂ` with vacuum `1`, field `φ x v = v`, spin `0`
+and Bose statistics `σ = 1` satisfies all of them. -/
+theorem spin_statistics_consistent :
+    ∃ (Ω : ℂ) (φ : Spacetime → ℂ → ℂ) (n : ℕ) (σ : ℂ),
+      (σ = 1 ∨ σ = -1) ∧
+      (∀ (x : Spacetime) (u v : ℂ), (inner u (φ x v) : ℂ) = (inner (φ x u) v : ℂ)) ∧
+      (∀ x y : Spacetime, Spacelike x y → ∀ v : ℂ, φ x (φ y v) = σ • φ y (φ x v)) ∧
+      (∀ x y : Spacetime, Spacelike x y →
+        (inner Ω (φ x (φ y Ω)) : ℂ) = (-1 : ℂ) ^ n * (inner Ω (φ y (φ x Ω)) : ℂ)) ∧
+      (∀ x : Spacetime, Continuous fun y : Spacetime => (inner Ω (φ x (φ y Ω)) : ℂ)) ∧
+      (∃ x : Spacetime, φ x Ω ≠ 0) ∧ σ = (-1 : ℂ) ^ n := by
+  refine ⟨1, fun _ v => v, 0, 1, Or.inl rfl, ?_, ?_, ?_, ?_, ⟨0, one_ne_zero⟩, by norm_num⟩
+  · intro x u v; simp [RCLike.inner_apply, mul_comm]
+  · intro x y _ v; simp
+  · intro x y _; simp
+  · intro x; simpa using continuous_const
 
 end Frontier
 
