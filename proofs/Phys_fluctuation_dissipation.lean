@@ -22,76 +22,73 @@ set_option synthInstance.maxSize 128
 set_option relaxedAutoImplicit false
 set_option autoImplicit false
 
+set_option grind.warning false
+
 namespace Phys
 
-/-- The partition function of a finite classical system with energies `H`,
-inverse temperature `β`, perturbed by an external field `f` conjugate to the
-observable `A`: the perturbed Hamiltonian is `H i - f * A i`. -/
-noncomputable def partition {ι : Type*} [Fintype ι] (β : ℝ) (H A : ι → ℝ) (f : ℝ) : ℝ :=
-  ∑ i, Real.exp (-β * (H i - f * A i))
+/-- Boltzmann weight of the microstate `i` for the Hamiltonian `E - f • A`
+at inverse temperature `beta`, where `f` is the strength of the external field
+conjugate to the observable `A`. -/
+noncomputable def weight {ι : Type*} (beta : ℝ) (E A : ι → ℝ) (f : ℝ) (i : ι) : ℝ :=
+  Real.exp (-beta * (E i - f * A i))
 
-/-- The equilibrium (Gibbs) expectation value of the observable `B` in the
-field-perturbed ensemble. -/
-noncomputable def expect {ι : Type*} [Fintype ι] (β : ℝ) (H A : ι → ℝ) (B : ι → ℝ) (f : ℝ) : ℝ :=
-  (∑ i, B i * Real.exp (-β * (H i - f * A i))) / partition β H A f
+/-- The partition function of the perturbed system. -/
+noncomputable def partition {ι : Type*} [Fintype ι] (beta : ℝ) (E A : ι → ℝ) (f : ℝ) : ℝ :=
+  ∑ i, weight beta E A f i
 
-/-- The equilibrium connected correlation (covariance) of two observables `A`
-and `B` in the unperturbed Gibbs ensemble. -/
-noncomputable def correlation {ι : Type*} [Fintype ι] (β : ℝ) (H : ι → ℝ) (A B : ι → ℝ) : ℝ :=
-  expect β H A (fun i => A i * B i) 0 - expect β H A A 0 * expect β H A B 0
+/-- The equilibrium (canonical ensemble) expectation value of the observable `B`
+in the system perturbed by the field `f` conjugate to `A`. -/
+noncomputable def avg {ι : Type*} [Fintype ι] (beta : ℝ) (E A : ι → ℝ) (f : ℝ) (B : ι → ℝ) : ℝ :=
+  (∑ i, B i * weight beta E A f i) / partition beta E A f
 
-/-- **Fluctuation–dissipation theorem** (classical, finite state space).
+lemma weight_pos {ι : Type*} (beta : ℝ) (E A : ι → ℝ) (f : ℝ) (i : ι) :
+    0 < weight beta E A f i := Real.exp_pos _
 
-The static linear response of the equilibrium average of an observable `B` to an
-external field `f` coupling to the observable `A` (i.e. the susceptibility
-`χ = d⟨B⟩_f / df` at `f = 0`) equals `β` times the equilibrium correlation
-(covariance) of `A` and `B` in the unperturbed ensemble. -/
+lemma partition_pos {ι : Type*} [Fintype ι] [Nonempty ι] (beta : ℝ) (E A : ι → ℝ) (f : ℝ) :
+    0 < partition beta E A f :=
+  Finset.sum_pos (fun i _ => weight_pos beta E A f i) Finset.univ_nonempty
+
+lemma hasDerivAt_weight {ι : Type*} (beta : ℝ) (E A : ι → ℝ) (f : ℝ) (i : ι) :
+    HasDerivAt (fun g => weight beta E A g i) (beta * A i * weight beta E A f i) f := by
+  have h : HasDerivAt (fun g : ℝ => -beta * (E i - g * A i)) (beta * A i) f := by
+    simpa using (((hasDerivAt_id f).mul_const (A i)).const_sub (E i)).const_mul (-beta)
+  simpa [weight, mul_comm] using h.exp
+
+/-- **Static fluctuation–dissipation theorem.**  For a classical system with a finite set
+of microstates in canonical equilibrium at inverse temperature `beta`, with Hamiltonian
+`E - f • A` (i.e. an external field `f` conjugate to the observable `A`), the linear
+response (susceptibility) of any observable `B` to the field, `d⟨B⟩/df`, equals
+`beta` times the equilibrium correlation (covariance) of `A` and `B`:
+`d⟨B⟩/df = beta * (⟨A B⟩ - ⟨A⟩⟨B⟩)`. -/
 theorem fluctuation_dissipation {ι : Type*} [Fintype ι] [Nonempty ι]
-    (β : ℝ) (H A B : ι → ℝ) :
-    HasDerivAt (expect β H A B) (β * correlation β H A B) 0 := by
-  have hexp : ∀ i : ι, ∀ f : ℝ,
-      HasDerivAt (fun g : ℝ => Real.exp (-β * (H i - g * A i)))
-        (β * A i * Real.exp (-β * (H i - f * A i))) f := by
-    intro i f
-    have h1 : HasDerivAt (fun g : ℝ => -β * (H i - g * A i)) (β * A i) f := by
-      have h0 : HasDerivAt (fun g : ℝ => g * A i) (A i) f := by
-        simpa using (hasDerivAt_id f).mul_const (A i)
-      have := (h0.const_sub (H i)).const_mul (-β)
-      simpa [mul_comm, mul_neg, neg_mul] using this
-    simpa [mul_comm] using h1.exp
-  have hN : HasDerivAt (fun g : ℝ => ∑ i, B i * Real.exp (-β * (H i - g * A i)))
-      (∑ i, B i * (β * A i * Real.exp (-β * H i))) 0 := by
-    have h2 := HasDerivAt.sum (u := Finset.univ)
-      (A := fun i => fun g : ℝ => B i * Real.exp (-β * (H i - g * A i)))
-      (A' := fun i => B i * (β * A i * Real.exp (-β * (H i - 0 * A i))))
-      (fun i _ => ((hexp i 0).const_mul (B i)))
-    simpa [Finset.sum_fn] using h2
-  have hD : HasDerivAt (partition β H A) (∑ i, β * A i * Real.exp (-β * H i)) 0 := by
-    have h2 := HasDerivAt.sum (u := Finset.univ)
-      (A := fun i => fun g : ℝ => Real.exp (-β * (H i - g * A i)))
-      (A' := fun i => β * A i * Real.exp (-β * (H i - 0 * A i)))
-      (fun i _ => hexp i 0)
-    rw [show partition β H A = fun g : ℝ => ∑ i, Real.exp (-β * (H i - g * A i)) from rfl]
-    simpa [Finset.sum_fn] using h2
-  have hZpos : 0 < partition β H A 0 :=
-    Finset.sum_pos (fun i _ => Real.exp_pos _) Finset.univ_nonempty
-  have hq := hN.div hD (ne_of_gt hZpos)
-  refine hq.congr_deriv ?_
-  have hZ0 : partition β H A 0 = ∑ i, Real.exp (-β * H i) := by
-    simp [partition]
-  have e1 : ∑ i, B i * (β * A i * Real.exp (-β * H i))
-      = β * ∑ i, A i * B i * Real.exp (-β * H i) := by
+    (beta : ℝ) (E A B : ι → ℝ) (f : ℝ) :
+    HasDerivAt (fun g => avg beta E A g B)
+      (beta * (avg beta E A f (fun i => A i * B i) - avg beta E A f A * avg beta E A f B)) f := by
+  set Z : ℝ := partition beta E A f with hZdef
+  have hZpos : 0 < Z := partition_pos beta E A f
+  have hZne : Z ≠ 0 := ne_of_gt hZpos
+  -- derivative of the numerator
+  have hN : HasDerivAt (fun g => ∑ i, B i * weight beta E A g i)
+      (∑ i, B i * (beta * A i * weight beta E A f i)) f :=
+    HasDerivAt.fun_sum (fun i _ => (hasDerivAt_weight beta E A f i).const_mul (B i))
+  have hZ : HasDerivAt (fun g => partition beta E A g)
+      (∑ i, beta * A i * weight beta E A f i) f :=
+    HasDerivAt.fun_sum (fun i _ => hasDerivAt_weight beta E A f i)
+  have hdiv := hN.div hZ hZne
+  refine hdiv.congr_deriv ?_
+  have h1 : (∑ i, B i * (beta * A i * weight beta E A f i))
+      = beta * ∑ i, (A i * B i) * weight beta E A f i := by
     rw [Finset.mul_sum]
     exact Finset.sum_congr rfl (fun i _ => by ring)
-  have e2 : ∑ i, β * A i * Real.exp (-β * H i)
-      = β * ∑ i, A i * Real.exp (-β * H i) := by
+  have h2 : (∑ i, beta * A i * weight beta E A f i)
+      = beta * ∑ i, A i * weight beta E A f i := by
     rw [Finset.mul_sum]
     exact Finset.sum_congr rfl (fun i _ => by ring)
-  rw [hZ0] at hZpos
-  have hZne : (∑ i, Real.exp (-β * H i)) ≠ 0 := ne_of_gt hZpos
-  simp only [correlation, expect, hZ0, zero_mul, sub_zero]
-  rw [e1, e2]
+  rw [h1, h2]
+  simp only [avg, ← hZdef]
   field_simp
 
 end Phys
+
+#print axioms Phys.fluctuation_dissipation
 
