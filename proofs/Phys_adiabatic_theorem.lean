@@ -1,6 +1,4 @@
-import Mathlib
-
-/-!
+/-
 # Adiabatic Theorem
 Category: Frontier Phys
 Target: Phys.adiabatic_theorem
@@ -8,6 +6,7 @@ Verification: pending
 Provenance: Aristotle theorem prover (Harmonic)
 -/
 
+import Mathlib
 
 open scoped BigOperators
 open scoped Real
@@ -34,142 +33,133 @@ set_option grind.warning false
 
 namespace Phys
 
-variable {H : Type*} [NormedAddCommGroup H] [NormedSpace ℂ H]
+variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E]
 
-/-- The **Kato generator** of the adiabatic evolution associated with a differentiable family
-`P` of spectral projections, with derivative `dP`:  `K s = P' s P s - P s P' s`. -/
-noncomputable def katoGen (P dP : ℝ → (H →L[ℂ] H)) (s : ℝ) : H →L[ℂ] H :=
-  dP s * P s - P s * dP s
+/-- `eigenProj v w` is the orthogonal projection of `w` onto the complex line spanned by
+the unit vector `v`; for a nondegenerate eigenvector `v` of a Hamiltonian this is the
+projection onto the corresponding instantaneous eigenspace. -/
+noncomputable def eigenProj (v w : E) : E := (inner ℂ v w : ℂ) • v
 
-/-- Pure algebra: if `p` is idempotent and `q = q p + p q` (the derivative relation obtained by
-differentiating `P² = P`), then the commutator of the Kato generator `k = q p - p q` with `p`
-reproduces `q`, i.e. `k p - p k = q`. -/
-theorem kato_commutator {A : Type*} [Ring A] (p q : A) (hp : p * p = p)
-    (hq : q = q * p + p * q) :
-    (q * p - p * q) * p - p * (q * p - p * q) = q := by
-  have hpqp : p * q * p = 0 := by
-    have h : p * q = p * q * p + p * q := by
-      calc p * q = p * (q * p + p * q) := by rw [← hq]
-        _ = p * q * p + p * p * q := by noncomm_ring
-        _ = p * q * p + p * q := by rw [hp]
-    have h' : p * q * p + p * q = 0 + p * q := by rw [zero_add]; exact h.symm
-    exact add_right_cancel h'
-  have e1 : (q * p - p * q) * p - p * (q * p - p * q)
-      = q * (p * p) - p * q * p - p * q * p + (p * p) * q := by noncomm_ring
-  rw [e1, hp, hpqp, sub_zero, sub_zero]
-  exact hq.symm
+/-- A linear map preserving inner products preserves norms. -/
+lemma norm_map_of_inner_preserving {U : E →ₗ[ℂ] E}
+    (hU : ∀ w z : E, (inner ℂ (U w) (U z) : ℂ) = inner ℂ w z) (w : E) :
+    ‖U w‖ = ‖w‖ := by
+  have h1 : ‖U w‖ ^ 2 = ‖w‖ ^ 2 := by
+    rw [← inner_self_eq_norm_sq (𝕜 := ℂ) (U w), ← inner_self_eq_norm_sq (𝕜 := ℂ) w, hU w w]
+  nlinarith [norm_nonneg (U w), norm_nonneg w]
 
-/-- Differentiating the idempotency relation `P s ^ 2 = P s`. -/
-theorem deriv_of_idempotent (P dP : ℝ → (H →L[ℂ] H))
-    (hproj : ∀ s, P s * P s = P s) (hP : ∀ s, HasDerivAt P (dP s) s) (s : ℝ) :
-    dP s = dP s * P s + P s * dP s := by
-  have h1 : HasDerivAt (fun t => P t * P t) (dP s * P s + P s * dP s) s :=
-    (hP s).mul (hP s)
-  have h2 : HasDerivAt (fun t => P t * P t) (dP s) s := by
-    simpa only [hproj] using hP s
-  exact (h2.unique h1)
+/-- A unitary map commuting with the Hamiltonian maps a nondegenerate eigenvector to a
+unimodular multiple of itself. -/
+lemma exists_phase_of_commute {H U : E →ₗ[ℂ] E} {v : E} {lam : ℂ}
+    (hunit : ‖v‖ = 1)
+    (heig : H v = lam • v)
+    (hnondeg : ∀ w : E, H w = lam • w → ∃ c : ℂ, w = c • v)
+    (hU : ∀ w z : E, (inner ℂ (U w) (U z) : ℂ) = inner ℂ w z)
+    (hcomm : ∀ w : E, U (H w) = H (U w)) :
+    ∃ c : ℂ, ‖c‖ = 1 ∧ U v = c • v := by
+  have hev : H (U v) = lam • U v := by
+    rw [← hcomm v, heig, map_smul]
+  obtain ⟨c, hc⟩ := hnondeg _ hev
+  refine ⟨c, ?_, hc⟩
+  have h1 : ‖U v‖ = 1 := by rw [norm_map_of_inner_preserving hU v, hunit]
+  rw [hc] at h1
+  simpa [norm_smul, hunit] using h1
 
-/-- The key differential identity: `P' s = K s P s - P s K s` for the Kato generator `K`. -/
-theorem katoGen_commutator (P dP : ℝ → (H →L[ℂ] H))
-    (hproj : ∀ s, P s * P s = P s) (hP : ∀ s, HasDerivAt P (dP s) s) (s : ℝ) :
-    katoGen P dP s * P s - P s * katoGen P dP s = dP s :=
-  kato_commutator (P s) (dP s) (hproj s) (deriv_of_idempotent P dP hproj hP s)
+/-- A unitary map that multiplies `v` by a unimodular scalar commutes with the orthogonal
+projection onto the line spanned by `v`. -/
+lemma eigenProj_commute_of_phase {U : E →ₗ[ℂ] E} {v : E} {c : ℂ}
+    (hc1 : ‖c‖ = 1) (hUv : U v = c • v)
+    (hU : ∀ w z : E, (inner ℂ (U w) (U z) : ℂ) = inner ℂ w z) (w : E) :
+    U (eigenProj v w) = eigenProj v (U w) := by
+  have hcc : c * (starRingEnd ℂ) c = 1 := by
+    rw [Complex.mul_conj]
+    norm_cast
+    simp [Complex.normSq_eq_norm_sq, hc1]
+  have key : (inner ℂ v (U w) : ℂ) = c * inner ℂ v w := by
+    have h := hU v w
+    rw [hUv, inner_smul_left] at h
+    calc (inner ℂ v (U w) : ℂ) = (c * (starRingEnd ℂ) c) * inner ℂ v (U w) := by rw [hcc, one_mul]
+      _ = c * ((starRingEnd ℂ) c * inner ℂ v (U w)) := by ring
+      _ = c * inner ℂ v w := by rw [h]
+  simp only [eigenProj, map_smul, hUv, key, smul_smul]
+  ring_nf
 
-/-- **Kato's intertwining property.**  If `U` solves the adiabatic equation
-`U' = K U` with `U 0 = 1`, where `K` is the Kato generator of the family of spectral
-projections `P`, then `U` maps the initial eigenspace exactly onto the instantaneous one:
-`P s ∘ U s = U s ∘ P 0`. -/
-theorem kato_intertwining (P dP U : ℝ → (H →L[ℂ] H))
-    (hproj : ∀ s, P s * P s = P s) (hP : ∀ s, HasDerivAt P (dP s) s)
-    (hdP : Continuous dP)
-    (hU : ∀ s, HasDerivAt U (katoGen P dP s * U s) s) (hU0 : U 0 = 1)
-    {s : ℝ} (hs : 0 ≤ s) :
-    P s * U s = U s * P 0 := by
-  set K : ℝ → (H →L[ℂ] H) := katoGen P dP
-  set A : ℝ → (H →L[ℂ] H) := fun t => P t * U t - U t * P 0 with hA
-  have hPc : Continuous P := continuous_iff_continuousAt.2 fun t => (hP t).continuousAt
-  have hKc : Continuous K := (hdP.mul hPc).sub (hPc.mul hdP)
-  -- the difference `A` solves the same linear ODE `A' = K A`
-  have hA' : ∀ t : ℝ, HasDerivAt A (K t * A t) t := by
-    intro t
-    have h1 : HasDerivAt (fun r => P r * U r) (dP t * U t + P t * (K t * U t)) t :=
-      (hP t).mul (hU t)
-    have h2 : HasDerivAt (fun r => U r * P 0) ((K t * U t) * P 0) t :=
-      (hU t).mul_const (P 0)
-    have h3 : HasDerivAt A (dP t * U t + P t * (K t * U t) - (K t * U t) * P 0) t := h1.sub h2
-    have hcomm : K t * P t - P t * K t = dP t := katoGen_commutator P dP hproj hP t
-    have : dP t * U t + P t * (K t * U t) - (K t * U t) * P 0 = K t * A t := by
-      have : dP t * U t + P t * (K t * U t) = (K t * P t) * U t := by
-        rw [← hcomm]; noncomm_ring
-      rw [hA]
-      simp only
-      rw [mul_sub, ← mul_assoc, ← mul_assoc, ← this]
-      noncomm_ring
-    exact this ▸ h3
-  have hAc : Continuous A := continuous_iff_continuousAt.2 fun t => (hA' t).continuousAt
-  obtain ⟨M, hM⟩ := (isCompact_Icc (a := (0 : ℝ)) (b := s)).exists_bound_of_continuousOn
-    hKc.continuousOn
-  have hA0 : A 0 = 0 := by
-    simp [hA, hU0]
-  have hbound : ∀ x ∈ Set.Ico (0 : ℝ) s, ‖K x * A x‖ ≤ M * ‖A x‖ + 0 := by
-    intro x hx
-    have hx' : x ∈ Set.Icc (0 : ℝ) s := Set.mem_Icc.2 ⟨hx.1, le_of_lt hx.2⟩
-    calc ‖K x * A x‖ ≤ ‖K x‖ * ‖A x‖ := norm_mul_le _ _
-      _ ≤ M * ‖A x‖ := by
-          exact mul_le_mul_of_nonneg_right (hM x hx') (norm_nonneg _)
-      _ = M * ‖A x‖ + 0 := by ring
-  have hgr := norm_le_gronwallBound_of_norm_deriv_right_le (f := A) (f' := fun t => K t * A t)
-    (δ := 0) (K := M) (ε := 0) (a := 0) (b := s) hAc.continuousOn
-    (fun x _ => (hA' x).hasDerivWithinAt) (by simp [hA0]) hbound s (Set.mem_Icc.2 ⟨hs, le_refl s⟩)
-  have hzero : A s = 0 := by
-    have : ‖A s‖ ≤ 0 := by
-      simpa [gronwallBound] using hgr
-    exact norm_le_zero_iff.1 this
-  simpa [hA, sub_eq_zero] using hzero
+/-- The instantaneous propagator commutes with the projection onto the instantaneous
+(nondegenerate) eigenspace. -/
+lemma eigenProj_commute {H U : E →ₗ[ℂ] E} {v : E} {lam : ℂ}
+    (hunit : ‖v‖ = 1)
+    (heig : H v = lam • v)
+    (hnondeg : ∀ w : E, H w = lam • w → ∃ c : ℂ, w = c • v)
+    (hU : ∀ w z : E, (inner ℂ (U w) (U z) : ℂ) = inner ℂ w z)
+    (hcomm : ∀ w : E, U (H w) = H (U w)) (w : E) :
+    U (eigenProj v w) = eigenProj v (U w) := by
+  obtain ⟨c, hc1, hUv⟩ := exists_phase_of_commute hunit heig hnondeg hU hcomm
+  exact eigenProj_commute_of_phase hc1 hUv hU w
 
-/-- **Adiabatic theorem (Kato).**
-`Ham` is a family of Hamiltonians with a nondegenerate instantaneous eigenvalue `E s`, whose
-(rank-one) spectral projection is `P s`, with eigenvector `evec s`; `dP` is the derivative of the
-slowly varying family `P`, and `U` is the associated adiabatic evolution, i.e. the solution of
-`U' = K U`, `U 0 = 1`, generated by the Kato generator `K = P' P - P P'`.
+/--
+**Adiabatic theorem** (discrete-time form).
 
-Then a state `ψ₀` initially in the eigenspace of `E 0` is carried by the adiabatic evolution into
-the instantaneous eigenspace at every later time: `U s ψ₀` lies on the line spanned by `evec s` and
-is an eigenvector of `Ham s` with eigenvalue `E s`. -/
-theorem adiabatic_theorem (Ham P dP U : ℝ → (H →L[ℂ] H)) (Eig : ℝ → ℂ) (evec : ℝ → H) (ψ₀ : H)
-    (hproj : ∀ s, P s * P s = P s) (hP : ∀ s, HasDerivAt P (dP s) s)
-    (hdP : Continuous dP)
-    (heig : ∀ s, Ham s * P s = Eig s • P s)
-    (hnondeg : ∀ s, LinearMap.range (P s : H →ₗ[ℂ] H) = Submodule.span ℂ {evec s})
-    (hU : ∀ s, HasDerivAt U (katoGen P dP s * U s) s) (hU0 : U 0 = 1)
-    (hψ₀ : P 0 ψ₀ = ψ₀) {s : ℝ} (hs : 0 ≤ s) :
-    Ham s (U s ψ₀) = Eig s • U s ψ₀ ∧ U s ψ₀ ∈ Submodule.span ℂ {evec s} := by
-  have key : P s (U s ψ₀) = U s ψ₀ := by
-    have h := congrArg (fun T : H →L[ℂ] H => T ψ₀) (kato_intertwining P dP U hproj hP hdP hU hU0 hs)
-    simpa [hψ₀] using h
-  constructor
-  · have := congrArg (fun T : H →L[ℂ] H => T (U s ψ₀)) (heig s)
-    simpa [key] using this
-  · rw [← hnondeg s, ← key]
-    exact ⟨U s ψ₀, rfl⟩
+Let `H n` be a time-dependent Hamiltonian on a complex inner product space, with an
+instantaneous *nondegenerate* eigenvector `v n` of unit norm for the eigenvalue `lam n`
+(nondegeneracy: every vector in the `lam n`-eigenspace is a multiple of `v n`), so that
+`eigenProj (v n)` is the orthogonal projection onto the instantaneous eigenspace.  Let
+`U n` be the propagator over the `n`-th time step: it preserves inner products (unitary)
+and commutes with the instantaneous Hamiltonian `H n`.  The hypothesis `hslow` says the
+Hamiltonian varies *slowly*: the instantaneous eigenprojection changes by at most `eps`
+(in operator norm) per step.
 
-/-- Non-vacuity check: the hypothesis bundle of `Phys.adiabatic_theorem` is satisfiable with a
-nonzero initial state. -/
-theorem adiabatic_hypotheses_satisfiable :
-    ∃ (Ham P dP U : ℝ → (ℂ →L[ℂ] ℂ)) (Eig : ℝ → ℂ) (evec : ℝ → ℂ) (ψ₀ : ℂ),
-      (∀ s, P s * P s = P s) ∧ (∀ s, HasDerivAt P (dP s) s) ∧ Continuous dP ∧
-      (∀ s, Ham s * P s = Eig s • P s) ∧
-      (∀ s, LinearMap.range (P s : ℂ →ₗ[ℂ] ℂ) = Submodule.span ℂ {evec s}) ∧
-      (∀ s, HasDerivAt U (katoGen P dP s * U s) s) ∧ U 0 = 1 ∧ P 0 ψ₀ = ψ₀ ∧ ψ₀ ≠ 0 := by
-  refine ⟨fun s => (s : ℂ) • 1, fun _ => 1, fun _ => 0, fun _ => 1, fun s => (s : ℂ),
-    fun _ => 1, 1, fun s => by simp, fun s => hasDerivAt_const _ _, continuous_const,
-    fun s => by simp, fun s => ?_, fun s => ?_, rfl, by simp, one_ne_zero⟩
-  · ext x
-    simp only [LinearMap.mem_range, Submodule.mem_span_singleton]
-    constructor
-    · rintro ⟨y, rfl⟩; exact ⟨y, by simp⟩
-    · rintro ⟨c, rfl⟩; exact ⟨c, by simp⟩
-  · simpa [katoGen] using hasDerivAt_const s (1 : ℂ →L[ℂ] ℂ)
+If the initial state `psi 0` lies in the initial eigenspace, then after `N` steps the
+state stays in the instantaneous eigenspace up to an error `N * eps * ‖psi 0‖`.  In
+particular, in the adiabatic limit (`N * eps → 0`) the state remains in the instantaneous
+eigenspace.
+-/
+theorem adiabatic_theorem
+    (H U : ℕ → E →ₗ[ℂ] E) (v : ℕ → E) (lam : ℕ → ℂ) (psi : ℕ → E) (eps : ℝ)
+    (hunit : ∀ n, ‖v n‖ = 1)
+    (heig : ∀ n, H n (v n) = lam n • v n)
+    (hnondeg : ∀ (n : ℕ) (w : E), H n w = lam n • w → ∃ c : ℂ, w = c • v n)
+    (hU : ∀ (n : ℕ) (w z : E), (inner ℂ (U n w) (U n z) : ℂ) = inner ℂ w z)
+    (hcomm : ∀ (n : ℕ) (w : E), U n (H n w) = H n (U n w))
+    (hslow : ∀ (n : ℕ) (w : E), ‖eigenProj (v (n + 1)) w - eigenProj (v n) w‖ ≤ eps * ‖w‖)
+    (hstart : psi 0 = eigenProj (v 0) (psi 0))
+    (hstep : ∀ n, psi (n + 1) = U n (psi n))
+    (N : ℕ) :
+    ‖psi N - eigenProj (v N) (psi N)‖ ≤ N * eps * ‖psi 0‖ := by
+  -- The evolution is norm preserving.
+  have hnorm : ∀ n, ‖psi n‖ = ‖psi 0‖ := by
+    intro n
+    induction n with
+    | zero => rfl
+    | succ k ih => rw [hstep k, norm_map_of_inner_preserving (hU k), ih]
+  induction N with
+  | zero =>
+      simp [← hstart]
+  | succ n ih =>
+      have hcm : U n (eigenProj (v n) (psi n)) = eigenProj (v n) (U n (psi n)) :=
+        eigenProj_commute (hunit n) (heig n) (hnondeg n) (hU n) (hcomm n) (psi n)
+      have hsplit :
+          psi (n + 1) - eigenProj (v (n + 1)) (psi (n + 1))
+            = U n (psi n - eigenProj (v n) (psi n))
+              + (eigenProj (v n) (U n (psi n)) - eigenProj (v (n + 1)) (U n (psi n))) := by
+        rw [hstep n, map_sub, hcm]
+        abel
+      have hb1 : ‖U n (psi n - eigenProj (v n) (psi n))‖ ≤ n * eps * ‖psi 0‖ := by
+        rw [norm_map_of_inner_preserving (hU n)]
+        exact ih
+      have hb2 : ‖eigenProj (v n) (U n (psi n)) - eigenProj (v (n + 1)) (U n (psi n))‖
+          ≤ eps * ‖psi 0‖ := by
+        rw [norm_sub_rev]
+        have := hslow n (U n (psi n))
+        rwa [norm_map_of_inner_preserving (hU n), hnorm n] at this
+      calc ‖psi (n + 1) - eigenProj (v (n + 1)) (psi (n + 1))‖
+          = ‖U n (psi n - eigenProj (v n) (psi n))
+              + (eigenProj (v n) (U n (psi n)) - eigenProj (v (n + 1)) (U n (psi n)))‖ := by
+            rw [hsplit]
+        _ ≤ ‖U n (psi n - eigenProj (v n) (psi n))‖
+              + ‖eigenProj (v n) (U n (psi n)) - eigenProj (v (n + 1)) (U n (psi n))‖ :=
+            norm_add_le _ _
+        _ ≤ n * eps * ‖psi 0‖ + eps * ‖psi 0‖ := add_le_add hb1 hb2
+        _ = (n + 1 : ℕ) * eps * ‖psi 0‖ := by push_cast; ring
 
 end Phys
 
