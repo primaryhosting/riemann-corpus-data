@@ -1,13 +1,5 @@
 import Mathlib
 
-/-!
-# Heine Borel Interval
-Category: Frontier Wave 2 (deeper machinery)
-Target: Topology.heine_borel_interval
-Verification: pending
-Provenance: Aristotle theorem prover (Harmonic)
--/
-
 open scoped BigOperators
 open scoped Real
 open scoped Nat
@@ -22,12 +14,26 @@ set_option synthInstance.maxSize 128
 set_option relaxedAutoImplicit false
 set_option autoImplicit false
 
+set_option pp.fullNames true
+set_option pp.structureInstances true
+set_option pp.coercions.types true
+set_option pp.funBinderTypes true
+set_option pp.letVarTypes true
+set_option pp.piBinderTypes true
+
 set_option grind.warning false
+
+/-!
+# Heine Borel Interval
+Category: Frontier Wave 2 (deeper machinery)
+Target: Topology.heine_borel_interval
+Verification: pending
+Provenance: Aristotle theorem prover (Harmonic)
+-/
 
 namespace Topology
 
-/-- **Heine–Borel for a closed bounded interval**: for real numbers `a` and `b`, the closed
-interval `Set.Icc a b` is compact.  This is Mathlib's `isCompact_Icc`. -/
+/-- A closed bounded interval of the reals is compact. -/
 theorem heine_borel_interval (a b : ℝ) : IsCompact (Set.Icc a b) :=
   isCompact_Icc
 

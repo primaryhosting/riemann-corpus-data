@@ -8,13 +8,13 @@ theorem sum_two_squares_iff (n : ℕ) (hn : 0 < n) :
   rw [Nat.eq_sq_add_sq_iff]
   constructor
   · intro h p hp hp4
-    rw [Nat.factorization_def n hp]
-    by_cases hpn : p ∣ n
-    · exact h p (Nat.mem_primeFactors.mpr ⟨hp, hpn, hn.ne'⟩) hp4
-    · rw [padicValNat.eq_zero_of_not_dvd hpn]
+    by_cases hpd : p ∣ n
+    · have hmem : p ∈ n.primeFactors :=
+        hp.mem_primeFactors hpd (Nat.ne_of_gt hn)
+      simpa [Nat.factorization_def n hp] using h p hmem hp4
+    · rw [Nat.factorization_eq_zero_of_not_dvd hpd]
       exact Even.zero
-  · intro h p hp hp4
-    have h' := h p (Nat.prime_of_mem_primeFactors hp) hp4
-    rwa [Nat.factorization_def n (Nat.prime_of_mem_primeFactors hp)] at h'
+  · intro h p hmem hp4
+    have hp : p.Prime := Nat.prime_of_mem_primeFactors hmem
+    simpa [Nat.factorization_def n hp] using h p hp hp4
 end Brockian.TwoSquares
-

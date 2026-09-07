@@ -156,7 +156,8 @@ lemma tendsto_orbitAvg_of_mem_span {alpha : ℝ} (hirr : Irrational alpha)
           have hN' : (N:ℂ) ≠ 0 := Nat.cast_ne_zero.mpr hN.ne'
           simp [orbitAvg, hN']
         simpa using Tendsto.congr' h1.symm tendsto_const_nhds
-      · simpa [if_neg hk, orbitAvg] using tendsto_avg_fourier hirr hk
+      · rw [if_neg hk]
+        exact tendsto_avg_fourier hirr hk
   | zero =>
       have h : ∀ N, orbitAvg alpha 0 N = 0 := by intro N; simp [orbitAvg]
       simpa using Tendsto.congr (fun N => (h N).symm) (tendsto_const_nhds (x := (0:ℂ)))

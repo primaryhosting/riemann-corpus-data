@@ -14,4 +14,3 @@ theorem prod_units_sq_eq_one (n : ℕ) [NeZero n] :
   nth_rewrite 2 [h]
   simp
 end Brockian.GaussWilson
-

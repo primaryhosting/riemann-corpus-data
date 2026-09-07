@@ -8,13 +8,54 @@ Provenance: Aristotle theorem prover (Harmonic)
 
 import Mathlib
 
-/-!
-# Halls Marriage
-Category: Pure Mathematics
-Target: Math.halls_marriage
-Verification: pending
-Provenance: Aristotle theorem prover (Harmonic)
--/
+open Finset
+
+namespace Math
+
+variable {α β : Type*}
+
+/-- The neighbourhood of a left vertex `a` in the bipartite graph with adjacency
+relation `Adj : α → β → Prop`: the finset of right vertices adjacent to `a`. -/
+def neighbors [Fintype β] [DecidableEq β] (Adj : α → β → Prop)
+    [∀ a, DecidablePred (Adj a)] (a : α) : Finset β :=
+  univ.filter (fun b => Adj a b)
+
+@[simp]
+theorem mem_neighbors [Fintype β] [DecidableEq β] (Adj : α → β → Prop)
+    [∀ a, DecidablePred (Adj a)] {a : α} {b : β} :
+    b ∈ neighbors Adj a ↔ Adj a b := by
+  simp [neighbors]
+
+/-- **Hall's marriage theorem**. For a bipartite graph with left vertex set `α`, right
+vertex set `β` and adjacency relation `Adj`, there is a matching saturating `α`
+(an injective choice `f` of a neighbour for each left vertex) if and only if Hall's
+condition holds: every finite set `s` of left vertices has at least `#s` neighbours. -/
+theorem halls_marriage [Fintype α] [Fintype β] [DecidableEq β] (Adj : α → β → Prop)
+    [∀ a, DecidablePred (Adj a)] :
+    (∃ f : α → β, Function.Injective f ∧ ∀ a, Adj a (f a)) ↔
+      ∀ s : Finset α, #s ≤ #(s.biUnion (neighbors Adj)) := by
+  have h := (Finset.all_card_le_biUnion_card_iff_exists_injective (neighbors Adj)).symm
+  simpa using h
+
+/-- **Hall's marriage theorem, perfect matching form**. If the two sides of a bipartite
+graph have the same (finite) cardinality, then the graph admits a perfect matching -- a
+bijection `f : α → β` pairing each left vertex with an adjacent right vertex -- if and only
+if Hall's condition holds. -/
+theorem halls_marriage_perfect [Fintype α] [Fintype β] [DecidableEq β]
+    (hcard : Fintype.card α = Fintype.card β) (Adj : α → β → Prop)
+    [∀ a, DecidablePred (Adj a)] :
+    (∃ f : α → β, Function.Bijective f ∧ ∀ a, Adj a (f a)) ↔
+      ∀ s : Finset α, #s ≤ #(s.biUnion (neighbors Adj)) := by
+  rw [← halls_marriage Adj]
+  constructor
+  · rintro ⟨f, hf, hadj⟩
+    exact ⟨f, hf.injective, hadj⟩
+  · rintro ⟨f, hf, hadj⟩
+    exact ⟨f, (Fintype.bijective_iff_injective_and_card f).2 ⟨hf, hcard⟩, hadj⟩
+
+end Math
+
+import Mathlib
 
 open scoped BigOperators
 open scoped Real
@@ -30,39 +71,12 @@ set_option synthInstance.maxSize 128
 set_option relaxedAutoImplicit false
 set_option autoImplicit false
 
+set_option pp.fullNames true
+set_option pp.structureInstances true
+set_option pp.coercions.types true
+set_option pp.funBinderTypes true
+set_option pp.letVarTypes true
+set_option pp.piBinderTypes true
+
 set_option grind.warning false
-
-namespace Math
-
-open SimpleGraph
-
-/-- **Hall's marriage theorem** for bipartite graphs, as an equivalence.
-
-For a locally finite graph `G` bipartite with parts `p₁` and `p₂`, `G` has a perfect matching
-if and only if Hall's condition holds: every set of vertices `s` has at least as many
-neighbours (counted in the union of the neighbourhoods) as it has elements.
-
-The right-to-left implication is the substantive direction (it needs bipartiteness); the
-left-to-right implication holds for any locally finite graph. -/
-theorem halls_marriage {V : Type*} {G : SimpleGraph V} [G.LocallyFinite] {p₁ p₂ : Set V}
-    (hbip : G.IsBipartiteWith p₁ p₂) :
-    (∃ M : G.Subgraph, M.IsPerfectMatching) ↔
-      ∀ s : Set V, s.ncard ≤ (⋃ x ∈ s, G.neighborSet x).ncard := by
-  classical
-  constructor
-  · rintro ⟨M, hM⟩ s
-    rcases s.finite_or_infinite with hs | hs
-    · have hfin : (⋃ x ∈ s, G.neighborSet x).Finite := hs.biUnion fun x _ => Set.toFinite _
-      -- `f v` is the partner of `v` in the perfect matching `M`
-      set f : V → V := fun v => (hM.1 (hM.2 v)).choose with hf
-      have hadj : ∀ v, M.Adj v (f v) := fun v => (hM.1 (hM.2 v)).choose_spec.1
-      refine Set.ncard_le_ncard_of_injOn f (fun a ha => ?_) (fun a _ b _ hab => ?_) hfin
-      · exact Set.mem_biUnion ha (M.adj_sub (hadj a))
-      · have h1 : M.Adj (f a) a := (hadj a).symm
-        have h2 : M.Adj (f a) b := hab ▸ (hadj b).symm
-        exact (hM.1 (hM.2 (f a))).unique h1 h2
-    · simp [hs.ncard]
-  · exact fun h => exists_isPerfectMatching_of_forall_ncard_le hbip h
-
-end Math
 

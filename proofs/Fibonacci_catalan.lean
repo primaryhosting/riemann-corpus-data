@@ -1,12 +1,12 @@
-/-
+import Mathlib
+
+/-!
 # Catalan
 Category: Fibonacci
 Target: Fibonacci.catalan
 Verification: pending
 Provenance: Aristotle theorem prover (Harmonic)
 -/
-
-import Mathlib
 
 open scoped BigOperators
 open scoped Real
@@ -35,31 +35,33 @@ namespace Fibonacci
 
 /-- **Catalan's identity**, addition form (no natural subtraction):
 for all `m r : ℕ`,
-`fib (m + r) ^ 2 - fib m * fib (m + 2 * r) = (-1) ^ m * fib r ^ 2` in `ℤ`.
+`fib (m + r) ^ 2 - fib m * fib (m + 2 * r) = (-1) ^ m * fib r ^ 2` over `ℤ`.
 
-This is a direct restatement of Mathlib's `Int.fib_add_sq_sub_fib_mul_fib_add_two_mul`
-(Catalan's identity for `Int.fib`) specialised to natural arguments. -/
+This is the `ℕ`-indexed version of Mathlib's
+`Int.fib_add_sq_sub_fib_mul_fib_add_two_mul`. -/
 theorem catalan_add (m r : ℕ) :
     (Nat.fib (m + r) : ℤ) ^ 2 - (Nat.fib m : ℤ) * (Nat.fib (m + 2 * r) : ℤ)
       = (-1) ^ m * (Nat.fib r : ℤ) ^ 2 := by
   have h := Int.fib_add_sq_sub_fib_mul_fib_add_two_mul (m : ℤ) (r : ℤ)
-  have e1 : (m : ℤ) + (r : ℤ) = ((m + r : ℕ) : ℤ) := by push_cast; ring
-  have e2 : (m : ℤ) + 2 * (r : ℤ) = ((m + 2 * r : ℕ) : ℤ) := by push_cast; ring
-  rw [e1, e2, Int.fib_natCast, Int.fib_natCast, Int.fib_natCast, Int.fib_natCast,
-    Int.natAbs_natCast] at h
+  have e1 : ((m : ℤ) + (r : ℤ)) = ((m + r : ℕ) : ℤ) := by push_cast; ring
+  have e2 : ((m : ℤ) + 2 * (r : ℤ)) = ((m + 2 * r : ℕ) : ℤ) := by push_cast; ring
+  rw [e1, e2, Int.natAbs_natCast, Int.fib_natCast, Int.fib_natCast, Int.fib_natCast,
+    Int.fib_natCast] at h
   exact h
 
-/-- **Catalan's identity** (a generalisation of Cassini's identity):
-for all `n r : ℕ` with `r ≤ n`,
-`fib n ^ 2 - fib (n - r) * fib (n + r) = (-1) ^ (n - r) * fib r ^ 2` in `ℤ`. -/
+/-- **Catalan's identity** (a generalisation of Cassini's identity): for `n r : ℕ` with `r ≤ n`,
+`fib n ^ 2 - fib (n - r) * fib (n + r) = (-1) ^ (n - r) * fib r ^ 2` over `ℤ`. -/
 theorem catalan (n r : ℕ) (h : r ≤ n) :
     (Nat.fib n : ℤ) ^ 2 - (Nat.fib (n - r) : ℤ) * (Nat.fib (n + r) : ℤ)
       = (-1) ^ (n - r) * (Nat.fib r : ℤ) ^ 2 := by
-  obtain ⟨m, rfl⟩ : ∃ m : ℕ, n = m + r := ⟨n - r, by omega⟩
-  have hsub : m + r - r = m := by omega
-  have hadd : m + r + r = m + 2 * r := by ring
-  rw [hsub, hadd]
-  exact catalan_add m r
+  obtain ⟨m, rfl⟩ := Nat.exists_eq_add_of_le h
+  have hm : r + m - r = m := by omega
+  have h1 : m + r = r + m := by omega
+  have h2 : m + 2 * r = r + m + r := by omega
+  rw [hm]
+  have := catalan_add m r
+  rw [h1, h2] at this
+  exact this
 
 end Fibonacci
 

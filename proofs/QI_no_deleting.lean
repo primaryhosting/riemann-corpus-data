@@ -1,11 +1,3 @@
-/-
-# No Deleting
-Category: Frontier Qi
-Target: QI.no_deleting
-Verification: pending
-Provenance: Aristotle theorem prover (Harmonic)
--/
-
 import Mathlib
 
 /-!
@@ -15,6 +7,79 @@ Target: QI.no_deleting
 Verification: pending
 Provenance: Aristotle theorem prover (Harmonic)
 -/
+
+/-
+Formalization notes.
+
+We model a single qubit as `EuclideanSpace ℂ (Fin 2)` and a pair of qubits as
+`EuclideanSpace ℂ (Fin 2 × Fin 2)`, with `QI.tens a b` the product (tensor) state
+`(i, j) ↦ a i * b j`.
+
+The no-deleting theorem states that there is no unitary `U` on the two-qubit system
+which maps `ψ ⊗ ψ` to `ψ ⊗ |0⟩` for every (unknown) unit vector `ψ`; i.e. no unitary
+can delete one of two identical copies of an arbitrary state.
+
+The proof: a unitary preserves inner products, and `⟪ψ ⊗ ψ, φ ⊗ φ⟫ = ⟪ψ, φ⟫ ^ 2`
+while `⟪ψ ⊗ |0⟩, φ ⊗ |0⟩⟫ = ⟪ψ, φ⟫`, so we would need `c ^ 2 = c` for the overlap `c`
+of any two unit vectors. Taking `ψ = |0⟩` and `φ = (3/5) |0⟩ + (4/5) |1⟩` gives
+`c = 3/5`, and `9/25 ≠ 3/5`.
+-/
+
+open scoped InnerProductSpace
+
+namespace QI
+
+/-- The product (tensor) state of two qubits, `(i, j) ↦ a i * b j`. -/
+noncomputable def tens (a b : EuclideanSpace ℂ (Fin 2)) : EuclideanSpace ℂ (Fin 2 × Fin 2) :=
+  (WithLp.equiv 2 _).symm fun p => a p.1 * b p.2
+
+/-- The computational basis state `|0⟩`. -/
+noncomputable def ket0 : EuclideanSpace ℂ (Fin 2) := (WithLp.equiv 2 _).symm ![1, 0]
+
+/-- The unit vector `(3/5) |0⟩ + (4/5) |1⟩`. -/
+noncomputable def ketPhi : EuclideanSpace ℂ (Fin 2) := (WithLp.equiv 2 _).symm ![3 / 5, 4 / 5]
+
+lemma inner_tens (a b c d : EuclideanSpace ℂ (Fin 2)) :
+    ⟪tens a b, tens c d⟫_ℂ = ⟪a, c⟫_ℂ * ⟪b, d⟫_ℂ := by
+  simp [tens, PiLp.inner_apply, RCLike.inner_apply, Fintype.sum_prod_type, Fin.sum_univ_succ]
+  ring
+
+lemma norm_ket0 : ‖ket0‖ = 1 := by
+  rw [EuclideanSpace.norm_eq]
+  norm_num [ket0, Fin.sum_univ_succ]
+
+lemma norm_ketPhi : ‖ketPhi‖ = 1 := by
+  rw [EuclideanSpace.norm_eq]
+  norm_num [ketPhi, Fin.sum_univ_succ, Complex.norm_def, Complex.normSq]
+
+lemma inner_ket0_ket0 : ⟪ket0, ket0⟫_ℂ = 1 := by
+  rw [PiLp.inner_apply]
+  norm_num [ket0, RCLike.inner_apply, Fin.sum_univ_succ]
+
+lemma inner_ket0_ketPhi : ⟪ket0, ketPhi⟫_ℂ = 3 / 5 := by
+  rw [PiLp.inner_apply]
+  norm_num [ket0, ketPhi, RCLike.inner_apply, Fin.sum_univ_succ]
+
+/-- **No-deleting theorem.** There is no unitary operator on two qubits that deletes one of
+two identical copies of an unknown quantum state: no unitary `U` satisfies
+`U (ψ ⊗ ψ) = ψ ⊗ |0⟩` for every unit vector `ψ`. -/
+theorem no_deleting :
+    ¬ ∃ U : EuclideanSpace ℂ (Fin 2 × Fin 2) ≃ₗᵢ[ℂ] EuclideanSpace ℂ (Fin 2 × Fin 2),
+      ∀ ψ : EuclideanSpace ℂ (Fin 2), ‖ψ‖ = 1 → U (tens ψ ψ) = tens ψ ket0 := by
+  rintro ⟨U, hU⟩
+  have key : ⟪tens ket0 ket0, tens ketPhi ketPhi⟫_ℂ
+      = ⟪tens ket0 ket0, tens ketPhi ket0⟫_ℂ := by
+    have h0 := hU ket0 norm_ket0
+    have h1 := hU ketPhi norm_ketPhi
+    calc ⟪tens ket0 ket0, tens ketPhi ketPhi⟫_ℂ
+        = ⟪U (tens ket0 ket0), U (tens ketPhi ketPhi)⟫_ℂ := (U.inner_map_map _ _).symm
+      _ = ⟪tens ket0 ket0, tens ketPhi ket0⟫_ℂ := by rw [h0, h1]
+  rw [inner_tens, inner_tens, inner_ket0_ket0, inner_ket0_ketPhi] at key
+  norm_num at key
+
+end QI
+
+import Mathlib
 
 open scoped BigOperators
 open scoped Real
@@ -30,73 +95,12 @@ set_option synthInstance.maxSize 128
 set_option relaxedAutoImplicit false
 set_option autoImplicit false
 
+set_option pp.fullNames true
+set_option pp.structureInstances true
+set_option pp.coercions.types true
+set_option pp.funBinderTypes true
+set_option pp.letVarTypes true
+set_option pp.piBinderTypes true
+
 set_option grind.warning false
-
-namespace QI
-
-open scoped TensorProduct
-
-variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H]
-
-/-- `IsDeleter U blank` says that the linear isometry `U` of the two-copy space `H ⊗ H`
-deletes one of two identical copies of an *arbitrary* (unknown) pure state `u`, replacing
-it by the fixed "blank" state `blank`. -/
-def IsDeleter (U : H ⊗[ℂ] H →ₗᵢ[ℂ] H ⊗[ℂ] H) (blank : H) : Prop :=
-  ∀ u : H, ‖u‖ = 1 → U (u ⊗ₜ[ℂ] u) = u ⊗ₜ[ℂ] blank
-
-/-- The blank state of a deleter is a unit vector (provided some unit vector exists). -/
-theorem norm_blank_eq_one {U : H ⊗[ℂ] H →ₗᵢ[ℂ] H ⊗[ℂ] H} {blank : H}
-    (hU : IsDeleter U blank) {u : H} (hu : ‖u‖ = 1) : ‖blank‖ = 1 := by
-  have h : ‖U (u ⊗ₜ[ℂ] u)‖ = ‖u ⊗ₜ[ℂ] blank‖ := by rw [hU u hu]
-  rw [U.norm_map] at h
-  simpa [TensorProduct.norm_tmul, hu, eq_comm] using h
-
-/-- **Key lemma.** If a deleter exists, then the overlap of any two unit states is an
-idempotent complex number: `⟪u, v⟫ ^ 2 = ⟪u, v⟫`, hence is `0` or `1`. -/
-theorem inner_sq_eq_inner_of_isDeleter {U : H ⊗[ℂ] H →ₗᵢ[ℂ] H ⊗[ℂ] H} {blank : H}
-    (hU : IsDeleter U blank) {u v : H} (hu : ‖u‖ = 1) (hv : ‖v‖ = 1) :
-    (inner ℂ u v) ^ 2 = inner ℂ u v := by
-  have hb : ‖blank‖ = 1 := norm_blank_eq_one hU hu
-  have hbb : (inner ℂ blank blank : ℂ) = 1 := by
-    rw [inner_self_eq_norm_sq_to_K, hb]; norm_num
-  have h1 : (inner ℂ (U (u ⊗ₜ[ℂ] u)) (U (v ⊗ₜ[ℂ] v)) : ℂ)
-      = inner ℂ (u ⊗ₜ[ℂ] u) (v ⊗ₜ[ℂ] v) := U.inner_map_map _ _
-  rw [hU u hu, hU v hv, TensorProduct.inner_tmul, TensorProduct.inner_tmul, hbb] at h1
-  rw [sq]
-  exact h1.symm.trans (mul_one _)
-
-/-- In a space of dimension at least two there are unit vectors with overlap `3/5`. -/
-theorem exists_unit_pair_inner_eq (hdim : (2 : Cardinal) ≤ Module.rank ℂ H) :
-    ∃ u v : H, ‖u‖ = 1 ∧ ‖v‖ = 1 ∧ inner ℂ u v = (3 / 5 : ℂ) := by
-  obtain ⟨f, hf⟩ :=
-    exists_linearIndependent_of_le_rank (R := ℂ) (M := H) (n := 2) (by exact_mod_cast hdim)
-  set e : Fin 2 → H := InnerProductSpace.gramSchmidtNormed ℂ f with he
-  have ho : Orthonormal ℂ e := InnerProductSpace.gramSchmidtNormed_orthonormal hf
-  have key : ∀ i j : Fin 2, (inner ℂ (e i) (e j) : ℂ) = if i = j then (1 : ℂ) else 0 :=
-    orthonormal_iff_ite.mp ho
-  refine ⟨e 0, (3 / 5 : ℂ) • e 0 + (4 / 5 : ℂ) • e 1, ho.1 0, ?_, ?_⟩
-  · have hself : (inner ℂ ((3 / 5 : ℂ) • e 0 + (4 / 5 : ℂ) • e 1)
-        ((3 / 5 : ℂ) • e 0 + (4 / 5 : ℂ) • e 1) : ℂ) = 1 := by
-      simp only [inner_add_left, inner_add_right, inner_smul_left, inner_smul_right, key,
-        map_div₀, Complex.conj_ofNat]
-      norm_num
-    rw [inner_self_eq_norm_sq_to_K, ← RCLike.ofReal_pow] at hself
-    have : ‖(3 / 5 : ℂ) • e 0 + (4 / 5 : ℂ) • e 1‖ ^ 2 = 1 := by exact_mod_cast hself
-    nlinarith [norm_nonneg ((3 / 5 : ℂ) • e 0 + (4 / 5 : ℂ) • e 1)]
-  · simp only [inner_add_right, inner_smul_right, key]
-    norm_num
-
-/-- **No-deleting theorem.**  In any complex inner product space of dimension at least two
-there is no linear isometry (in particular, no unitary) of the two-copy space `H ⊗ H` that
-maps `u ⊗ u` to `u ⊗ blank` for every unit vector `u` and a fixed blank state: an unknown
-quantum state cannot be deleted. -/
-theorem no_deleting (hdim : (2 : Cardinal) ≤ Module.rank ℂ H) :
-    ¬ ∃ (U : H ⊗[ℂ] H →ₗᵢ[ℂ] H ⊗[ℂ] H) (blank : H), IsDeleter U blank := by
-  rintro ⟨U, blank, hU⟩
-  obtain ⟨u, v, hu, hv, hinner⟩ := exists_unit_pair_inner_eq (H := H) hdim
-  have h := inner_sq_eq_inner_of_isDeleter hU hu hv
-  rw [hinner] at h
-  norm_num at h
-
-end QI
 

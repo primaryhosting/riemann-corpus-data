@@ -12,7 +12,6 @@ theorem am_gm_n {n : ℕ} (a : Fin n → ℝ) (ha : ∀ i, 0 ≤ a i) (hn : 0 < 
     (fun i _ => by positivity) (by simp [Finset.card_univ]; field_simp) (fun i _ => ha i)
   rw [Real.finset_prod_rpow _ _ (fun i _ => ha i)] at key
   refine key.trans_eq ?_
-  simp only
   rw [← Finset.mul_sum]
   ring
 

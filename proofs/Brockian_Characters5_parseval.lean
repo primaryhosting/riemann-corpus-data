@@ -1,11 +1,17 @@
 import Mathlib
 
 /-!
-# Parseval
-Category: Characters
-Target: Brockian.Characters5.parseval
-Verification: pending
-Provenance: Aristotle theorem prover (Harmonic)
+# Brockian.Characters5
+
+Additive-character theory of `ZMod 5` / the five-ray Brockian wheel.
+
+Assembled from individually AXLE-verified Aristotle proof files
+(`aristotle/best_proofs/Brockian_Characters5_*.lean`).  Shared definitions
+(`omega`, `e`, `dft`, `rayIndicator`, `raySum`) are declared once; each
+distinct theorem is the best proof selected from the source attempts, with the
+original statement preserved verbatim.
+
+Provenance: Aristotle theorem prover (Harmonic).
 -/
 
 open scoped BigOperators
@@ -26,35 +32,65 @@ set_option grind.warning false
 
 namespace Brockian.Characters5
 
-/-- The primitive fifth root of unity `exp (2πi/5)`. -/
+/-! ## Shared definitions -/
+
+/-- The primitive fifth root of unity `ω = exp (2πi/5)`, the Brockian ray rotation. -/
 noncomputable def omega : ℂ := Complex.exp (2 * Real.pi * Complex.I / 5)
 
-/-- The additive character `e k = ω ^ k` on `ZMod 5`. -/
+local notation "ω" => omega
+
+/-- The bespoke additive character `e : ZMod 5 → ℂ`, `e k = ω ^ k.val`. -/
 noncomputable def e (k : ZMod 5) : ℂ := omega ^ k.val
 
 /-- The (unnormalized) discrete Fourier transform on `ZMod 5`. -/
 noncomputable def dft (f : ZMod 5 → ℂ) (a : ZMod 5) : ℂ := ∑ x : ZMod 5, f x * e (-(a * x))
 
-lemma isPrimitiveRoot_omega : IsPrimitiveRoot omega 5 := by
+/-- Indicator of the ray `n ≡ r (mod 5)`. -/
+noncomputable def rayIndicator (r : ZMod 5) (n : ℕ) : ℂ := if (n : ZMod 5) = r then 1 else 0
+
+/-- The number of elements of a finite set `S` of naturals lying on the ray `r` mod `5`. -/
+def raySum (S : Finset ℕ) (r : ZMod 5) : ℕ := (S.filter fun n : ℕ => ((n : ZMod 5) = r)).card
+
+/-! ## Root-of-unity facts -/
+
+/-- `ω` is a primitive fifth root of unity. -/
+theorem isPrimitiveRoot_omega : IsPrimitiveRoot omega 5 := by
   have := Complex.isPrimitiveRoot_exp 5 (by norm_num)
   simpa [omega] using this
 
-lemma omega_pow_five : omega ^ 5 = 1 := isPrimitiveRoot_omega.pow_eq_one
+/-- The Brockian ray rotation returns to start after five steps: `ω ^ 5 = 1`. -/
+theorem omega_pow_five : omega ^ 5 = 1 := isPrimitiveRoot_omega.pow_eq_one
 
-lemma omega_pow_mod (n : ℕ) : omega ^ (n % 5) = omega ^ n := by
-  conv_rhs => rw [← Nat.div_add_mod n 5]
-  rw [pow_add, pow_mul, omega_pow_five, one_pow, one_mul]
+/-- The sum of all five 5th roots of unity vanishes. -/
+theorem sum_omega_pow : ∑ k ∈ Finset.range 5, omega ^ k = 0 :=
+  isPrimitiveRoot_omega.geom_sum_eq_zero (by norm_num)
 
-lemma e_zero : e 0 = 1 := by simp [e]
-
-lemma e_add (k l : ZMod 5) : e (k + l) = e k * e l := by
-  simp only [e, ZMod.val_add, omega_pow_mod, pow_add]
-
-lemma norm_omega : ‖omega‖ = 1 := by
+/-- `ω` has unit modulus. -/
+theorem norm_omega : ‖omega‖ = 1 := by
   simp [omega, Complex.norm_exp]
 
-lemma norm_e (k : ZMod 5) : ‖e k‖ = 1 := by
+/-! ## Character basics -/
+
+/-- The additive character has unit modulus: `‖e k‖ = 1` for every `k : ZMod 5`. -/
+theorem norm_e (k : ZMod 5) : ‖e k‖ = 1 := by
   simp [e, norm_pow, norm_omega]
+
+theorem e_add (j k : ZMod 5) : e (j + k) = e j * e k := by
+  rw [e, e, e, ← pow_add]
+  have hval : (j + k).val = (j.val + k.val) % 5 := by
+    rw [ZMod.val_add]
+  rw [hval]
+  conv_rhs => rw [← Nat.div_add_mod (j.val + k.val) 5]
+  rw [pow_add, pow_mul, omega_pow_five, one_pow, one_mul]
+
+/-- The bespoke character equals Mathlib's standard additive character mod `5`. -/
+theorem e_eq_stdAddChar (k : ZMod 5) : e k = ZMod.stdAddChar (N := 5) k := by
+  rw [ZMod.stdAddChar_apply, ZMod.toCircle_apply, e, omega, ← Complex.exp_nat_mul]
+  congr 1
+  push_cast
+  ring
+
+lemma e_zero : e 0 = 1 := by simp [e]
 
 lemma conj_e (k : ZMod 5) : (starRingEnd ℂ) (e k) = e (-k) := by
   have h1 : e k * e (-k) = 1 := by rw [← e_add]; simp [e_zero]
@@ -62,32 +98,24 @@ lemma conj_e (k : ZMod 5) : (starRingEnd ℂ) (e k) = e (-k) := by
   rw [← h2]
   exact inv_eq_of_mul_eq_one_right h1
 
-/-- Orthogonality of characters on `ZMod 5`. -/
-lemma sum_e_mul (k : ZMod 5) : ∑ x : ZMod 5, e (k * x) = if k = 0 then 5 else 0 := by
-  have hval : ∀ x : ZMod 5, e (k * x) = (e k) ^ x.val := by
-    intro x
-    simp only [e, ← pow_mul]
-    rw [ZMod.val_mul, omega_pow_mod]
-  rw [Finset.sum_congr rfl (fun x _ => hval x)]
-  have hrange : ∑ x : ZMod 5, (e k) ^ x.val = ∑ j ∈ Finset.range 5, (e k) ^ j :=
-    Fin.sum_univ_eq_sum_range (fun j => (e k) ^ j) 5
-  rw [hrange]
-  by_cases hk : k = 0
-  · subst hk
-    simp [e_zero]
-  · have hne : e k ≠ 1 := by
-      intro h
-      apply hk
-      have : omega ^ k.val = 1 := h
-      have hdvd : (5 : ℕ) ∣ k.val := (isPrimitiveRoot_omega.pow_eq_one_iff_dvd k.val).1 this
-      have hlt : k.val < 5 := ZMod.val_lt k
-      have hz : k.val = 0 := Nat.eq_zero_of_dvd_of_lt hdvd hlt
-      exact (ZMod.val_eq_zero k).1 hz
-    have hpow : (e k) ^ 5 = 1 := by
-      simp only [e, ← pow_mul, mul_comm]
-      rw [pow_mul, omega_pow_five, one_pow]
-    rw [geom_sum_eq hne, hpow, sub_self, zero_div]
-    simp [hk]
+/-- The character sum of `e` over `ZMod 5` vanishes. -/
+theorem sum_e : ∑ x : ZMod 5, e x = 0 := by
+  have h : ∑ x : ZMod 5, e x = ∑ k ∈ Finset.range 5, omega ^ k := by
+    rw [← Fin.sum_univ_eq_sum_range (fun k => omega ^ k) 5]
+    rfl
+  rw [h, sum_omega_pow]
+
+/-- Additive-character orthogonality on `ZMod 5`. -/
+theorem sum_e_mul (a : ZMod 5) : ∑ x : ZMod 5, e (a * x) = if a = 0 then 5 else 0 := by
+  by_cases ha : a = 0
+  · subst ha
+    simp [e, ZMod.val_zero]
+  · haveI : Fact (Nat.Prime 5) := ⟨by norm_num⟩
+    rw [if_neg ha]
+    rw [← sum_e]
+    exact Fintype.sum_equiv (Equiv.mulLeft₀ a ha) _ _ (fun x => rfl)
+
+/-! ## Parseval / Plancherel -/
 
 /-- The complex-valued core Parseval identity. -/
 lemma parseval_core (f : ZMod 5 → ℂ) :
@@ -135,5 +163,56 @@ theorem parseval (f : ZMod 5 → ℂ) :
     exact h
   exact_mod_cast h2
 
-end Brockian.Characters5
+/-! ## Ray counting -/
 
+theorem rayIndicator_eq_charSum (r : ZMod 5) (n : ℕ) :
+    rayIndicator r n = (1 / 5 : ℂ) * ∑ a : ZMod 5, e (a * ((n : ZMod 5) - r)) := by
+  set b : ZMod 5 := (n : ZMod 5) - r with hbdef
+  have hsum : ∑ a : ZMod 5, e (a * b) = ∑ a : ZMod 5, e (b * a) := by
+    refine Finset.sum_congr rfl ?_
+    intro a _
+    rw [mul_comm]
+  rw [hsum, sum_e_mul, rayIndicator]
+  have hiff : b = 0 ↔ (n : ZMod 5) = r := by
+    rw [hbdef, sub_eq_zero]
+  by_cases h : (n : ZMod 5) = r
+  · rw [if_pos h, if_pos (hiff.mpr h)]
+    norm_num
+  · rw [if_neg h, if_neg (fun hc => h (hiff.mp hc))]
+    norm_num
+
+/-- Orthogonality with the summation index in the first factor. -/
+lemma charSum_eq (x : ZMod 5) :
+    ∑ a : ZMod 5, e (a * x) = if x = 0 then (5 : ℂ) else 0 := by
+  have h : ∑ a : ZMod 5, e (a * x) = ∑ a : ZMod 5, e (x * a) := by
+    refine Finset.sum_congr rfl ?_
+    intro a _
+    rw [mul_comm]
+  rw [h, sum_e_mul]
+
+/-- The indicator of the ray through `r` (both arguments in `ZMod 5`), as a character sum. -/
+lemma rayIndicator_zmod_eq_charSum (n r : ZMod 5) :
+    (if n = r then (1 : ℂ) else 0) = (1 / 5 : ℂ) * ∑ a : ZMod 5, e (a * (n - r)) := by
+  rw [charSum_eq]
+  by_cases h : n = r
+  · simp [h]
+  · simp [h, sub_ne_zero_of_ne h]
+
+/-- Ray-count identity: the number of elements of `S` on the ray `r` mod `5` equals
+`(1/5) ∑_{a : ZMod 5} ∑_{n ∈ S} e (a * (n - r))`. -/
+theorem raySum_eq_charSum (S : Finset ℕ) (r : ZMod 5) :
+    ((raySum S r : ℕ) : ℂ) = (1 / 5 : ℂ) * ∑ a : ZMod 5, ∑ n ∈ S, e (a * ((n : ZMod 5) - r)) := by
+  rw [raySum, Finset.card_filter]
+  push_cast
+  rw [Finset.sum_comm, Finset.mul_sum]
+  exact Finset.sum_congr rfl fun n _ => rayIndicator_zmod_eq_charSum (n : ZMod 5) r
+
+/-! ## Dirichlet-character orthogonality -/
+
+/-- Orthogonality for a nontrivial Dirichlet character mod 5 with values in ℂ:
+the sum of its values over `ZMod 5` vanishes. -/
+theorem dirichlet_sum_eq_zero (χ : DirichletCharacter ℂ 5) (hχ : χ ≠ 1) :
+    ∑ x : ZMod 5, χ x = 0 :=
+  MulChar.sum_eq_zero_of_ne_one hχ
+
+end Brockian.Characters5

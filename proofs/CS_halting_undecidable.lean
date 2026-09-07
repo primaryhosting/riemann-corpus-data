@@ -8,50 +8,61 @@ Provenance: Aristotle theorem prover (Harmonic)
 
 import Mathlib
 
-/-!
-# Halting Undecidable
-Category: Computer Science
-Target: CS.halting_undecidable
-Verification: pending
-Provenance: Aristotle theorem prover (Harmonic)
--/
-
+open scoped BigOperators
+open scoped Real
+open scoped Nat
 open scoped Classical
+open scoped Pointwise
 
+set_option maxHeartbeats 8000000
+set_option maxRecDepth 4000
+set_option synthInstance.maxHeartbeats 20000
+set_option synthInstance.maxSize 128
+
+set_option relaxedAutoImplicit false
 set_option autoImplicit false
+
+set_option grind.warning false
 
 namespace CS
 
-open Nat.Partrec Nat.Partrec.Code
+open Nat.Partrec Nat.Partrec.Code Denumerable
+
+/-- **Diagonalization lemma.**  There is no partial recursive function `d` that halts on
+input `n` exactly when the `n`-th program fails to halt on input `n`. -/
+theorem no_diagonal_partrec :
+    ¬ ∃ d : ℕ →. ℕ, Partrec d ∧
+        ∀ n : ℕ, (d n).Dom ↔ ¬ (eval (ofNat Nat.Partrec.Code n) n).Dom := by
+  rintro ⟨d, hd, hspec⟩
+  -- `d` has a code `c`; instantiate the specification at the encoding of `c` itself.
+  obtain ⟨c, hc⟩ := exists_code.1 (Partrec.nat_iff.mp hd)
+  have h := hspec (Encodable.encode c)
+  rw [Denumerable.ofNat_encode, hc] at h
+  exact (iff_not_self h).elim
 
 /-- **The halting problem is undecidable.**
 
-There is no total computable function `H : ℕ → ℕ → Bool` which, given (a code for) a program
-`p` and an input `x`, decides whether the program `p` halts on input `x`.
-
-Here programs are the partial recursive programs `Nat.Partrec.Code`, encoded as natural numbers
-via the (computable) denumeration `Denumerable.ofNat`, and "`p` halts on `x`" is
-`(eval (Denumerable.ofNat Code p) x).Dom`, i.e. the partial function computed by `p` is defined at `x`.
-
-The proof reduces to Mathlib's `ComputablePred.halting_problem`, which is proved by
-diagonalization (via Rice's theorem / the recursion theorem). -/
+There is no total computable function `H` which, given (a code for) a program `p` and an
+input `x`, decides whether `p` halts on `x`.  Here programs are the partial recursive
+codes `Nat.Partrec.Code`, `eval p x` is the (possibly divergent) run of `p` on input `x`,
+and "`p` halts on `x`" means `(eval p x).Dom`. -/
 theorem halting_undecidable :
-    ¬ ∃ H : ℕ → ℕ → Bool,
-        Computable₂ H ∧ ∀ p x : ℕ, H p x = true ↔ (eval (Denumerable.ofNat Code p) x).Dom := by
-  rintro ⟨H, hHcomp, hH⟩
-  -- Specialising the input to `0`, `H` would decide the halting problem for input `0`.
-  refine ComputablePred.halting_problem 0 ?_
-  have hiff : ∀ c : Code, (eval c 0).Dom ↔ H (Encodable.encode c) 0 = true := by
-    intro c
-    rw [hH (Encodable.encode c) 0, Denumerable.ofNat_encode]
-  have hdec : DecidablePred fun c : Code => (eval c 0).Dom := fun c =>
-    decidable_of_iff _ (hiff c).symm
-  refine ⟨hdec, ?_⟩
-  have hcomp : Computable fun c : Code => H (Encodable.encode c) 0 :=
-    hHcomp.comp (Computable.encode.comp Computable.id) (Computable.const 0)
-  refine hcomp.of_eq fun c => ?_
-  rw [Bool.eq_iff_iff, decide_eq_true_eq]
-  exact (hiff c).symm
+    ¬ ∃ H : Nat.Partrec.Code → ℕ → Bool,
+        Computable₂ H ∧ ∀ (p : Nat.Partrec.Code) (x : ℕ), H p x = true ↔ (eval p x).Dom := by
+  rintro ⟨H, hH, hspec⟩
+  -- The diagonal function: diverge if `H` says the `n`-th program halts on `n`, else return `0`.
+  refine no_diagonal_partrec
+    ⟨fun n => cond (H (ofNat Nat.Partrec.Code n) n) Part.none (Part.some 0), ?_, ?_⟩
+  · exact Partrec.cond (hH.comp (Computable.ofNat _) Computable.id)
+      (Partrec.const' Part.none) (Partrec.const' (Part.some 0))
+  · intro n
+    by_cases h : H (ofNat Nat.Partrec.Code n) n = true
+    · have hdom := (hspec (ofNat Nat.Partrec.Code n) n).1 h
+      simp [h, hdom]
+    · have hdom : ¬ (eval (ofNat Nat.Partrec.Code n) n).Dom :=
+        fun hd => h ((hspec (ofNat Nat.Partrec.Code n) n).2 hd)
+      simp only [Bool.not_eq_true] at h
+      simp [h, hdom]
 
 end CS
 

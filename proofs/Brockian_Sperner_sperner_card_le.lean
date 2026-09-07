@@ -7,4 +7,3 @@ theorem sperner_card_le {α : Type*} [Fintype α] [DecidableEq α]
     𝒜.card ≤ (Fintype.card α).choose (Fintype.card α / 2) := by
   exact h.sperner
 end Brockian.Sperner
-

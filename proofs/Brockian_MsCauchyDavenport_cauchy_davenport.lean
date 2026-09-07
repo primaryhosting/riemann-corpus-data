@@ -9,4 +9,3 @@ theorem cauchy_davenport {p : ℕ} [Fact p.Prime] (A B : Finset (ZMod p))
     min p (A.card + B.card - 1) ≤ (A + B).card :=
   ZMod.cauchy_davenport (Fact.out) hA hB
 end Brockian.MsCauchyDavenport
-

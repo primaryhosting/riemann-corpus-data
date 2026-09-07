@@ -89,7 +89,6 @@ lemma two_mul_le_sum_divisors_of_zumkeller {n : ℕ} (h : Zumkeller n) :
     · simpa using Finset.single_le_sum (f := fun d : ℕ => d) (fun i _ => Nat.zero_le i) hnS
     · have hmem' : n ∈ n.divisors \ S := Finset.mem_sdiff.mpr ⟨hmem, hnS⟩
       have := Finset.single_le_sum (f := fun d : ℕ => d) (fun i _ => Nat.zero_le i) hmem'
-      simp only at this
       omega
   omega
 

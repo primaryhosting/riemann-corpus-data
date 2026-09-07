@@ -88,4 +88,3 @@ theorem even_perfect_triangular {n : ℕ} (he : Even n) (hp : Nat.Perfect n) :
   ac_rfl
 
 end Brockian.EvenPerfectTriangular
-

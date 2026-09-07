@@ -9,4 +9,3 @@ theorem pell_solvable (d : ℕ) (hd : 0 < d) (hnsq : ¬ IsSquare d) :
     (by simpa using (Int.isSquare_natCast_iff (n := d)).not.2 hnsq)
   exact ⟨x, |y|, abs_pos.2 hy, by rw [sq_abs]; exact h⟩
 end Brockian.MsPell
-

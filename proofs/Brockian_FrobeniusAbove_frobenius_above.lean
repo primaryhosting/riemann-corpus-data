@@ -21,4 +21,3 @@ theorem frobenius_above (a b : ℕ) (ha : 1 < a) (hb : 1 < b)
     Nat.exists_add_mul_eq_of_gcd_dvd_of_mul_pred_le a b m hgcd hbound
   exact ⟨x, y, by simpa [Nat.mul_comm] using hxy⟩
 end Brockian.FrobeniusAbove
-

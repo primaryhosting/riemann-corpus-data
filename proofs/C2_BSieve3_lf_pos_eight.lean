@@ -32,7 +32,7 @@ theorem nu_le_min (G : Finset ℕ) (p : ℕ) (hp : 0 < p) : nu G p ≤ min G.car
     simp only [Finset.mem_image] at hx
     obtain ⟨a, _, rfl⟩ := hx
     exact Finset.mem_range.2 (Nat.mod_lt _ hp)
-  simpa using Finset.card_le_card hsub
+  simpa only [nu, Finset.card_range] using Finset.card_le_card hsub
 
 /-- For nonzero `g` in `ZMod 13`, exactly `11` residues avoid both `0` and `-g`. -/
 theorem admissible_count_thirteen (g : ZMod 13) (hg : g ≠ 0) :

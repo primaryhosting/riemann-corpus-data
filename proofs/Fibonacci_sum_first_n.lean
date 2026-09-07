@@ -1,5 +1,4 @@
 import Mathlib
-
 /-!
 # Sum First N
 Category: Fibonacci
@@ -7,6 +6,22 @@ Target: Fibonacci.sum_first_n
 Verification: pending
 Provenance: Aristotle theorem prover (Harmonic)
 -/
+
+namespace Fibonacci
+
+/-- The sum of the first `n` Fibonacci numbers equals `fib (n+1) - 1`. -/
+theorem sum_first_n (n : ℕ) :
+    (Finset.range n).sum (fun i => Nat.fib i) = Nat.fib (n + 1) - 1 := by
+  induction n with
+  | zero => simp
+  | succ k ih =>
+      rw [Finset.sum_range_succ, ih, Nat.fib_add_two]
+      have h : 1 ≤ Nat.fib (k + 1) := Nat.fib_pos.mpr (Nat.succ_pos k)
+      omega
+
+end Fibonacci
+
+import Mathlib
 
 open scoped BigOperators
 open scoped Real
@@ -30,18 +45,4 @@ set_option pp.letVarTypes true
 set_option pp.piBinderTypes true
 
 set_option grind.warning false
-
-namespace Fibonacci
-
-/-- The sum of the first `n` Fibonacci numbers equals `fib (n+1) - 1`. -/
-theorem sum_first_n (n : ℕ) :
-    (Finset.range n).sum (fun i => Nat.fib i) = Nat.fib (n + 1) - 1 := by
-  induction n with
-  | zero => simp
-  | succ n ih =>
-    rw [Finset.sum_range_succ, ih, Nat.fib_add_two]
-    have h : 1 ≤ Nat.fib (n + 1) := Nat.fib_pos.mpr (Nat.succ_pos n)
-    omega
-
-end Fibonacci
 

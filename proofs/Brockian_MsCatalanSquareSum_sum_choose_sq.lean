@@ -12,4 +12,3 @@ theorem sum_choose_sq (n : ℕ) :
   rw [Nat.choose_symm (Finset.mem_range_succ_iff.mp hi), sq]
 
 end Brockian.MsCatalanSquareSum
-

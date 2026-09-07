@@ -109,4 +109,3 @@ theorem egyptian_fraction (a b : ℕ) (ha : 0 < a) (hab : a < b) :
           · positivity
           · positivity
 end Brockian.EgyptianFraction
-

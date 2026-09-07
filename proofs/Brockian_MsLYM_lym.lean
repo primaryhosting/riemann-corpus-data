@@ -8,4 +8,3 @@ theorem lym {α : Type*} [Fintype α] [DecidableEq α] (𝒜 : Finset (Finset α
   simpa [one_div] using
     Finset.lubell_yamamoto_meshalkin_inequality_sum_inv_choose (𝕜 := ℚ) h
 end Brockian.MsLYM
-

@@ -1,86 +1,83 @@
 {
  "generated_from": "scripts/classify_corpus.py",
  "fields": {
-  "Mathematics": 841,
-  "Physics": 262,
-  "Brockian Program": 88,
-  "Computer Science": 88,
-  "Chemistry": 45,
-  "Frontier": 14
+  "Brockian Program": 8940,
+  "Mathematics": 2931,
+  "Physics": 392,
+  "Computer Science": 76,
+  "Chemistry": 30,
+  "Frontier": 4
  },
  "field_concepts": {
-  "Mathematics › Number Theory": 367,
-  "Mathematics › Riemann / Zeta": 109,
-  "Mathematics › Analysis / Topology": 98,
-  "Physics › Physics": 96,
-  "Mathematics › Algebra / Group Theory": 94,
-  "Mathematics › Mathematics (general)": 70,
-  "Mathematics › Combinatorics": 54,
-  "Computer Science › Theory of Computation": 53,
-  "Physics › Quantum Physics": 51,
-  "Chemistry › Chemistry": 45,
-  "Physics › Quantum Information": 44,
-  "Physics › Quantum Computing": 44,
-  "Mathematics › Set Theory": 43,
-  "Brockian Program › Pentagon / Admissibility": 42,
-  "Computer Science › Proof-Carrying / Formal Methods": 35,
-  "Brockian Program › Spectral / Operator": 30,
-  "Physics › Quantum": 27,
-  "Brockian Program › Core / Other": 15,
-  "Frontier › Foundations / Mind": 8,
-  "Frontier › Frontier (unsorted)": 6,
-  "Mathematics › Moonshine / Modular": 6,
+  "Brockian Program › Core / Other": 7672,
+  "Mathematics › Number Theory": 1716,
+  "Brockian Program › Pentagon / Admissibility": 1249,
+  "Mathematics › Analysis / Topology": 669,
+  "Mathematics › Algebra / Group Theory": 261,
+  "Physics › Physics": 229,
+  "Mathematics › Riemann / Zeta": 116,
+  "Mathematics › Mathematics (general)": 90,
+  "Physics › Quantum": 58,
+  "Computer Science › Proof-Carrying / Formal Methods": 45,
+  "Mathematics › Combinatorics": 42,
+  "Physics › Quantum Physics": 40,
+  "Physics › Quantum Computing": 39,
+  "Mathematics › Set Theory": 37,
+  "Computer Science › Theory of Computation": 31,
+  "Chemistry › Chemistry": 30,
+  "Physics › Quantum Information": 26,
+  "Brockian Program › Spectral / Operator": 18,
+  "Frontier › Frontier (unsorted)": 2,
+  "Frontier › Foundations / Mind": 2,
   "Brockian Program › Riemann / Zeta": 1
  },
  "source_programs": {
-  "Other": 342,
-  "Brockian program": 283,
-  "Frontier attempts": 162,
-  "Core mathematics": 160,
-  "Physics corpus": 117,
-  "Corpus extension (C-series)": 70,
-  "Zeta-2/3 program": 46,
-  "CS corpus": 44,
-  "Chemistry corpus": 33,
-  "Riemann corpus": 29,
-  "Proof-Carrying Apps": 26,
-  "MS series": 21,
-  "Aristotle prompts": 5
+  "Brockian program": 11778,
+  "Core mathematics": 148,
+  "Physics corpus": 112,
+  "Corpus extension (C-series)": 69,
+  "Frontier attempts": 55,
+  "Proof-Carrying Apps": 41,
+  "Zeta-2/3 program": 38,
+  "Riemann corpus": 35,
+  "CS corpus": 31,
+  "Chemistry corpus": 29,
+  "Other": 21,
+  "MS series": 16
  },
  "tree": {
-  "Mathematics": {
-   "Number Theory": 367,
-   "Riemann / Zeta": 109,
-   "Analysis / Topology": 98,
-   "Algebra / Group Theory": 94,
-   "Mathematics (general)": 70,
-   "Combinatorics": 54,
-   "Set Theory": 43,
-   "Moonshine / Modular": 6
-  },
-  "Physics": {
-   "Physics": 96,
-   "Quantum Physics": 51,
-   "Quantum Information": 44,
-   "Quantum Computing": 44,
-   "Quantum": 27
-  },
   "Brockian Program": {
-   "Pentagon / Admissibility": 42,
-   "Spectral / Operator": 30,
-   "Core / Other": 15,
+   "Core / Other": 7672,
+   "Pentagon / Admissibility": 1249,
+   "Spectral / Operator": 18,
    "Riemann / Zeta": 1
   },
+  "Mathematics": {
+   "Number Theory": 1716,
+   "Analysis / Topology": 669,
+   "Algebra / Group Theory": 261,
+   "Riemann / Zeta": 116,
+   "Mathematics (general)": 90,
+   "Combinatorics": 42,
+   "Set Theory": 37
+  },
+  "Physics": {
+   "Physics": 229,
+   "Quantum": 58,
+   "Quantum Physics": 40,
+   "Quantum Computing": 39,
+   "Quantum Information": 26
+  },
   "Computer Science": {
-   "Theory of Computation": 53,
-   "Proof-Carrying / Formal Methods": 35
+   "Proof-Carrying / Formal Methods": 45,
+   "Theory of Computation": 31
   },
   "Chemistry": {
-   "Chemistry": 45
+   "Chemistry": 30
   },
   "Frontier": {
-   "Foundations / Mind": 8,
-   "Frontier (unsorted)": 6
+   "Frontier (unsorted)": 2,
+   "Foundations / Mind": 2
   }
  }
 }

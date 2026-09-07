@@ -34,13 +34,19 @@ Provenance: Aristotle theorem prover (Harmonic)
 
 namespace Cardinal
 
-/-- The cardinality of the continuum equals `2 ^ ℵ₀`. -/
-theorem continuum_eq_two_pow_aleph0 : Cardinal.continuum = 2 ^ Cardinal.aleph0 :=
-  rfl
+/-- The cardinality of the continuum equals `2 ^ ℵ₀`.
 
-/-- The cardinality of the real numbers equals `2 ^ ℵ₀`, via `Cardinal.mk_real`. -/
+This is the symmetric form of Mathlib's `Cardinal.two_power_aleph0`
+(`2 ^ ℵ₀ = 𝔠`), from `Mathlib/SetTheory/Cardinal/Continuum.lean`. -/
+theorem continuum_eq_two_pow_aleph0 : Cardinal.continuum = 2 ^ Cardinal.aleph0 :=
+  Cardinal.two_power_aleph0.symm
+
+/-- The same statement phrased via `Cardinal.mk_real`: the cardinality of `ℝ` is `2 ^ ℵ₀`. -/
 theorem mk_real_eq_two_pow_aleph0 : #ℝ = 2 ^ Cardinal.aleph0 := by
-  rw [Cardinal.mk_real, continuum_eq_two_pow_aleph0]
+  rw [mk_real, continuum_eq_two_pow_aleph0]
 
 end Cardinal
+
+#print axioms Cardinal.continuum_eq_two_pow_aleph0
+#print axioms Cardinal.mk_real_eq_two_pow_aleph0
 

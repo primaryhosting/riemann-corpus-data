@@ -1,3 +1,4 @@
+import Mathlib
 /-!
 # Reciprocal Sum Diverges
 Category: Frontier — Prime Numbers
@@ -5,8 +6,6 @@ Target: Primes.reciprocal_sum_diverges
 Verification: pending
 Provenance: Aristotle theorem prover (Harmonic)
 -/
-
-import Mathlib
 
 open scoped BigOperators
 open scoped Real
@@ -22,20 +21,24 @@ set_option synthInstance.maxSize 128
 set_option relaxedAutoImplicit false
 set_option autoImplicit false
 
+set_option pp.fullNames true
+set_option pp.structureInstances true
+set_option pp.coercions.types true
+set_option pp.funBinderTypes true
+set_option pp.letVarTypes true
+set_option pp.piBinderTypes true
+
 set_option grind.warning false
 
 namespace Primes
 
-/-- **Euler's theorem on the divergence of the sum of prime reciprocals.**
-The family `p ↦ 1 / p`, indexed by the primes, is not summable. -/
-theorem reciprocal_sum_diverges : ¬ Summable (fun p : Nat.Primes ↦ (1 / p : ℝ)) :=
-  Nat.Primes.not_summable_one_div
-
-/-- Equivalent phrasing: the indicator function of the primes, `n ↦ 1/n` supported on primes,
-is not summable over `ℕ`. -/
-theorem reciprocal_sum_diverges' :
-    ¬ Summable (Set.indicator {p : ℕ | p.Prime} (fun n : ℕ ↦ (1 : ℝ) / n)) :=
-  Nat.not_summable_indicator_one_div_natCast Nat.setOf_prime_infinite 0
+/-- **Euler**: the sum of the reciprocals of the primes diverges, i.e. the family
+`p ↦ 1 / p` indexed by the primes is not summable. -/
+theorem reciprocal_sum_diverges : ¬ Summable (fun p : Nat.Primes => (1 : ℝ) / (p : ℕ)) := by
+  intro h
+  exact not_summable_one_div_on_primes
+    ((summable_subtype_iff_indicator (s := {p : ℕ | Nat.Prime p})
+      (f := fun n : ℕ => (1 : ℝ) / n)).mp h)
 
 end Primes
 

@@ -24,4 +24,3 @@ theorem viete_product (x : ℝ) (n : ℕ) (h : Real.sin (x / 2 ^ n) ≠ 0) :
   field_simp
   linarith [key n]
 end Brockian.MsViete
-

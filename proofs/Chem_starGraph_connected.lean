@@ -22,6 +22,7 @@ distinct and one of them is the centre `c`. -/
 def starGraph {V : Type*} (c : V) : SimpleGraph V where
   Adj a b := a ≠ b ∧ (a = c ∨ b = c)
   symm := by
+    constructor
     rintro a b ⟨hab, h⟩
     exact ⟨hab.symm, h.symm⟩
   loopless := ⟨fun _ h => h.1 rfl⟩

@@ -16,125 +16,6 @@ Verification: pending
 Provenance: Aristotle theorem prover (Harmonic)
 -/
 
-open scoped Nat Real BigOperators
-open MeasureTheory Metric Real
-
-namespace Math2
-
-/-! ## The Euler characteristic of an even-dimensional sphere
-
-Mathlib does not (yet) compute the singular homology of spheres, so we take the Euler
-characteristic of `Sᵈ` in its combinatorial form: `Sᵈ` is homeomorphic to the boundary
-`∂Δ^{d+1}` of the standard `(d+1)`-simplex, which is a simplicial complex whose `k`-dimensional
-faces are the `(k+1)`-element subsets of the `(d+2)`-element vertex set.  The Euler
-characteristic is the alternating sum of the numbers of faces. -/
-
-/-- The Euler characteristic of the `d`-dimensional sphere `Sᵈ`, computed from its standard
-triangulation as the boundary of the `(d+1)`-simplex. -/
-def eulerCharSphere (d : ℕ) : ℤ :=
-  ∑ k ∈ Finset.range (d + 1), (-1) ^ k * ((d + 2).choose (k + 1) : ℤ)
-
-/-- `χ(Sᵈ) = 1 + (-1)ᵈ`. -/
-lemma eulerCharSphere_eq (d : ℕ) : eulerCharSphere d = 1 + (-1) ^ d := by
-  have h := @Int.alternating_sum_range_choose (d + 2)
-  rw [if_neg (by omega), Finset.sum_range_succ'] at h
-  simp only [pow_succ, Nat.choose_zero_right, pow_zero, one_mul, Nat.cast_one] at h
-  rw [Finset.sum_range_succ] at h
-  simp only [Nat.choose_self, Nat.cast_one, mul_one] at h
-  have key : ∑ x ∈ Finset.range (d + 1), ((-1 : ℤ)) ^ x * -1 * ((d + 2).choose (x + 1) : ℤ)
-      = - ∑ k ∈ Finset.range (d + 1), (-1 : ℤ) ^ k * ((d + 2).choose (k + 1) : ℤ) := by
-    rw [← Finset.sum_neg_distrib]
-    exact Finset.sum_congr rfl fun x _ => by ring
-  rw [key] at h
-  unfold eulerCharSphere
-  linear_combination -h
-
-/-- `χ(S^{2n}) = 2`. -/
-lemma eulerCharSphere_two_mul (n : ℕ) : eulerCharSphere (2 * n) = 2 := by
-  rw [eulerCharSphere_eq, pow_mul]
-  norm_num
-
-/-! ## The Pfaffian curvature density of the round sphere -/
-
-/-- The Chern–Gauss–Bonnet integrand of the unit round sphere `S^{2n}`.
-
-For a closed oriented Riemannian `2n`-manifold the Chern–Gauss–Bonnet integrand is the
-Pfaffian `Pf(Ω)` of the curvature `2`-form `Ω`.  For the unit round sphere the curvature form
-in a local orthonormal frame is `Ω_{ij} = e_i ∧ e_j`, so `Pf(Ω)` is the constant multiple
-`(2n)! / (2ⁿ n!)` of the Riemannian volume form. -/
-noncomputable def pfaffianCurvatureDensity (n : ℕ) : ℝ :=
-  ((2 * n)! : ℝ) / (2 ^ n * (n ! : ℝ))
-
-/-- The Riemannian (surface) measure of the unit sphere `S^{2n} ⊆ ℝ^{2n+1}`, obtained from the
-Lebesgue measure of the ambient space by the polar-coordinates decomposition. -/
-noncomputable def sphereMeasure (n : ℕ) :
-    Measure (sphere (0 : EuclideanSpace ℝ (Fin (2 * n + 1))) 1) :=
-  (volume : Measure (EuclideanSpace ℝ (Fin (2 * n + 1)))).toSphere
-
-/-- The total volume (surface area) of the unit sphere `S^{2n}` is `2^{2n+1} πⁿ n! / (2n)!`. -/
-lemma sphereMeasure_real_univ (n : ℕ) :
-    (sphereMeasure n).real Set.univ = 2 ^ (2 * n + 1) * π ^ n * (n ! : ℝ) / ((2 * n)! : ℝ) := by
-  have hnatid : (2 * n + 1) * (2 * n)! = (2 * n + 1)‼ * (2 ^ n * n !) := by
-    have h1 := Nat.factorial_eq_mul_doubleFactorial (2 * n)
-    rw [Nat.doubleFactorial_two_mul n, Nat.factorial_succ] at h1
-    exact h1
-  have hnat : (2 * (n : ℝ) + 1) * ((2 * n)! : ℝ)
-      = ((2 * n + 1)‼ : ℝ) * (2 ^ n * (n ! : ℝ)) := by
-    have h := congrArg (Nat.cast (R := ℝ)) hnatid
-    push_cast at h ⊢
-    linarith [h]
-  have hpi : (0 : ℝ) < √π := Real.sqrt_pos.mpr Real.pi_pos
-  have hdf : ((2 * n + 1)‼ : ℝ) ≠ 0 := by
-    exact_mod_cast (Nat.doubleFactorial_pos (2 * n + 1)).ne'
-  have hfac : ((2 * n)! : ℝ) ≠ 0 := by exact_mod_cast (Nat.factorial_pos (2 * n)).ne'
-  rw [sphereMeasure, MeasureTheory.Measure.toSphere_real_apply_univ, finrank_euclideanSpace_fin,
-    MeasureTheory.measureReal_def, EuclideanSpace.volume_ball]
-  simp only [Fintype.card_fin, ENNReal.ofReal_one, one_pow, one_mul]
-  rw [ENNReal.toReal_ofReal (by positivity)]
-  rw [show (((2 * n + 1 : ℕ) : ℝ) / 2 + 1) = ((n + 1 : ℕ) : ℝ) + 1 / 2 from by push_cast; ring,
-    Real.Gamma_nat_add_half, show 2 * (n + 1) - 1 = 2 * n + 1 from by omega,
-    show √π ^ (2 * n + 1) = π ^ n * √π from by
-      rw [pow_succ, pow_mul, Real.sq_sqrt Real.pi_pos.le],
-    show ((2 * n + 1 : ℕ) : ℝ) = 2 * (n : ℝ) + 1 from by push_cast; ring]
-  set A := ((2 * n + 1)‼ : ℝ)
-  set B := ((2 * n)! : ℝ)
-  set C := (n ! : ℝ)
-  field_simp
-  ring_nf
-  linear_combination (2 : ℝ) ^ (n + 1) * hnat
-
-/-! ## The Chern–Gauss–Bonnet theorem -/
-
-/-- **Chern–Gauss–Bonnet** for the closed even-dimensional manifold `S^{2n}`:
-the integral over the manifold of the Pfaffian of its curvature form, normalised by `(2π)ⁿ`,
-equals the Euler characteristic of the manifold. -/
-theorem chern_gauss_bonnet (n : ℕ) :
-    ((2 * π) ^ n)⁻¹ *
-        ∫ _x : sphere (0 : EuclideanSpace ℝ (Fin (2 * n + 1))) 1,
-          pfaffianCurvatureDensity n ∂(sphereMeasure n)
-      = (eulerCharSphere (2 * n) : ℝ) := by
-  have hfac : ((2 * n)! : ℝ) ≠ 0 := by exact_mod_cast (Nat.factorial_pos (2 * n)).ne'
-  have hnf : ((n)! : ℝ) ≠ 0 := by exact_mod_cast (Nat.factorial_pos n).ne'
-  have hpi : (π : ℝ) ≠ 0 := Real.pi_ne_zero
-  rw [MeasureTheory.integral_const, sphereMeasure_real_univ, smul_eq_mul,
-    pfaffianCurvatureDensity, eulerCharSphere_two_mul, mul_pow]
-  push_cast
-  field_simp
-  ring
-
-/-- The classical Gauss–Bonnet theorem in dimension two, as the case `n = 1` of
-`Math2.chern_gauss_bonnet`: for the unit sphere `S²` the Gauss curvature is `1`, so
-`∫_{S²} K dA = 4π = 2π · χ(S²)`. -/
-theorem gauss_bonnet_sphere_two :
-    (sphereMeasure 1).real Set.univ = 2 * π * (eulerCharSphere 2 : ℝ) := by
-  rw [sphereMeasure_real_univ, eulerCharSphere_two_mul 1]
-  norm_num
-  ring
-
-end Math2
-
-import Mathlib
-
 open scoped BigOperators
 open scoped Real
 open scoped Nat
@@ -149,12 +30,132 @@ set_option synthInstance.maxSize 128
 set_option relaxedAutoImplicit false
 set_option autoImplicit false
 
-set_option pp.fullNames true
-set_option pp.structureInstances true
-set_option pp.coercions.types true
-set_option pp.funBinderTypes true
-set_option pp.letVarTypes true
-set_option pp.piBinderTypes true
-
 set_option grind.warning false
+
+namespace Math2
+
+open MeasureTheory Metric Set
+
+/-- The value of the Pfaffian (Euler) form of the Riemann curvature operator of a Riemannian
+manifold of even dimension `2 * n` and constant sectional curvature `1`, measured against the
+Riemannian volume form.
+
+For constant sectional curvature `1` the curvature two-forms in an orthonormal coframe are
+`Ω i j = e i ∧ e j`, and the classical Pfaffian
+`Pf(Ω) = (2 ^ n * n !)⁻¹ * ∑ σ, sign σ • Ω (σ 1) (σ 2) ∧ ⋯ ∧ Ω (σ (2 * n - 1)) (σ (2 * n))`
+evaluates to `(2 * n)! / (2 ^ n * n !)` times the volume form.  (For `n = 1` this is the
+Gaussian curvature `K = 1` of the unit two-sphere.) -/
+noncomputable def pfaffianConstCurv (n : ℕ) : ℝ := (2 * n)! / (2 ^ n * n !)
+
+/-- The Riemannian volume of the round `2 * n`-dimensional sphere of radius `r`, i.e. of the
+sphere of radius `r` in the Euclidean space `ℝ ^ (2 * n + 1)`.
+
+It is defined as the derivative in `r` of the volume of the ball of radius `r`, that is
+`(2 * n + 1) * vol (ball 0 r) / r`; `roundSphereVolume_one` below identifies the value at
+`r = 1` with Mathlib's spherical measure `MeasureTheory.Measure.toSphere` of the unit sphere. -/
+noncomputable def roundSphereVolume (n : ℕ) (r : ℝ) : ℝ :=
+  (2 * n + 1) * (volume (ball (0 : EuclideanSpace ℝ (Fin (2 * n + 1))) r)).toReal / r
+
+lemma finrank_euclidean (m : ℕ) : Module.finrank ℝ (EuclideanSpace ℝ (Fin m)) = m := by
+  simp
+
+/-- At radius `1`, `roundSphereVolume` agrees with the canonical measure of the unit sphere
+obtained from Lebesgue measure by the polar coordinate decomposition. -/
+lemma roundSphereVolume_one (n : ℕ) :
+    roundSphereVolume n 1 =
+      (Measure.toSphere (volume : Measure (EuclideanSpace ℝ (Fin (2 * n + 1))))).real univ := by
+  rw [Measure.toSphere_real_apply_univ, finrank_euclidean, roundSphereVolume]
+  simp [measureReal_def]
+
+/-- Closed form for the volume of a ball of radius `r` in odd-dimensional Euclidean space. -/
+lemma volume_ball_odd (n : ℕ) {r : ℝ} (hr : 0 ≤ r) :
+    (volume (ball (0 : EuclideanSpace ℝ (Fin (2 * n + 1))) r)).toReal =
+      r ^ (2 * n + 1) * (Real.pi ^ n * 2 ^ (n + 1) / (2 * n + 1)‼) := by
+  rw [EuclideanSpace.volume_ball]
+  simp only [Fintype.card_fin]
+  have hG : Real.Gamma ((2 * n + 1 : ℕ) / 2 + 1)
+      = ((2 * (n + 1) - 1)‼ : ℕ) * Real.sqrt Real.pi / 2 ^ (n + 1) := by
+    rw [← Real.Gamma_nat_add_half (n + 1)]
+    congr 1
+    push_cast
+    ring
+  have hpi : Real.sqrt Real.pi ^ (2 * n + 1) = Real.pi ^ n * Real.sqrt Real.pi := by
+    rw [pow_succ, pow_mul, Real.sq_sqrt Real.pi_nonneg]
+  have h2 : 2 * (n + 1) - 1 = 2 * n + 1 := by omega
+  have hs : Real.sqrt Real.pi > 0 := Real.sqrt_pos.2 Real.pi_pos
+  have hd : ((2 * n + 1)‼ : ℝ) > 0 := by positivity
+  rw [hG, hpi, ENNReal.toReal_mul, ENNReal.toReal_pow, ENNReal.toReal_ofReal hr,
+    ENNReal.toReal_ofReal]
+  · rw [h2]
+    field_simp
+  · rw [h2]
+    positivity
+
+/-- Closed form for the Riemannian volume of the round `2 * n`-sphere of radius `r`:
+`vol = (2 * n + 1) * 2 ^ (n + 1) * π ^ n / (2 * n + 1)‼ * r ^ (2 * n)`. -/
+lemma roundSphereVolume_eq (n : ℕ) {r : ℝ} (hr : 0 < r) :
+    roundSphereVolume n r =
+      (2 * n + 1) * r ^ (2 * n) * (Real.pi ^ n * 2 ^ (n + 1) / (2 * n + 1)‼) := by
+  rw [roundSphereVolume, volume_ball_odd n hr.le]
+  field_simp
+  ring
+
+/-- `(2 * n + 1)‼ * (2 ^ n * n !) = (2 * n + 1)!`. -/
+lemma doubleFactorial_odd_mul (n : ℕ) : (2 * n + 1)‼ * (2 ^ n * n !) = (2 * n + 1)! := by
+  have h := Nat.factorial_eq_mul_doubleFactorial (2 * n)
+  rw [Nat.doubleFactorial_two_mul] at h
+  omega
+
+/-- Sanity check: the unit two-sphere has area `4 * π`. -/
+lemma roundSphereVolume_one_one : roundSphereVolume 1 1 = 4 * Real.pi := by
+  rw [roundSphereVolume_eq 1 one_pos]
+  norm_num [Nat.doubleFactorial]
+  ring
+
+/-- Sanity check: the unit four-sphere has volume `8 * π ^ 2 / 3`. -/
+lemma roundSphereVolume_two_one : roundSphereVolume 2 1 = 8 * Real.pi ^ 2 / 3 := by
+  rw [roundSphereVolume_eq 2 one_pos]
+  norm_num [Nat.doubleFactorial]
+  ring
+
+/-- **Chern–Gauss–Bonnet** for the round spheres `S ^ (2 * n)` of arbitrary radius `r > 0`
+(the constant-curvature case of the theorem, in every even dimension).
+
+The left-hand side is the Gauss–Bonnet integrand `(2 * π) ^ (-n) * Pf(Ω)` integrated over the
+manifold: the sphere of radius `r` has constant sectional curvature `r ^ (-2)`, so the Pfaffian
+of its curvature form is `pfaffianConstCurv n / r ^ (2 * n)` times the Riemannian volume form,
+and its integral is that constant times the total volume `roundSphereVolume n r`.  The
+right-hand side is the Euler characteristic `χ (S ^ (2 * n)) = 2`.
+
+For `n = 1` this is the classical Gauss–Bonnet theorem `∫ K dA = 2 * π * χ` for the round
+two-sphere. -/
+theorem chern_gauss_bonnet (n : ℕ) (r : ℝ) (hr : 0 < r) :
+    (1 / (2 * Real.pi) ^ n) * ((pfaffianConstCurv n / r ^ (2 * n)) * roundSphereVolume n r)
+      = 2 := by
+  rw [roundSphereVolume_eq n hr, pfaffianConstCurv]
+  have hR : ((2 * n + 1)‼ : ℝ) * (2 ^ n * (n ! : ℝ)) = (2 * (n : ℝ) + 1) * ((2 * n)! : ℝ) := by
+    have hnat : (2 * n + 1)‼ * (2 ^ n * n !) = (2 * n + 1) * (2 * n)! := by
+      rw [doubleFactorial_odd_mul, Nat.factorial_succ]
+    exact_mod_cast congrArg (fun k : ℕ => (k : ℝ)) hnat
+  have hd : ((2 * n + 1)‼ : ℝ) > 0 := by positivity
+  have hf : ((n ! : ℝ)) > 0 := by positivity
+  have hpi : Real.pi > 0 := Real.pi_pos
+  have hrp : r ^ (2 * n) > 0 := by positivity
+  field_simp
+  linear_combination (-(2 : ℝ) * Real.pi ^ n * 2 ^ n) * hR
+
+/-- The classical Gauss–Bonnet theorem for the round two-sphere of radius `r`:
+the total curvature `∫ K dA = (1 / r ^ 2) * area` equals `2 * π * χ` with `χ = 2`. -/
+theorem gauss_bonnet_two_sphere (r : ℝ) (hr : 0 < r) :
+    (1 / r ^ 2) * roundSphereVolume 1 r = 2 * Real.pi * 2 := by
+  have h := chern_gauss_bonnet 1 r hr
+  rw [pfaffianConstCurv] at h
+  norm_num at h ⊢
+  have hpi : Real.pi ≠ 0 := Real.pi_ne_zero
+  field_simp at h
+  rw [h]
+  have hr2 : r ^ 2 ≠ 0 := by positivity
+  field_simp
+
+end Math2
 

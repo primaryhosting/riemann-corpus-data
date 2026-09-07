@@ -1,37 +1,3 @@
-/-!
-# Ghz 5 Normalized
-Category: Quantum Computing
-Target: QC.ghz5_normalized
-Verification: pending
-Provenance: Aristotle theorem prover (Harmonic)
--/
-
-import Mathlib
-
-namespace QC
-
-/-- The 5-qubit GHZ state `(|00000⟩ + |11111⟩)/√2`, as a vector in the
-Hilbert space `ℂ^(2^5)` whose coordinates are indexed by bit strings `Fin 5 → Bool`. -/
-noncomputable def ghz5 : EuclideanSpace ℂ (Fin 5 → Bool) :=
-  WithLp.toLp 2 (fun b =>
-    if b = (fun _ => false) ∨ b = (fun _ => true) then ((1 / Real.sqrt 2 : ℝ) : ℂ) else 0)
-
-/-- The 5-qubit GHZ state is a unit vector. -/
-theorem ghz5_normalized : ‖ghz5‖ = 1 := by
-  rw [EuclideanSpace.norm_eq]
-  have hne : ¬ ((fun _ => false : Fin 5 → Bool) = (fun _ => true)) := by
-    intro hc; simpa using congrFun hc 0
-  have h : ∀ b : Fin 5 → Bool, ‖ghz5.ofLp b‖ ^ 2
-      = (if b = (fun _ => false) then (1/2 : ℝ) else 0)
-        + (if b = (fun _ => true) then (1/2 : ℝ) else 0) := by
-    intro b
-    by_cases h0 : b = (fun _ => false) <;> by_cases h1 : b = (fun _ => true) <;>
-      simp [ghz5, h0, h1, hne, Ne.symm hne, Complex.norm_real, Real.sq_sqrt]
-  simp only [h, Finset.sum_add_distrib, Finset.sum_ite_eq' Finset.univ]
-  norm_num
-
-end QC
-
 import Mathlib
 
 open scoped BigOperators
@@ -56,4 +22,46 @@ set_option pp.letVarTypes true
 set_option pp.piBinderTypes true
 
 set_option grind.warning false
+
+namespace QC
+
+/-- The computational-basis ket `|x⟩` for a 5-bit string `x`, as a vector in the
+5-qubit state space `ℂ^(2^5)`, modelled as `EuclideanSpace ℂ (Fin 5 → Fin 2)`. -/
+noncomputable def ket (x : Fin 5 → Fin 2) : EuclideanSpace ℂ (Fin 5 → Fin 2) :=
+  EuclideanSpace.single x 1
+
+/-- The 5-qubit GHZ state `(|00000⟩ + |11111⟩)/√2`. -/
+noncomputable def ghz5 : EuclideanSpace ℂ (Fin 5 → Fin 2) :=
+  ((Real.sqrt 2)⁻¹ : ℂ) • (ket (fun _ => 0) + ket (fun _ => 1))
+
+theorem zeros_ne_ones : ((fun _ => 0 : Fin 5 → Fin 2)) ≠ (fun _ => 1) := by
+  intro h
+  have := congrFun h 0
+  simp at this
+
+/-- Coordinates of the GHZ state: it is `1/√2` on the all-zeros and all-ones basis
+strings and `0` elsewhere. -/
+theorem ghz5_apply (x : Fin 5 → Fin 2) :
+    ghz5.ofLp x
+      = if x = (fun _ => 0) ∨ x = (fun _ => 1) then ((Real.sqrt 2)⁻¹ : ℂ) else 0 := by
+  by_cases h0 : x = (fun _ => 0) <;> by_cases h1 : x = (fun _ => 1) <;>
+    simp [ghz5, ket, EuclideanSpace.single_apply, h0, h1, zeros_ne_ones, zeros_ne_ones.symm]
+
+/-- The 5-qubit GHZ state `(|00000⟩ + |11111⟩)/√2` is a unit vector. -/
+theorem ghz5_normalized : ‖ghz5‖ = 1 := by
+  rw [EuclideanSpace.norm_eq]
+  have key : ∀ x : Fin 5 → Fin 2,
+      ‖ghz5.ofLp x‖ ^ 2
+        = (if x = (fun _ => 0) then (1 / 2 : ℝ) else 0)
+          + (if x = (fun _ => 1) then (1 / 2 : ℝ) else 0) := by
+    intro x
+    rw [ghz5_apply]
+    by_cases h0 : x = (fun _ => 0) <;> by_cases h1 : x = (fun _ => 1) <;>
+      simp [h0, h1, zeros_ne_ones, zeros_ne_ones.symm]
+  rw [Finset.sum_congr rfl (fun x _ => key x), Finset.sum_add_distrib,
+    Finset.sum_ite_eq' Finset.univ ((fun _ => 0 : Fin 5 → Fin 2)) (fun _ => (1 / 2 : ℝ)),
+    Finset.sum_ite_eq' Finset.univ ((fun _ => 1 : Fin 5 → Fin 2)) (fun _ => (1 / 2 : ℝ))]
+  norm_num
+
+end QC
 

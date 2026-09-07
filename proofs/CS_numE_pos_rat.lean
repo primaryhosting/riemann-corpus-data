@@ -89,7 +89,8 @@ lemma unsatFrac_le_one (G : ConstraintGraph q) (σ : Fin G.numV → Fin q) :
     unsatFrac G σ ≤ 1 := by
   rw [unsatFrac, div_le_one (numE_pos_rat G)]
   have : (badEdges G σ).card ≤ G.numE := by
-    simpa using (Finset.card_filter_le (Finset.univ : Finset (Fin G.numE)) _)
+    rw [badEdges]
+    exact (Finset.card_filter_le _ _).trans (by simp)
   exact_mod_cast this
 
 lemma exists_unsat_eq (G : ConstraintGraph q) :

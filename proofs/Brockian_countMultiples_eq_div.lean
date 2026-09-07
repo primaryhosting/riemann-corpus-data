@@ -137,7 +137,7 @@ lemma harmonic_div_log_tendsto :
   have hlog : Tendsto (fun N : ℕ => Real.log N) atTop atTop :=
     Real.tendsto_log_atTop.comp tendsto_natCast_atTop_atTop
   have h0 : Tendsto (fun N : ℕ => 1 / Real.log N) atTop (𝓝 0) := by
-    simpa [one_div, Function.comp] using tendsto_inv_atTop_zero.comp hlog
+    simpa [one_div, Function.comp_def] using tendsto_inv_atTop_zero.comp hlog
   have hinv : Tendsto (fun N : ℕ => 1 + 1 / Real.log N) atTop (𝓝 1) := by
     simpa using h0.const_add 1
   refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds hinv ?_ ?_
@@ -164,7 +164,7 @@ theorem total_over_main_tendsto_of_harmonic
   have hlog : Tendsto (fun N : ℕ => Real.log N) atTop atTop :=
     Real.tendsto_log_atTop.comp tendsto_natCast_atTop_atTop
   have h0 : Tendsto (fun N : ℕ => 1 / Real.log N) atTop (𝓝 0) := by
-    simpa [one_div, Function.comp] using tendsto_inv_atTop_zero.comp hlog
+    simpa [one_div, Function.comp_def] using tendsto_inv_atTop_zero.comp hlog
   set B : ℕ → ℝ := fun N => ((totalCount N : ℝ) - N * (harmonic N : ℝ)) / ((N : ℝ) * Real.log N)
     with hBdef
   have hBtend : Tendsto B atTop (𝓝 0) := by

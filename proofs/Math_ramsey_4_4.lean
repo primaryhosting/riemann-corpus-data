@@ -224,6 +224,7 @@ def paley17 : SimpleGraph (Fin 17) where
   Adj i j := paleyAdj i j = true
   symm := by
     have h : ∀ i j : Fin 17, paleyAdj i j = paleyAdj j i := by decide
+    constructor
     intro i j hij
     rw [h]; exact hij
   loopless := by

@@ -443,7 +443,7 @@ theorem D5Structure.pentagram_rays_not_D5_invariant :
          -- By definition of $D5Structure.isPentagramRay$, we know that $D5Structure.isPentagramRay (D5Structure.Ray.ray_2)$ holds. Let's choose any $g : D5$ such that $g • r$ is not a pentagram ray.
          obtain ⟨g, hg⟩ : ∃ g : D5, ¬D5Structure.isPentagramRay (g • r) := by
            by_contra! h;
-           have := h ( DihedralGroup.r 3 ) ; simp +decide [ D5Structure.Ray.fromZMod ] at this;
+           have := h ( DihedralGroup.r 3 ) ;
            cases this;
          exact fun h => hg <| h r h_r2 g
 

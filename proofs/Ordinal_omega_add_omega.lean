@@ -1,3 +1,11 @@
+/-
+# Omega Add Omega
+Category: Frontier Wave 2 (deeper machinery)
+Target: Ordinal.omega_add_omega
+Verification: pending
+Provenance: Aristotle theorem prover (Harmonic)
+-/
+
 import Mathlib
 
 /-!
@@ -26,10 +34,14 @@ set_option grind.warning false
 
 namespace Ordinal
 
-/-- Ordinal arithmetic: `ω + ω = ω * 2`. -/
+/-- Ordinal arithmetic: `ω + ω = ω * 2`.
+
+(In current Mathlib the first infinite ordinal is named `Ordinal.omega0`, written `ω`.) -/
 theorem omega_add_omega : Ordinal.omega0 + Ordinal.omega0 = Ordinal.omega0 * 2 := by
-  have h : (2 : Ordinal) = 1 + 1 := by norm_num
-  rw [h, mul_add, mul_one]
+  have h2 : (2 : Ordinal) = 1 + 1 := by norm_num
+  rw [h2, mul_add, mul_one]
 
 end Ordinal
+
+#print axioms Ordinal.omega_add_omega
 

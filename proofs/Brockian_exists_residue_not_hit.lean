@@ -75,7 +75,7 @@ theorem AdmissibilityKTupleK4 : IsAdmissibleTuple [0, 2, 6, 8] := by
     · exact ⟨1, by decide⟩
     · exact ⟨1, by decide⟩
     · exact absurd hp (by decide)
-  · exact exists_residue_not_hit _ p hp (by simpa using h5)
+  · exact exists_residue_not_hit _ p hp h5
 
 end Brockian
 

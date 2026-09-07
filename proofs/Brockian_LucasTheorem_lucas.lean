@@ -7,4 +7,3 @@ theorem lucas (p : ℕ) (hp : p.Prime) (m n : ℕ) :
   simpa [Nat.mul_comm] using
     (Choose.choose_modEq_choose_mod_mul_choose_div_nat (n := m) (k := n) (p := p))
 end Brockian.LucasTheorem
-

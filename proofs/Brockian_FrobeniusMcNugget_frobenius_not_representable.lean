@@ -24,4 +24,3 @@ theorem frobenius_not_representable (a b : ℕ) (ha : 1 < a) (hb : 1 < b)
   have hle : b ≤ x + 1 := Nat.le_of_dvd (by omega) hdiv
   nlinarith
 end Brockian.FrobeniusMcNugget
-

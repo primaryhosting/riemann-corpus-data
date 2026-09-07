@@ -72,7 +72,7 @@ theorem eVariationOn_sub_le {α : Type*} [LinearOrder α] (f g : α → ℝ) (s 
     _ = (∑ i ∈ Finset.range n, edist (f (u (i + 1))) (f (u i)))
           + ∑ i ∈ Finset.range n, edist (g (u (i + 1))) (g (u i)) := Finset.sum_add_distrib
     _ ≤ eVariationOn f s + eVariationOn g s :=
-        add_le_add (eVariationOn.sum_le f n hu us) (eVariationOn.sum_le g n hu us)
+        add_le_add (eVariationOn.sum_le hu us) (eVariationOn.sum_le hu us)
 
 /-- The right-continuous unit step function jumping at `c`. -/
 noncomputable def step (c : ℝ) : ℝ → ℝ := fun t => if c ≤ t then 1 else 0

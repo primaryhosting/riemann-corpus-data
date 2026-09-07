@@ -18,12 +18,10 @@ theorem not_zumkeller_prime_pow {p k : ℕ} (hp : p.Prime) : ¬ Zumkeller (p ^ k
   have key : 2 * p ^ k ≤ ∑ d ∈ (p ^ k).divisors, d := by
     by_cases h : p ^ k ∈ S
     · have h1 := Finset.single_le_sum (f := fun d : ℕ => d) (fun i _ => Nat.zero_le i) h
-      simp only at h1
       omega
     · have hT : p ^ k ∈ (p ^ k).divisors \ S := Finset.mem_sdiff.2 ⟨hmem, h⟩
       have hle := Finset.single_le_sum (f := fun d : ℕ => d) (fun i _ => Nat.zero_le i) hT
       have hsplit := Finset.sum_sdiff (f := fun d : ℕ => d) hS
-      simp only at hle hsplit
       omega
   -- But prime powers are deficient.
   have hdiv : ∑ d ∈ (p ^ k).divisors, d = ∑ i ∈ Finset.range (k + 1), p ^ i :=

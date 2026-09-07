@@ -9,4 +9,3 @@ theorem primitive_root_count {p : ℕ} [Fact p.Prime] :
   rw [ZMod.card_units p] at h ⊢
   simpa [Set.toFinset_setOf] using h
 end Brockian.MsPrimitiveRootCount
-

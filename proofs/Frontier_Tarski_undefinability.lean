@@ -1,114 +1,3 @@
-/-
-# Tarski Undefinability
-Category: Frontier — Set Theory
-Target: Frontier.Tarski_undefinability
-Verification: pending
-Provenance: Aristotle theorem prover (Harmonic)
--/
-
-import Mathlib
-
-/-!
-# Tarski Undefinability
-Category: Frontier — Set Theory
-Target: Frontier.Tarski_undefinability
-Verification: pending
-Provenance: Aristotle theorem prover (Harmonic)
--/
-
-open FirstOrder Language
-
-namespace Frontier
-
-/-! ## The language of arithmetic and its standard model -/
-
-/-- The function symbols of the language of arithmetic: `0`, `1`, `+`, `*`. -/
-inductive arithFunc : ℕ → Type
-  | zero : arithFunc 0
-  | one : arithFunc 0
-  | add : arithFunc 2
-  | mul : arithFunc 2
-  deriving DecidableEq
-
-/-- The (purely functional) first-order language of arithmetic, with symbols `0`, `1`, `+`, `*`. -/
-def arith : Language :=
-  { Functions := arithFunc, Relations := fun _ => Empty }
-
-/-- The standard model `ℕ` of the language of arithmetic. -/
-instance : arith.Structure ℕ where
-  funMap {n} f v :=
-    match n, f with
-    | _, .zero => 0
-    | _, .one => 1
-    | _, .add => v 0 + v 1
-    | _, .mul => v 0 * v 1
-  RelMap {_} r _ := r.elim
-
-/-- A set of tuples of naturals is *arithmetical* when it is definable, without parameters,
-by a first-order formula in the language of arithmetic interpreted in the standard model. -/
-def Arithmetical {α : Type} (s : Set (α → ℕ)) : Prop :=
-  (∅ : Set ℕ).Definable arith s
-
-/-- The *arithmetical truth set* associated with a Gödel numbering `enc` of the formulas with
-one free variable: it consists of the pairs `(e, n)` such that `e` is the code of a formula
-that is true in the standard model when its free variable is interpreted as `n`. -/
-def truthSet (enc : arith.Formula (Fin 1) → ℕ) : Set (Fin 2 → ℕ) :=
-  {v | ∃ φ : arith.Formula (Fin 1), enc φ = v 0 ∧ φ.Realize (fun _ => v 1)}
-
-instance : Countable ((l : ℕ) × arith.Functions l) := by
-  refine ⟨⟨fun p =>
-    match p with
-    | ⟨_, arithFunc.zero⟩ => 0
-    | ⟨_, arithFunc.one⟩ => 1
-    | ⟨_, arithFunc.add⟩ => 2
-    | ⟨_, arithFunc.mul⟩ => 3, ?_⟩⟩
-  rintro ⟨_, f⟩ ⟨_, g⟩ h
-  cases f <;> cases g <;> simp_all
-
-instance : Countable ((l : ℕ) × arith.Relations l) :=
-  ⟨⟨fun p => p.2.elim, fun p => p.2.elim⟩⟩
-
-instance : Countable arith.Symbols := inferInstanceAs (Countable (_ ⊕ _))
-
-/-! ## Tarski's undefinability theorem -/
-
-/-- **Tarski's undefinability of truth.**  Arithmetical truth is not arithmetically definable:
-for every Gödel numbering `enc` of the arithmetical formulas in one free variable, the set of
-pairs `(⌜φ⌝, n)` with `φ` true of `n` in the standard model `ℕ` is not definable by any
-first-order formula of the language of arithmetic. -/
-theorem Tarski_undefinability (enc : arith.Formula (Fin 1) → ℕ)
-    (henc : Function.Injective enc) : ¬ Arithmetical (truthSet enc) := by
-  intro h
-  -- Substituting the same variable in both arguments keeps definability: the diagonal
-  -- `{n | (n, n) ∈ truthSet enc}` is arithmetical, hence so is its complement.
-  have hdiag : Arithmetical
-      ((fun g : Fin 1 → ℕ => g ∘ (fun _ => 0 : Fin 2 → Fin 1)) ⁻¹' truthSet enc) :=
-    Set.Definable.preimage_comp _ h
-  obtain ⟨ψ, hψ⟩ := Set.empty_definable_iff.1 hdiag.compl
-  have key : ψ.Realize (fun _ => enc ψ) ↔
-      ¬ ∃ φ : arith.Formula (Fin 1), enc φ = enc ψ ∧ φ.Realize (fun _ => enc ψ) := by
-    have := Set.ext_iff.1 hψ (fun _ => enc ψ)
-    simpa [truthSet, Set.mem_compl_iff, Function.comp] using this.symm
-  have hex : (∃ φ : arith.Formula (Fin 1), enc φ = enc ψ ∧ φ.Realize (fun _ => enc ψ)) ↔
-      ψ.Realize (fun _ => enc ψ) := by
-    constructor
-    · rintro ⟨φ, hφ, hφ'⟩
-      rwa [henc hφ] at hφ'
-    · exact fun hb => ⟨ψ, rfl, hb⟩
-  rw [hex] at key
-  exact (not_iff_self key.symm).elim
-
-/-- Since the language of arithmetic is countable, Gödel numberings exist, so Tarski's
-theorem is not vacuous: there is a Gödel numbering, and for any such numbering the
-arithmetical truth set fails to be arithmetical. -/
-theorem exists_godel_numbering_truthSet_not_arithmetical :
-    ∃ enc : arith.Formula (Fin 1) → ℕ,
-      Function.Injective enc ∧ ¬ Arithmetical (truthSet enc) := by
-  obtain ⟨enc, henc⟩ := exists_injective_nat (arith.Formula (Fin 1))
-  exact ⟨enc, henc, Tarski_undefinability enc henc⟩
-
-end Frontier
-
 import Mathlib
 
 open scoped BigOperators
@@ -125,12 +14,138 @@ set_option synthInstance.maxSize 128
 set_option relaxedAutoImplicit false
 set_option autoImplicit false
 
-set_option pp.fullNames true
-set_option pp.structureInstances true
-set_option pp.coercions.types true
-set_option pp.funBinderTypes true
-set_option pp.letVarTypes true
-set_option pp.piBinderTypes true
-
 set_option grind.warning false
+
+/-!
+# Tarski's undefinability of truth
+
+This file formalizes Tarski's theorem: *arithmetical truth is not arithmetically definable*.
+
+We work with the first-order language of arithmetic `Frontier.arith`, with signature
+`(0, 1, +, *)`, interpreted in its standard model `ℕ`.
+
+* A set `S ⊆ ℕ` is **arithmetical** (`Frontier.Arithmetical`) if there is a formula `phi(x)` of
+  the language of arithmetic, with one free variable, such that `n ∈ S ↔ ℕ ⊨ phi(n)`.
+  Similarly for binary relations (`Frontier.Arithmetical₂`).
+
+* Fix any enumeration `f : ℕ → arith.Formula (Fin 1)` of the formulas with one free variable
+  (such enumerations exist, since the language is countable: see
+  `Frontier.exists_surjective_enumeration`). The **arithmetical truth relation** relative to
+  this enumeration is
+  `Frontier.truthSet f = {(e, n) | ℕ ⊨ (f e)(n)}`,
+  i.e. the satisfaction relation "the `e`-th formula is true of `n`".
+
+The theorem `Frontier.Tarski_undefinability` states that, for *every* enumeration `f` of the
+formulas, the truth relation `truthSet f` is **not** arithmetical: no single arithmetical
+formula `psi(x, y)` can express "the formula with code `x` is true of `y`". This is the standard
+coding-free (semantic) form of Tarski's undefinability theorem, and it is proved by
+diagonalization.
+-/
+
+namespace Frontier
+
+open FirstOrder Language Function
+
+/-- The function symbols of the language of arithmetic: the constants `0` and `1`, and the
+binary operations `+` and `*`. -/
+inductive arithFunc : ℕ → Type
+  | zero : arithFunc 0
+  | one : arithFunc 0
+  | add : arithFunc 2
+  | mul : arithFunc 2
+  deriving DecidableEq
+
+/-- The first-order language of arithmetic, with signature `(0, 1, +, *)` and no relation
+symbols. -/
+def arith : Language :=
+  { Functions := arithFunc
+    Relations := fun _ => Empty }
+
+instance (n : ℕ) : IsEmpty (arith.Relations n) := inferInstanceAs (IsEmpty Empty)
+
+/-- The standard model of arithmetic: the natural numbers, with the usual interpretation of
+`0`, `1`, `+` and `*`. -/
+instance : arith.Structure ℕ where
+  funMap
+  | .zero, _ => 0
+  | .one, _ => 1
+  | .add, v => v 0 + v 1
+  | .mul, v => v 0 * v 1
+  RelMap := fun {_} r => (IsEmpty.false r).elim
+
+instance : Countable (Σ n, arith.Functions n) := by
+  refine Function.Injective.countable (f := fun p =>
+      match p with
+      | ⟨_, .zero⟩ => 0
+      | ⟨_, .one⟩ => 1
+      | ⟨_, .add⟩ => 2
+      | ⟨_, .mul⟩ => (3 : ℕ)) ?_
+  rintro ⟨_, (_ | _ | _ | _)⟩ ⟨_, (_ | _ | _ | _)⟩ h <;> simp_all
+
+instance : IsEmpty (Σ n, arith.Relations n) := ⟨fun p => IsEmpty.false p.2⟩
+
+instance : Countable arith.Symbols :=
+  inferInstanceAs (Countable ((Σ n, arith.Functions n) ⊕ (Σ n, arith.Relations n)))
+
+/-- A set of natural numbers is *arithmetical* if it is definable in the standard model `ℕ`
+by a formula of the language of arithmetic with one free variable. -/
+def Arithmetical (S : Set ℕ) : Prop :=
+  ∃ phi : arith.Formula (Fin 1), ∀ n : ℕ, n ∈ S ↔ phi.Realize ![n]
+
+/-- A binary relation on natural numbers is *arithmetical* if it is definable in the standard
+model `ℕ` by a formula of the language of arithmetic with two free variables. -/
+def Arithmetical₂ (S : Set (ℕ × ℕ)) : Prop :=
+  ∃ psi : arith.Formula (Fin 2), ∀ e n : ℕ, (e, n) ∈ S ↔ psi.Realize ![e, n]
+
+/-- There exists an enumeration of all arithmetical formulas in one free variable: the language
+of arithmetic is countable. -/
+theorem exists_surjective_enumeration :
+    ∃ f : ℕ → arith.Formula (Fin 1), Surjective f :=
+  exists_surjective_nat _
+
+/-- The arithmetical truth (satisfaction) relation relative to an enumeration `f` of the
+formulas in one free variable: the pair `(e, n)` belongs to it exactly when the `e`-th formula
+is true of `n` in the standard model. -/
+def truthSet (f : ℕ → arith.Formula (Fin 1)) : Set (ℕ × ℕ) :=
+  {p : ℕ × ℕ | (f p.1).Realize ![p.2]}
+
+/-- Diagonal form of Tarski's theorem: for any enumeration `f` of the arithmetical formulas in
+one free variable, the diagonal set `{n | ℕ ⊭ (f n)(n)}` is not arithmetical. -/
+theorem diagonal_not_arithmetical (f : ℕ → arith.Formula (Fin 1)) (hf : Surjective f) :
+    ¬ Arithmetical {n : ℕ | ¬ (f n).Realize ![n]} := by
+  rintro ⟨phi, hphi⟩
+  obtain ⟨d, hd⟩ := hf phi
+  have h := hphi d
+  rw [Set.mem_setOf_eq, hd] at h
+  tauto
+
+/-- **Tarski's undefinability of truth.** Arithmetical truth is not arithmetically definable:
+for every enumeration `f` of the formulas of arithmetic in one free variable, the satisfaction
+relation `{(e, n) | ℕ ⊨ (f e)(n)}` is not definable in the standard model of arithmetic by any
+formula of the language of arithmetic. -/
+theorem Tarski_undefinability (f : ℕ → arith.Formula (Fin 1)) (hf : Surjective f) :
+    ¬ Arithmetical₂ (truthSet f) := by
+  rintro ⟨psi, hpsi⟩
+  -- The diagonal set is defined by the formula `¬ psi(x, x)`, contradicting `diagonal_not_arithmetical`.
+  refine diagonal_not_arithmetical f hf ⟨(Formula.relabel (fun _ => 0) psi).not, fun n => ?_⟩
+  have hcomp : (![n] : Fin 1 → ℕ) ∘ (fun _ : Fin 2 => (0 : Fin 1)) = ![n, n] := by
+    funext i; fin_cases i <;> rfl
+  rw [Set.mem_setOf_eq, Formula.realize_not, Formula.realize_relabel, hcomp]
+  exact not_congr (hpsi n n)
+
+/-! ### Sanity checks: the notion of an arithmetical set is not degenerate. -/
+
+/-- The set of idempotent naturals is arithmetical, being defined by `x * x = x`. -/
+example : Arithmetical {n : ℕ | n * n = n} :=
+  ⟨Term.equal (Functions.apply₂ arithFunc.mul (Term.var 0) (Term.var 0)) (Term.var 0), by
+    intro n; simp [Formula.Realize, Term.equal, Term.realize, Structure.funMap]⟩
+
+/-- The set of even naturals is arithmetical, being defined by `∃ y, x = y + y`. -/
+example : Arithmetical {n : ℕ | ∃ m, n = m + m} :=
+  ⟨BoundedFormula.ex (Term.bdEqual (Term.var (Sum.inl 0))
+      (Functions.apply₂ arithFunc.add (Term.var (Sum.inr 0)) (Term.var (Sum.inr 0)))), by
+    intro n
+    simp [Formula.Realize, Term.realize, Structure.funMap, Fin.snoc]⟩
+
+end Frontier
 

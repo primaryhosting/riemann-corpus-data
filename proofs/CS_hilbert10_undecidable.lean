@@ -1,3 +1,11 @@
+/-
+# Hilbert 10 Undecidable
+Category: Frontier Cs
+Target: CS.hilbert10_undecidable
+Verification: pending
+Provenance: Aristotle theorem prover (Harmonic)
+-/
+
 import Mathlib
 
 /-!
@@ -8,145 +16,158 @@ Verification: pending
 Provenance: Aristotle theorem prover (Harmonic)
 -/
 
-/-!
-## Notes on the formalisation
-
-Hilbert's tenth problem asks for an algorithm deciding whether a Diophantine equation has a
-solution.  Its unsolvability is the combination of two facts:
-
-* **MRDP / DPRM**: every recursively enumerable set of naturals is Diophantine;
-* the halting problem is recursively enumerable and undecidable.
-
-Mathlib contains Matiyasevich's contribution to the first fact — the power function is
-Diophantine, `Dioph.pow_dioph` — but not the MRDP theorem itself; the module
-`Mathlib.NumberTheory.Dioph` carries the explicit `TODO: Finish the solution of Hilbert's tenth
-problem`.  MRDP is therefore an explicit hypothesis of `CS.hilbert10_undecidable`, stated in
-Mathlib's own `Dioph` vocabulary, so that the theorem becomes unconditional as soon as MRDP is
-available.  Everything else in this file is proved unconditionally: the passage from Mathlib's
-`Dioph` (whose unknowns range over an arbitrary type) to an honest polynomial in finitely many
-unknowns, and the reduction of the halting problem.
--/
+open scoped Classical
 
 set_option maxHeartbeats 1000000
 set_option autoImplicit false
 
-open Fin2 Function Sum
-
 namespace CS
 
-/-- `CS.DiophantineSet S` says that `S ⊆ ℕ` is a Diophantine set: there are a number `k` of
-unknowns and an integer polynomial `p` in `1 + k` variables such that
+universe u
 
-`a ∈ S ↔ ∃ x : Fin k → ℕ, p (a, x 0, …, x (k-1)) = 0`.
+local infixr:65 " ⊗ " => Sum.elim
 
-This is the classical notion of a Diophantine subset of `ℕ` with one parameter, phrased with
-`MvPolynomial (Fin (k+1)) ℤ` so that the number of unknowns is explicitly finite. -/
-def DiophantineSet (S : Set ℕ) : Prop :=
-  ∃ (k : ℕ) (p : MvPolynomial (Fin (k + 1)) ℤ),
-    ∀ a : ℕ, a ∈ S ↔
-      ∃ x : Fin k → ℕ, MvPolynomial.eval (Fin.cons (a : ℤ) fun i => (x i : ℤ)) p = 0
+/-! ## Exponential polynomials
 
-/-- Every function in Mathlib's class `IsPoly` of integer polynomial functions is the evaluation
-of a genuine multivariate polynomial. -/
-theorem exists_mvPolynomial_of_isPoly {γ : Type} {f : (γ → ℕ) → ℤ} (hf : IsPoly f) :
-    ∃ P : MvPolynomial γ ℤ, ∀ x : γ → ℕ, f x = MvPolynomial.eval (fun i => (x i : ℤ)) P := by
-  induction hf with
-  | proj i => exact ⟨MvPolynomial.X i, fun x => by simp⟩
-  | const n => exact ⟨MvPolynomial.C n, fun x => by simp⟩
-  | sub _ _ ih1 ih2 =>
-      obtain ⟨P, hP⟩ := ih1; obtain ⟨Q, hQ⟩ := ih2
-      exact ⟨P - Q, fun x => by simp [hP, hQ]⟩
-  | mul _ _ ih1 ih2 =>
-      obtain ⟨P, hP⟩ := ih1; obtain ⟨Q, hQ⟩ := ih2
-      exact ⟨P * Q, fun x => by simp [hP, hQ]⟩
+An *exponential polynomial* in variables of type `α` is built from variables and natural
+number constants using addition, multiplication and exponentiation.  These are the objects
+occurring in the Davis–Putnam–Robinson theorem. -/
 
-/-- A set of naturals that is Diophantine in the sense of Mathlib's `Dioph` — where the unknowns
-range over an arbitrary type and the polynomial is an element of Mathlib's `Poly` — is
-Diophantine in the sense of `CS.DiophantineSet`: finitely many unknowns, and an honest
-multivariate polynomial. -/
-theorem diophantineSet_of_dioph {S : Set ℕ}
-    (h : Dioph {v : Fin2 1 → ℕ | v Fin2.fz ∈ S}) : DiophantineSet S := by
-  classical
+/-- Syntax of exponential polynomials with variables in `α`. -/
+inductive ExpPoly (α : Type u) : Type u
+  | var : α → ExpPoly α
+  | const : ℕ → ExpPoly α
+  | add : ExpPoly α → ExpPoly α → ExpPoly α
+  | mul : ExpPoly α → ExpPoly α → ExpPoly α
+  | pow : ExpPoly α → ExpPoly α → ExpPoly α
+
+/-- Evaluation of an exponential polynomial at a valuation `v : α → ℕ`. -/
+def ExpPoly.eval {α : Type u} : ExpPoly α → (α → ℕ) → ℕ
+  | .var i, v => v i
+  | .const n, _ => n
+  | .add p q, v => p.eval v + q.eval v
+  | .mul p q, v => p.eval v * q.eval v
+  | .pow p q, v => p.eval v ^ q.eval v
+
+/-- A set `S ⊆ ℕ^α` is *exponential Diophantine* if it is the projection of the solution set
+of an equation between two exponential polynomials. -/
+def ExpDioph {α : Type u} (S : Set (α → ℕ)) : Prop :=
+  ∃ (β : Type u) (e f : ExpPoly (α ⊕ β)), ∀ v, S v ↔ ∃ t, e.eval (v ⊗ t) = f.eval (v ⊗ t)
+
+/-- Every exponential polynomial defines a Diophantine function.  This uses Matiyasevic's
+theorem (`Dioph.pow_dioph`), i.e. that the graph of exponentiation is Diophantine. -/
+theorem diophFn_expPoly_eval {α : Type} (p : ExpPoly α) :
+    Dioph.DiophFn (fun v : α → ℕ => p.eval v) := by
+  induction p with
+  | var i => exact Dioph.proj_dioph i
+  | const n => exact Dioph.const_dioph n
+  | add p q hp hq => exact Dioph.add_dioph hp hq
+  | mul p q hp hq => exact Dioph.mul_dioph hp hq
+  | pow p q hp hq => exact Dioph.pow_dioph hp hq
+
+/-- **Exponentiation can be eliminated**: every exponential Diophantine set is Diophantine.
+This is the Diophantine-representation half of Matiyasevic's contribution to the MRDP
+theorem, obtained here from `Dioph.pow_dioph`. -/
+theorem dioph_of_expDioph {α : Type} {S : Set (α → ℕ)} (h : ExpDioph S) : Dioph S := by
+  obtain ⟨β, e, f, hS⟩ := h
+  have hEq : Dioph {w : α ⊕ β → ℕ | e.eval w = f.eval w} :=
+    Dioph.eq_dioph (diophFn_expPoly_eval e) (diophFn_expPoly_eval f)
+  exact Dioph.ext (Dioph.ex_dioph hEq) fun v => (hS v).symm
+
+/-- Every integer polynomial is the difference of two exponential polynomials with values
+in `ℕ`. -/
+theorem exists_expPoly_sub {α : Type u} (p : Poly α) :
+    ∃ e f : ExpPoly α, ∀ v, (p v : ℤ) = (e.eval v : ℤ) - (f.eval v : ℤ) := by
+  induction p using Poly.induction with
+  | H1 i => exact ⟨.var i, .const 0, fun v => by simp [ExpPoly.eval]⟩
+  | H2 n => exact ⟨.const n.toNat, .const (-n).toNat, fun v => by simp [ExpPoly.eval]⟩
+  | H3 p q hp hq =>
+    obtain ⟨e₁, f₁, h₁⟩ := hp
+    obtain ⟨e₂, f₂, h₂⟩ := hq
+    refine ⟨.add e₁ f₂, .add f₁ e₂, fun v => ?_⟩
+    simp only [Poly.sub_apply, ExpPoly.eval, h₁ v, h₂ v]
+    push_cast
+    ring
+  | H4 p q hp hq =>
+    obtain ⟨e₁, f₁, h₁⟩ := hp
+    obtain ⟨e₂, f₂, h₂⟩ := hq
+    refine ⟨.add (.mul e₁ e₂) (.mul f₁ f₂), .add (.mul e₁ f₂) (.mul f₁ e₂), fun v => ?_⟩
+    simp only [Poly.mul_apply, ExpPoly.eval, h₁ v, h₂ v]
+    push_cast
+    ring
+
+/-- Every Diophantine set is exponential Diophantine (exponentiation may simply be unused). -/
+theorem expDioph_of_dioph {α : Type} {S : Set (α → ℕ)} (h : Dioph S) : ExpDioph S := by
   obtain ⟨β, p, hp⟩ := h
-  obtain ⟨P, hP⟩ := exists_mvPolynomial_of_isPoly p.isPoly
-  obtain ⟨n, f, hfinj, q, rfl⟩ := MvPolynomial.exists_fin_rename P
-  refine ⟨n, MvPolynomial.rename (fun i : Fin n => if f i = Sum.inl Fin2.fz then 0 else i.succ) q,
-    fun a => ?_⟩
-  refine Iff.trans (hp (fun _ => a)) ?_
-  constructor
-  · rintro ⟨t, ht⟩
-    refine ⟨fun i => (Sum.elim (fun _ => a) t) (f i), ?_⟩
-    rw [MvPolynomial.eval_rename, hP, MvPolynomial.eval_rename] at *
-    rw [← ht]
-    congr 2
-    funext i
-    by_cases hfi : f i = Sum.inl Fin2.fz
-    · simp [Function.comp, hfi]
-    · simp [Function.comp, hfi]
-  · rintro ⟨x, hx⟩
-    refine ⟨fun b => if hb : ∃ i, f i = Sum.inr b then x (Classical.choose hb) else 0, ?_⟩
-    rw [hP, MvPolynomial.eval_rename]
-    rw [MvPolynomial.eval_rename] at hx
-    rw [← hx]
-    congr 2
-    funext i
-    by_cases hfi : f i = Sum.inl Fin2.fz
-    · simp [Function.comp, hfi]
-    · have hb2 : ∃ b, f i = Sum.inr b := by
-        cases hfe : f i with
-        | inl u => cases u with
-          | fz => exact absurd hfe hfi
-          | fs j => cases j
-        | inr b => exact ⟨b, rfl⟩
-      obtain ⟨b, hb⟩ := hb2
-      have hex : ∃ j, f j = Sum.inr b := ⟨i, hb⟩
-      have hch : Classical.choose hex = i := hfinj (by rw [Classical.choose_spec hex, hb])
-      simp [Function.comp, hb, hex, hch]
+  obtain ⟨e, f, hef⟩ := exists_expPoly_sub p
+  refine ⟨β, e, f, fun v => (hp v).trans ⟨?_, ?_⟩⟩ <;> rintro ⟨t, ht⟩ <;>
+    exact ⟨t, by have := hef (v ⊗ t); omega⟩
 
-/-- The halting set, as a set of natural numbers: `c ∈ haltingSet` iff the partial recursive
-function with code `c` halts on input `0`. -/
-def haltingSet : Set ℕ :=
-  {c : ℕ | (Nat.Partrec.Code.eval (Denumerable.ofNat Nat.Partrec.Code c) 0).Dom}
+/-- **Matiyasevic's theorem**: a set of tuples of naturals is Diophantine if and only if it is
+exponential Diophantine. -/
+theorem dioph_iff_expDioph {α : Type} {S : Set (α → ℕ)} : Dioph S ↔ ExpDioph S :=
+  ⟨expDioph_of_dioph, dioph_of_expDioph⟩
 
-/-- The halting set is recursively enumerable. -/
-theorem rePred_haltingSet : REPred (· ∈ haltingSet) :=
-  (ComputablePred.halting_problem_re 0).comp (Computable.ofNat Nat.Partrec.Code)
+/-! ## The Davis–Putnam–Robinson theorem, as a hypothesis
 
-/-- The halting set is undecidable. -/
-theorem not_computablePred_haltingSet : ¬ ComputablePred (· ∈ haltingSet) := by
+The remaining ingredient of the MRDP theorem is the Davis–Putnam–Robinson theorem: every
+recursively enumerable set of naturals admits an exponential Diophantine representation.
+This arithmetisation of computation is not available in Mathlib, so it is carried here as an
+explicit hypothesis of the main theorem. -/
+
+/-- The Davis–Putnam–Robinson theorem: every recursively enumerable predicate on `ℕ` is
+exponential Diophantine (as a subset of `ℕ^Unit`). -/
+def DavisPutnamRobinson : Prop :=
+  ∀ A : ℕ → Prop, REPred A → ExpDioph {v : Unit → ℕ | A (v ())}
+
+/-- The MRDP theorem: every recursively enumerable predicate on `ℕ` is Diophantine. -/
+def MRDP : Prop :=
+  ∀ A : ℕ → Prop, REPred A → Dioph {v : Unit → ℕ | A (v ())}
+
+/-- By Matiyasevic's theorem, the MRDP theorem is equivalent to the Davis–Putnam–Robinson
+theorem: eliminating exponentiation is the only gap between the two. -/
+theorem mrdp_iff_davisPutnamRobinson : MRDP ↔ DavisPutnamRobinson :=
+  ⟨fun h A hA => expDioph_of_dioph (h A hA), fun h A hA => dioph_of_expDioph (h A hA)⟩
+
+/-- Consequence of the Davis-Putnam-Robinson theorem: every recursively enumerable predicate
+on `ℕ` is Diophantine, i.e. of the form `fun a => ∃ t, p (a, t) = 0` for an integer
+polynomial `p`.  This is the **MRDP theorem**. -/
+theorem mrdp_of_dpr (hDPR : DavisPutnamRobinson) (A : ℕ → Prop) (hA : REPred A) :
+    ∃ (β : Type) (p : Poly (Unit ⊕ β)),
+      ∀ a : ℕ, A a ↔ ∃ t : β → ℕ, p ((fun _ => a) ⊗ t) = 0 := by
+  obtain ⟨β, p, hp⟩ := dioph_of_expDioph (hDPR A hA)
+  exact ⟨β, p, fun a => hp (fun _ => a)⟩
+
+/-! ## Undecidability of Hilbert's tenth problem -/
+
+/-- The halting problem, transported along the standard numbering of partial recursive
+programs: `haltsAt n` says that the `n`-th program halts on input `0`. -/
+def haltsAt (n : ℕ) : Prop :=
+  (Nat.Partrec.Code.eval (Denumerable.ofNat Nat.Partrec.Code n) 0).Dom
+
+theorem rePred_haltsAt : REPred haltsAt :=
+  (Nat.Partrec.Code.eval_part.comp (Computable.ofNat _) (Computable.const 0)).dom_re
+
+theorem not_computablePred_haltsAt : ¬ ComputablePred haltsAt := by
   intro h
-  refine ComputablePred.halting_problem 0 (ComputablePred.computable_of_manyOneReducible ?_ h)
-  exact ⟨fun c => Encodable.encode c, Computable.encode,
-    fun c => by simp [haltingSet, Denumerable.ofNat_encode]⟩
+  obtain ⟨f, hf, hEq⟩ := ComputablePred.computable_iff.1 h
+  refine ComputablePred.halting_problem 0 (ComputablePred.computable_iff.2
+    ⟨fun c => f (Encodable.encode c), hf.comp Computable.encode, funext fun c => ?_⟩)
+  have := congrFun hEq (Encodable.encode c)
+  simpa [haltsAt, Denumerable.ofNat_encode] using this
 
-/-- If the halting set is Diophantine, then Hilbert's tenth problem is undecidable: there is a
-single integer polynomial `p (a, x 0, …, x (k-1))` for which no algorithm decides, given the
-parameter `a`, whether `p (a, ·) = 0` has a solution in natural numbers. -/
-theorem undecidable_of_diophantineSet_haltingSet (h : DiophantineSet haltingSet) :
-    ∃ (k : ℕ) (p : MvPolynomial (Fin (k + 1)) ℤ),
-      ¬ ComputablePred fun a : ℕ =>
-        ∃ x : Fin k → ℕ, MvPolynomial.eval (Fin.cons (a : ℤ) fun i => (x i : ℤ)) p = 0 := by
-  obtain ⟨k, p, hp⟩ := h
-  refine ⟨k, p, fun hcomp => not_computablePred_haltingSet ?_⟩
-  exact hcomp.of_eq fun a => (hp a).symm
+/-- **Hilbert's tenth problem is undecidable** (the MRDP theorem, modulo the
+Davis–Putnam–Robinson arithmetisation of recursively enumerable sets).
 
-/-- **Hilbert's tenth problem is undecidable.**
-
-Given the MRDP (Matiyasevich–Robinson–Davis–Putnam) theorem — every recursively enumerable set
-of naturals is Diophantine — there is a single integer polynomial `p (a, x 0, …, x (k-1))` such
-that no algorithm decides, given `a`, whether the Diophantine equation `p (a, x) = 0` has a
-solution in the natural numbers.  A fortiori there is no algorithm for the general problem of
-deciding solvability of Diophantine equations.
-
-MRDP is not available in Mathlib (see the notes at the top of this file) and is taken here as
-the hypothesis `mrdp`, stated in Mathlib's own `Dioph` vocabulary. -/
-theorem hilbert10_undecidable
-    (mrdp : ∀ S : Set ℕ, REPred (· ∈ S) → Dioph {v : Fin2 1 → ℕ | v Fin2.fz ∈ S}) :
-    ∃ (k : ℕ) (p : MvPolynomial (Fin (k + 1)) ℤ),
-      ¬ ComputablePred fun a : ℕ =>
-        ∃ x : Fin k → ℕ, MvPolynomial.eval (Fin.cons (a : ℤ) fun i => (x i : ℤ)) p = 0 :=
-  undecidable_of_diophantineSet_haltingSet
-    (diophantineSet_of_dioph (mrdp haltingSet rePred_haltingSet))
+There is a single polynomial `p` with integer coefficients, in one distinguished parameter
+`a` and finitely many further unknowns `t`, such that no algorithm decides, given `a`,
+whether the Diophantine equation `p (a, t) = 0` has a solution `t` in the natural numbers.
+In particular there is no algorithm solving Hilbert's tenth problem in general. -/
+theorem hilbert10_undecidable (hDPR : DavisPutnamRobinson) :
+    ∃ (β : Type) (p : Poly (Unit ⊕ β)),
+      ¬ ComputablePred (fun a : ℕ => ∃ t : β → ℕ, p ((fun _ => a) ⊗ t) = 0) := by
+  obtain ⟨β, p, hp⟩ := mrdp_of_dpr hDPR haltsAt rePred_haltsAt
+  exact ⟨β, p, fun hcomp => not_computablePred_haltsAt (hcomp.of_eq fun a => (hp a).symm)⟩
 
 end CS
 

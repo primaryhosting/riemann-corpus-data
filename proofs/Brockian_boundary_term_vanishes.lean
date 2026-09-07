@@ -1,12 +1,12 @@
-import Mathlib
-
-/-!
+/-
 # Boundary Term Vanishes
 Category: Gate1 Operator
 Target: Brockian.DilationGenerator.boundary_term_vanishes
 Verification: pending
 Provenance: Aristotle theorem prover (Harmonic)
 -/
+
+import Mathlib
 
 open scoped BigOperators
 open scoped Real
@@ -22,52 +22,49 @@ set_option synthInstance.maxSize 128
 set_option relaxedAutoImplicit false
 set_option autoImplicit false
 
-set_option pp.fullNames true
-set_option pp.structureInstances true
-set_option pp.coercions.types true
-set_option pp.funBinderTypes true
-set_option pp.letVarTypes true
-set_option pp.piBinderTypes true
-
 set_option grind.warning false
-
-open Filter Topology
 
 namespace Brockian
 namespace DilationGenerator
 
-/-- **Vanishing of the boundary term for the dilation generator.**
+/-- A function with compact support contained in `(0, ∞)` vanishes on a neighbourhood
+of `0` (indeed on the whole of `(-∞, a)` for some `a > 0`). -/
+theorem eventually_eq_zero_near_zero {f : ℝ → ℂ} (hf : HasCompactSupport f)
+    (hsupp : tsupport f ⊆ Set.Ioi 0) : ∃ a > 0, ∀ x < a, f x = 0 := by
+  rcases Set.eq_empty_or_nonempty (tsupport f) with h | h
+  · exact ⟨1, one_pos, fun x _ => image_eq_zero_of_notMem_tsupport (by simp [h])⟩
+  · refine ⟨sInf (tsupport f), hsupp (hf.sInf_mem h), fun x hx => ?_⟩
+    refine image_eq_zero_of_notMem_tsupport (fun hmem => ?_)
+    exact absurd (csInf_le hf.bddBelow hmem) (not_le.mpr hx)
 
-For `f g : ℝ → ℂ` with compact support contained in `(0, ∞)`, the boundary expression
-`x * f x * conj (g x)` tends to `0` both as `x → 0⁺` and as `x → +∞`.
+/-- A function with compact support vanishes far out to the right. -/
+theorem eventually_eq_zero_atTop {f : ℝ → ℂ} (hf : HasCompactSupport f) :
+    ∃ b, ∀ x > b, f x = 0 := by
+  obtain ⟨b, hb⟩ := hf.bddAbove
+  refine ⟨b, fun x hx => image_eq_zero_of_notMem_tsupport (fun hmem => ?_)⟩
+  exact absurd (hb hmem) (not_le.mpr hx)
 
-Near `0` the point `0` lies outside the closed set `tsupport f`, so `f` vanishes on a whole
-neighbourhood of `0`; near `+∞` the set `tsupport f` is bounded above, so `f` vanishes for all
-large `x`. In both cases the product is eventually identically `0`.
-
-The hypotheses `hg` and `hg0` on `g` are part of the requested statement; the proof only needs
-the corresponding hypotheses on `f`. -/
-theorem boundary_term_vanishes
-    (f g : ℝ → ℂ)
+/-- **Boundary term vanishes.**  For `f, g : ℝ → ℂ` with compact support contained in
+`(0, ∞)`, the boundary expression `x * f x * conj (g x)` tends to `0` both as `x → 0⁺`
+and as `x → ∞`.  Both limits hold because the expression is identically zero outside a
+compact subset of `(0, ∞)`.  The hypotheses on `g` are kept because they are part of the
+requested statement, although the argument only needs those on `f`. -/
+theorem boundary_term_vanishes {f g : ℝ → ℂ}
     (hf : HasCompactSupport f) (hg : HasCompactSupport g)
-    (hf0 : tsupport f ⊆ Set.Ioi 0) (hg0 : tsupport g ⊆ Set.Ioi 0) :
-    Filter.Tendsto (fun x : ℝ => (x : ℂ) * f x * starRingEnd ℂ (g x))
-        (nhdsWithin 0 (Set.Ioi 0)) (nhds 0)
-    ∧ Filter.Tendsto (fun x : ℝ => (x : ℂ) * f x * starRingEnd ℂ (g x))
+    (hfs : tsupport f ⊆ Set.Ioi 0) (hgs : tsupport g ⊆ Set.Ioi 0) :
+    Filter.Tendsto (fun x : ℝ => (x : ℂ) * f x * (starRingEnd ℂ) (g x))
+        (nhdsWithin 0 (Set.Ioi 0)) (nhds 0) ∧
+      Filter.Tendsto (fun x : ℝ => (x : ℂ) * f x * (starRingEnd ℂ) (g x))
         Filter.atTop (nhds 0) := by
-  have h0 : (0 : ℝ) ∉ tsupport f := fun h => by simpa using hf0 h
+  obtain ⟨a, ha, hazero⟩ := eventually_eq_zero_near_zero hf hfs
+  obtain ⟨b, hbzero⟩ := eventually_eq_zero_atTop hf
   constructor
-  · -- Near `0⁺`: `f` vanishes on the open complement of `tsupport f`, a neighbourhood of `0`.
-    apply Filter.Tendsto.congr' (f₁ := fun _ : ℝ => (0 : ℂ)) _ tendsto_const_nhds
-    filter_upwards [nhdsWithin_le_nhds
-      ((isClosed_tsupport f).isOpen_compl.mem_nhds h0)] with x hx
-    simp [image_eq_zero_of_notMem_tsupport hx]
-  · -- At `+∞`: `tsupport f` is compact, hence bounded above, so `f` vanishes for large `x`.
-    obtain ⟨R, hR⟩ := (hf : IsCompact (tsupport f)).bddAbove
-    apply Filter.Tendsto.congr' (f₁ := fun _ : ℝ => (0 : ℂ)) _ tendsto_const_nhds
-    filter_upwards [Filter.eventually_gt_atTop R] with x hx
-    have hxn : x ∉ tsupport f := fun h => absurd (hR h) (not_le.mpr hx)
-    simp [image_eq_zero_of_notMem_tsupport hxn]
+  · refine Filter.Tendsto.congr' ?_ (tendsto_const_nhds (x := (0 : ℂ)))
+    filter_upwards [nhdsWithin_le_nhds (Iio_mem_nhds ha)] with x hx
+    simp [hazero x hx]
+  · refine Filter.Tendsto.congr' ?_ (tendsto_const_nhds (x := (0 : ℂ)))
+    filter_upwards [Filter.eventually_gt_atTop b] with x hx
+    simp [hbzero x hx]
 
 end DilationGenerator
 end Brockian

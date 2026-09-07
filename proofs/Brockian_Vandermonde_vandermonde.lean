@@ -6,4 +6,3 @@ theorem vandermonde (m n p : ℕ) :
   rw [Nat.add_choose_eq,
     Finset.Nat.sum_antidiagonal_eq_sum_range_succ (fun i j => m.choose i * n.choose j)]
 end Brockian.Vandermonde
-

@@ -284,11 +284,15 @@ def eigenMem (n : ℕ) : D.schrodingerOperator.domain :=
   (Module.Basis.span D.linearIndependent_eigen) n
 
 @[simp] lemma coe_eigenMem (n : ℕ) : (D.eigenMem n : H) = D.eigen n :=
-  Module.Basis.span_apply _ n
+  by rw [eigenMem, Module.Basis.span_apply]
 
 @[simp] lemma schrodingerOperator_apply_eigenMem (n : ℕ) :
-    D.schrodingerOperator (D.eigenMem n) = (D.energy n : ℂ) • D.eigen n :=
-  Module.Basis.constr_basis _ _ _ _
+    D.schrodingerOperator (D.eigenMem n) = (D.energy n : ℂ) • D.eigen n := by
+  show (Module.Basis.span D.linearIndependent_eigen).constr ℂ
+      (fun n => (D.energy n : ℂ) • D.eigen n)
+      ((Module.Basis.span D.linearIndependent_eigen) n) = (D.energy n : ℂ) • D.eigen n
+  exact Module.Basis.constr_basis (Module.Basis.span D.linearIndependent_eigen) ℂ
+    (fun n => (D.energy n : ℂ) • D.eigen n) n
 
 lemma dense_domain : Dense ((D.schrodingerOperator.domain : Submodule ℂ H) : Set H) :=
   Submodule.dense_iff_topologicalClosure_eq_top.2 D.eigen.dense_span

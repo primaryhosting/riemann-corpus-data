@@ -1,4 +1,5 @@
-/-
+import Mathlib
+/-!
 # Value At Ten
 Category: Riemann Program
 Target: Riemann.Mertens.value_at_ten
@@ -6,22 +7,22 @@ Verification: pending
 Provenance: Aristotle theorem prover (Harmonic)
 -/
 
-import Mathlib
-
 namespace Riemann.Mertens
 
 open ArithmeticFunction
 
-/-- The Mertens function `M n = ∑_{k=1}^{n} μ k`, the partial sums of the
-Möbius function.  (The Riemann Hypothesis is equivalent to
-`M n = O (n ^ (1/2 + ε))` for every `ε > 0`.) -/
-def M (n : ℕ) : ℤ := ∑ k ∈ Finset.Icc 1 n, moebius k
+/-- The Mertens function `M n = ∑_{k=1}^{n} μ k`, where `μ` is Mathlib's Möbius function
+`ArithmeticFunction.moebius`. -/
+def mertens (n : ℕ) : ℤ := ∑ k ∈ Finset.Icc 1 n, moebius k
 
-/-- `M 10 = -1`: the values `μ 1, …, μ 10` are
-`1, -1, -1, 0, -1, 1, -1, 0, 0, 1`, which sum to `-1`. -/
-theorem value_at_ten : M 10 = -1 := by
-  unfold M
+/-- `M 10 = ∑_{k=1}^{10} μ k = -1`. -/
+theorem value_at_ten : mertens 10 = -1 := by
+  unfold mertens
   decide +kernel
+
+/-- The same statement written out as an explicit sum of Möbius values. -/
+theorem sum_moebius_Icc_one_ten : ∑ k ∈ Finset.Icc 1 10, moebius k = -1 :=
+  value_at_ten
 
 end Riemann.Mertens
 

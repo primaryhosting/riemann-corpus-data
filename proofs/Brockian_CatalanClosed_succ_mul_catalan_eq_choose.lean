@@ -26,4 +26,3 @@ theorem succ_mul_catalan_eq_choose (n : ℕ) :
       | exact _root_.succ_mul_catalan_eq_centralBinom n
   simpa [Nat.centralBinom] using h
 end Brockian.CatalanClosed
-

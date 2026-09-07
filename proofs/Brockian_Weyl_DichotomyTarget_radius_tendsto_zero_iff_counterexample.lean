@@ -78,7 +78,7 @@ theorem radius_tendsto_zero_iff_of_pos (c : ℝ) (hc : 0 < c)
     have hc2 : 0 < 2 * c := by positivity
     have hprod : Tendsto (fun b => 2 * c * I b) atTop atTop :=
       Tendsto.const_mul_atTop hc2 hdiv
-    simpa only [one_div] using tendsto_inv_atTop_zero.comp hprod
+    simpa only [one_div, Function.comp_def] using tendsto_inv_atTop_zero.comp hprod
 
 /-- The limit-point case: if the L² mass diverges, the radius collapses to a point. -/
 theorem radius_to_zero_of_mass_infinite (c : ℝ) (hc : 0 < c)

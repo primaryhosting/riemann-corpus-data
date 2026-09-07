@@ -14,4 +14,3 @@ theorem cassini (n : ℕ) :
     ring_nf at ih ⊢
     linarith [ih]
 end Brockian.Cassini
-

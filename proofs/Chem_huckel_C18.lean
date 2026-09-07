@@ -1,129 +1,3 @@
-/-!
-# Huckel C 18
-Category: Chemistry
-Target: Chem.huckel_C18
-Verification: pending
-Provenance: Aristotle theorem prover (Harmonic)
--/
-
-import Mathlib
-
-open Complex Polynomial Matrix SimpleGraph
-
-namespace Chem
-
-/-- The primitive 18-th root of unity `exp (2πi/18)`. -/
-noncomputable def zeta18 : ℂ := Complex.exp (2 * Real.pi * Complex.I / 18)
-
-/-- The Hückel energies of the cycle `C₁₈` (in units of `β`, with `α = 0`):
-`2 cos (2πk/18)` for `k = 0, …, 17`. -/
-noncomputable def huckelEnergy (k : Fin 18) : ℝ := 2 * Real.cos (2 * Real.pi * k / 18)
-
-lemma zeta18_primitive : IsPrimitiveRoot zeta18 18 :=
-  Complex.isPrimitiveRoot_exp 18 (by norm_num)
-
-lemma zeta18_pow_18 : zeta18 ^ 18 = 1 := zeta18_primitive.pow_eq_one
-
-lemma zeta18_pow_pow_18 (k : ℕ) : (zeta18 ^ k) ^ 18 = 1 := by
-  rw [← pow_mul, mul_comm, pow_mul, zeta18_pow_18, one_pow]
-
-lemma zeta18_pow_eq_exp (k : ℕ) :
-    zeta18 ^ k = Complex.exp (((2 * Real.pi * k / 18 : ℝ) : ℂ) * Complex.I) := by
-  rw [zeta18, ← Complex.exp_nat_mul]
-  congr 1
-  push_cast
-  ring
-
-/-- `ζ^{-k} + ζ^{k} = 2 cos (2πk/18)`. -/
-lemma zeta18_pow_add_inv (k : Fin 18) :
-    (zeta18 ^ (k : ℕ)) ^ 17 + zeta18 ^ (k : ℕ) = ((huckelEnergy k : ℝ) : ℂ) := by
-  have h17 : (zeta18 ^ (k : ℕ)) ^ 17 = (zeta18 ^ (k : ℕ))⁻¹ := by
-    refine eq_inv_of_mul_eq_one_left ?_
-    rw [← pow_succ]
-    exact zeta18_pow_pow_18 _
-  rw [h17, zeta18_pow_eq_exp, ← Complex.exp_neg, huckelEnergy]
-  push_cast [Complex.ofReal_cos]
-  rw [Complex.two_cos]
-  ring_nf
-
-lemma pow_mod18 {u : ℂ} (hu : u ^ 18 = 1) (x : ℕ) : u ^ (x % 18) = u ^ x := by
-  conv_rhs => rw [← Nat.div_add_mod x 18]
-  rw [pow_add, pow_mul, hu, one_pow, one_mul]
-
-lemma fin18_add_pow {u : ℂ} (hu : u ^ 18 = 1) (a b : Fin 18) :
-    u ^ ((a + b : Fin 18) : ℕ) = u ^ (a : ℕ) * u ^ (b : ℕ) := by
-  rw [Fin.val_add, pow_mod18 hu, pow_add]
-
-lemma fin18_sub_one (j : Fin 18) : j - 1 = j + 17 := by revert j; decide
-
-lemma fin18_sub_ne_add (j : Fin 18) : j - 1 ≠ j + 1 := by revert j; decide
-
-/-- The (discrete Fourier) eigenvector matrix, `F j k = ζ^{jk}`. -/
-noncomputable def F18 : Matrix (Fin 18) (Fin 18) ℂ :=
-  Matrix.vandermonde (fun j => zeta18 ^ (j : ℕ))
-
-lemma F18_apply (j k : Fin 18) : F18 j k = (zeta18 ^ (k : ℕ)) ^ (j : ℕ) := by
-  simp [F18, Matrix.vandermonde, ← pow_mul, mul_comm]
-
-lemma F18_isUnit : IsUnit F18 := by
-  rw [Matrix.isUnit_iff_isUnit_det, isUnit_iff_ne_zero, F18, Matrix.det_vandermonde]
-  refine Finset.prod_ne_zero_iff.mpr (fun i _ => Finset.prod_ne_zero_iff.mpr (fun j hj => ?_))
-  rw [sub_ne_zero]
-  intro h
-  exact absurd (zeta18_primitive.pow_inj j.isLt i.isLt h)
-    (Fin.val_ne_of_ne (ne_of_gt (Finset.mem_Ioi.mp hj)))
-
-/-- The eigenvalue equation `A · F = F · D`. -/
-lemma adjMatrix_mul_F18 :
-    (SimpleGraph.cycleGraph 18).adjMatrix ℂ * F18
-      = F18 * Matrix.diagonal (fun k : Fin 18 => ((huckelEnergy k : ℝ) : ℂ)) := by
-  ext j k
-  have h1 : ((SimpleGraph.cycleGraph 18).adjMatrix ℂ * F18) j k
-      = (((SimpleGraph.cycleGraph 18).adjMatrix ℂ) *ᵥ (fun m => F18 m k)) j := by
-    simp [Matrix.mul_apply, Matrix.mulVec, dotProduct]
-  rw [h1, SimpleGraph.adjMatrix_mulVec_apply,
-    SimpleGraph.cycleGraph_neighborFinset (n := 16), Finset.sum_pair (fin18_sub_ne_add j),
-    fin18_sub_one, Matrix.mul_diagonal, F18_apply, F18_apply, F18_apply,
-    fin18_add_pow (zeta18_pow_pow_18 _), fin18_add_pow (zeta18_pow_pow_18 _),
-    ← zeta18_pow_add_inv k]
-  norm_num
-  ring
-
-/-- The adjacency matrix of `C₁₈` is conjugate to the diagonal matrix of Hückel energies. -/
-lemma adjMatrix_conj :
-    (SimpleGraph.cycleGraph 18).adjMatrix ℂ
-      = (F18_isUnit.unit : Matrix (Fin 18) (Fin 18) ℂ)
-        * Matrix.diagonal (fun k : Fin 18 => ((huckelEnergy k : ℝ) : ℂ))
-        * ((F18_isUnit.unit)⁻¹ : (Matrix (Fin 18) (Fin 18) ℂ)ˣ) := by
-  have hv : (F18_isUnit.unit : Matrix (Fin 18) (Fin 18) ℂ) = F18 := F18_isUnit.unit_spec
-  have hmul : (F18_isUnit.unit : Matrix (Fin 18) (Fin 18) ℂ)
-      * ((F18_isUnit.unit)⁻¹ : (Matrix (Fin 18) (Fin 18) ℂ)ˣ) = 1 := Units.mul_inv _
-  calc (SimpleGraph.cycleGraph 18).adjMatrix ℂ
-      = (SimpleGraph.cycleGraph 18).adjMatrix ℂ
-          * ((F18_isUnit.unit : Matrix (Fin 18) (Fin 18) ℂ)
-            * ((F18_isUnit.unit)⁻¹ : (Matrix (Fin 18) (Fin 18) ℂ)ˣ)) := by rw [hmul, mul_one]
-    _ = ((SimpleGraph.cycleGraph 18).adjMatrix ℂ * F18)
-          * ((F18_isUnit.unit)⁻¹ : (Matrix (Fin 18) (Fin 18) ℂ)ˣ) := by rw [hv, mul_assoc]
-    _ = _ := by rw [adjMatrix_mul_F18, hv]
-
-/--
-**Hückel theory for the annulene `C₁₈`.**
-
-The characteristic polynomial of the adjacency matrix of the cycle graph `C₁₈` factors as
-`∏_{k=0}^{17} (X - 2 cos (2πk/18))`, and consequently the spectrum of the adjacency matrix
-is exactly the set of Hückel energies `{2 cos (2πk/18) : k = 0, …, 17}`.
--/
-theorem huckel_C18 :
-    ((SimpleGraph.cycleGraph 18).adjMatrix ℂ).charpoly
-        = ∏ k : Fin 18, (Polynomial.X - Polynomial.C ((huckelEnergy k : ℝ) : ℂ))
-      ∧ spectrum ℂ ((SimpleGraph.cycleGraph 18).adjMatrix ℂ)
-        = Set.range (fun k : Fin 18 => ((huckelEnergy k : ℝ) : ℂ)) := by
-  constructor
-  · rw [adjMatrix_conj, Matrix.charpoly_units_conj, Matrix.charpoly_diagonal]
-  · rw [adjMatrix_conj, spectrum.units_conjugate, Matrix.spectrum_diagonal]
-
-end Chem
-
 import Mathlib
 
 open scoped BigOperators
@@ -140,12 +14,146 @@ set_option synthInstance.maxSize 128
 set_option relaxedAutoImplicit false
 set_option autoImplicit false
 
-set_option pp.fullNames true
-set_option pp.structureInstances true
-set_option pp.coercions.types true
-set_option pp.funBinderTypes true
-set_option pp.letVarTypes true
-set_option pp.piBinderTypes true
-
 set_option grind.warning false
+
+namespace Chem
+
+open Matrix
+
+/-- The standard additive character `x ↦ exp (2 π i x / 18)` on `ZMod 18`. -/
+noncomputable def psi : AddChar (ZMod 18) ℂ := ZMod.stdAddChar
+
+/-- The adjacency matrix of the cycle graph `C₁₈`, with vertex set viewed as `ZMod 18`
+(which is definitionally `Fin 18`). -/
+noncomputable def cycAdj : Matrix (ZMod 18) (ZMod 18) ℂ :=
+  (SimpleGraph.cycleGraph 18).adjMatrix ℂ
+
+/-- The discrete Fourier matrix on `ZMod 18`. -/
+noncomputable def dftMat : Matrix (ZMod 18) (ZMod 18) ℂ :=
+  Matrix.of fun j k => psi (j * k)
+
+/-- The inverse discrete Fourier matrix on `ZMod 18`. -/
+noncomputable def dftInv : Matrix (ZMod 18) (ZMod 18) ℂ :=
+  Matrix.of fun j k => (18 : ℂ)⁻¹ * psi (-(j * k))
+
+/-- The `k`-th Hückel eigenvalue of `C₁₈`. -/
+noncomputable def eigval (k : ZMod 18) : ℂ := psi k + psi (-k)
+
+lemma psi_sum (t : ZMod 18) : ∑ i : ZMod 18, psi (t * i) = if t = 0 then 18 else 0 := by
+  split_ifs with h
+  · simp [h, psi]
+  · exact AddChar.sum_eq_zero_of_ne_one (ZMod.isPrimitive_stdAddChar 18 h)
+
+lemma dft_mul_inv : dftMat * dftInv = 1 := by
+  ext j k
+  rw [Matrix.mul_apply]
+  simp only [dftMat, dftInv, Matrix.of_apply]
+  have key : ∀ i : ZMod 18, psi (j * i) * ((18 : ℂ)⁻¹ * psi (-(i * k)))
+      = (18 : ℂ)⁻¹ * psi ((j - k) * i) := by
+    intro i
+    rw [show (j - k) * i = j * i + -(i * k) by ring, AddChar.map_add_eq_mul]
+    ring
+  rw [Finset.sum_congr rfl (fun i _ => key i), ← Finset.mul_sum, psi_sum]
+  by_cases hjk : j = k
+  · simp [hjk, Matrix.one_apply]
+  · rw [if_neg (sub_ne_zero_of_ne hjk), Matrix.one_apply_ne hjk, mul_zero]
+
+lemma inv_mul_dft : dftInv * dftMat = 1 := by
+  ext j k
+  rw [Matrix.mul_apply]
+  simp only [dftMat, dftInv, Matrix.of_apply]
+  have key : ∀ i : ZMod 18, (18 : ℂ)⁻¹ * psi (-(j * i)) * psi (i * k)
+      = (18 : ℂ)⁻¹ * psi ((k - j) * i) := by
+    intro i
+    rw [show (k - j) * i = -(j * i) + i * k by ring, AddChar.map_add_eq_mul, mul_assoc]
+  rw [Finset.sum_congr rfl (fun i _ => key i), ← Finset.mul_sum, psi_sum]
+  by_cases hjk : j = k
+  · simp [hjk, Matrix.one_apply]
+  · rw [if_neg (sub_ne_zero_of_ne (fun h => hjk h.symm)), Matrix.one_apply_ne hjk, mul_zero]
+
+lemma cyc_adj_iff : ∀ j m : ZMod 18,
+    ((SimpleGraph.cycleGraph 18).Adj j m ↔ (m = j - 1 ∨ m = j + 1)) := by decide
+
+lemma cycAdj_apply (j m : ZMod 18) :
+    cycAdj j m = if (m = j - 1 ∨ m = j + 1) then 1 else 0 := by
+  rw [cycAdj, SimpleGraph.adjMatrix_apply]
+  simp only [cyc_adj_iff]
+
+lemma sub_one_ne_add_one (j : ZMod 18) : j - 1 ≠ j + 1 := by
+  intro h
+  have h2 : (2 : ZMod 18) = 0 := by linear_combination (norm := ring_nf) -h
+  exact absurd h2 (by decide)
+
+lemma adj_mul_dft : cycAdj * dftMat = dftMat * Matrix.diagonal eigval := by
+  ext j k
+  rw [Matrix.mul_apply, Matrix.mul_diagonal]
+  have key : ∀ m : ZMod 18, cycAdj j m * dftMat m k
+      = (if m = j - 1 then psi (m * k) else 0) + (if m = j + 1 then psi (m * k) else 0) := by
+    intro m
+    rw [cycAdj_apply, dftMat, Matrix.of_apply]
+    by_cases h1 : m = j - 1
+    · have h2 : m ≠ j + 1 := by rw [h1]; exact sub_one_ne_add_one j
+      rw [if_pos (Or.inl h1), if_pos h1, if_neg h2]; ring
+    · by_cases h2 : m = j + 1
+      · rw [if_pos (Or.inr h2), if_neg h1, if_pos h2]; ring
+      · rw [if_neg (by tauto), if_neg h1, if_neg h2]; ring
+  rw [Finset.sum_congr rfl (fun m _ => key m), Finset.sum_add_distrib,
+    Finset.sum_ite_eq' Finset.univ (j - 1) (fun m => psi (m * k)),
+    Finset.sum_ite_eq' Finset.univ (j + 1) (fun m => psi (m * k))]
+  simp only [Finset.mem_univ, if_true]
+  rw [dftMat, eigval, Matrix.of_apply]
+  rw [show (j - 1) * k = j * k + -k by ring, show (j + 1) * k = j * k + k by ring,
+    AddChar.map_add_eq_mul, AddChar.map_add_eq_mul]
+  ring
+
+lemma eigval_eq (k : ZMod 18) :
+    eigval k = ((2 * Real.cos (2 * Real.pi * (k.val : ℝ) / 18) : ℝ) : ℂ) := by
+  have hk : (((k.val : ℤ)) : ZMod 18) = k := by
+    push_cast
+    simp [ZMod.natCast_val, ZMod.cast_id]
+  have h1 : psi k = Complex.exp (2 * Real.pi * Complex.I * (k.val : ℤ) / 18) := by
+    rw [psi, ← hk, ZMod.stdAddChar_coe]
+    norm_num
+  have h2 : psi (-k) = Complex.exp (2 * Real.pi * Complex.I * (-(k.val : ℤ)) / 18) := by
+    rw [psi, show -k = (((-(k.val : ℤ)) : ℤ) : ZMod 18) by push_cast [hk]; ring,
+      ZMod.stdAddChar_coe]
+    norm_num
+  have h3 : ((2 * Real.cos (2 * Real.pi * (k.val : ℝ) / 18) : ℝ) : ℂ)
+      = 2 * Complex.cos ((2 * Real.pi * (k.val : ℝ) / 18 : ℝ) : ℂ) := by
+    push_cast [Complex.ofReal_cos]
+    ring
+  rw [eigval, h1, h2, h3, Complex.two_cos]
+  congr 1
+  · congr 1
+    push_cast
+    ring
+  · congr 1
+    push_cast
+    ring
+
+/-- **Hückel theory for `C₁₈`.** The spectrum of the adjacency matrix of the cycle graph
+`C₁₈` is exactly the set of numbers `2 cos (2 π k / 18)` for `k = 0, …, 17`. -/
+theorem huckel_C18 :
+    spectrum ℂ ((SimpleGraph.cycleGraph 18).adjMatrix ℂ) =
+      {μ : ℂ | ∃ k : ℕ, k < 18 ∧ μ = ((2 * Real.cos (2 * Real.pi * (k : ℝ) / 18) : ℝ) : ℂ)} := by
+  have hspec : spectrum ℂ ((SimpleGraph.cycleGraph 18).adjMatrix ℂ) = spectrum ℂ cycAdj := rfl
+  rw [hspec]
+  set u : (Matrix (ZMod 18) (ZMod 18) ℂ)ˣ := ⟨dftMat, dftInv, dft_mul_inv, inv_mul_dft⟩
+  have hconj : cycAdj = (u : Matrix (ZMod 18) (ZMod 18) ℂ) * Matrix.diagonal eigval
+      * ((u⁻¹ : (Matrix (ZMod 18) (ZMod 18) ℂ)ˣ) : Matrix (ZMod 18) (ZMod 18) ℂ) := by
+    have h : (u : Matrix (ZMod 18) (ZMod 18) ℂ) * Matrix.diagonal eigval = cycAdj * dftMat := by
+      rw [adj_mul_dft]
+    rw [h]
+    show cycAdj = cycAdj * dftMat * dftInv
+    rw [Matrix.mul_assoc, dft_mul_inv, Matrix.mul_one]
+  rw [hconj, spectrum.units_conjugate, spectrum_diagonal]
+  ext μ
+  constructor
+  · rintro ⟨k, rfl⟩
+    exact ⟨k.val, ZMod.val_lt k, eigval_eq k⟩
+  · rintro ⟨k, hk, rfl⟩
+    refine ⟨(k : ZMod 18), ?_⟩
+    rw [eigval_eq, ZMod.val_natCast_of_lt hk]
+
+end Chem
 

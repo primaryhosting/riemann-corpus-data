@@ -3,11 +3,11 @@ import Mathlib
 /-!
 # Parity/sieve arithmetic: two missing Liouville / Möbius divisor identities
 
-Both statements are about the Liouville function `λ` (`ArithmeticFunction.liouville`) and the
+Both statements are about the Liouville function `λ` (`ArithmeticFunction.liouville'`) and the
 Möbius function `μ` (`ArithmeticFunction.moebius`). The Möbius function is Mathlib's; the
 Liouville function is *not* present in the Mathlib version pinned by this project, so it is
 defined below in the `ArithmeticFunction` namespace, together with the facts that it is
-completely multiplicative (`liouville_apply_mul`, `isMultiplicative_liouville`) and its value on
+completely multiplicative (`liouville_apply_mul'`, `isMultiplicative_liouville'`) and its value on
 prime powers. Mathlib does not prove the classical square-indicator divisor identity below.
 These are the arithmetic backbone of the parity phenomenon in sieve theory.
 -/
@@ -18,41 +18,41 @@ namespace ArithmeticFunction
 prime factors of `n` counted with multiplicity.
 
 Note: the current Mathlib version pinned by this project (`v4.28.0`) does not contain a
-definition named `ArithmeticFunction.liouville`, so it is supplied here, in Mathlib's own
+definition named `ArithmeticFunction.liouville'`, so it is supplied here, in Mathlib's own
 `ArithmeticFunction` namespace, exactly as the classical function. -/
-def liouville : ArithmeticFunction ℤ where
+def liouville' : ArithmeticFunction ℤ where
   toFun n := if n = 0 then 0 else (-1) ^ cardFactors n
   map_zero' := by simp
 
 @[simp]
-theorem liouville_apply {n : ℕ} (hn : n ≠ 0) : liouville n = (-1) ^ cardFactors n := by
-  simp [liouville, hn]
+theorem liouville_apply' {n : ℕ} (hn : n ≠ 0) : liouville' n = (-1) ^ cardFactors n := by
+  simp [liouville', hn]
 
 /-- `λ` is completely multiplicative. -/
-theorem liouville_apply_mul {m n : ℕ} (hm : m ≠ 0) (hn : n ≠ 0) :
-    liouville (m * n) = liouville m * liouville n := by
-  rw [liouville_apply (by positivity), liouville_apply hm, liouville_apply hn,
+theorem liouville_apply_mul' {m n : ℕ} (hm : m ≠ 0) (hn : n ≠ 0) :
+    liouville' (m * n) = liouville' m * liouville' n := by
+  rw [liouville_apply' (by positivity), liouville_apply' hm, liouville_apply' hn,
     cardFactors_mul hm hn, pow_add]
 
-theorem isMultiplicative_liouville : liouville.IsMultiplicative := by
+theorem isMultiplicative_liouville' : liouville'.IsMultiplicative := by
   constructor
-  · simp [liouville]
+  · simp [liouville']
   · intro m n _
     rcases eq_or_ne m 0 with rfl | hm
-    · simp [liouville]
+    · simp [liouville']
     rcases eq_or_ne n 0 with rfl | hn
-    · simp [liouville]
-    exact liouville_apply_mul hm hn
+    · simp [liouville']
+    exact liouville_apply_mul' hm hn
 
-theorem liouville_prime_pow {p : ℕ} (hp : p.Prime) (k : ℕ) :
-    liouville (p ^ k) = (-1) ^ k := by
-  rw [liouville_apply (pow_ne_zero _ hp.ne_zero), cardFactors_apply_prime_pow hp]
+theorem liouville_prime_pow' {p : ℕ} (hp : p.Prime) (k : ℕ) :
+    liouville' (p ^ k) = (-1) ^ k := by
+  rw [liouville_apply' (pow_ne_zero _ hp.ne_zero), cardFactors_apply_prime_pow hp]
 
 /-- Local factor: the sum of `λ` over the divisors of a prime power. -/
-theorem sum_liouville_divisors_prime_pow {p : ℕ} (hp : p.Prime) (k : ℕ) :
-    ∑ d ∈ (p ^ k).divisors, liouville d = if Even k then 1 else 0 := by
+theorem sum_liouville_divisors_prime_pow' {p : ℕ} (hp : p.Prime) (k : ℕ) :
+    ∑ d ∈ (p ^ k).divisors, liouville' d = if Even k then 1 else 0 := by
   rw [Nat.sum_divisors_prime_pow hp]
-  simp only [liouville_prime_pow hp]
+  simp only [liouville_prime_pow' hp]
   rw [neg_one_geom_sum]
   rcases Nat.even_or_odd k with hk | hk
   · rw [if_pos hk, if_neg fun h => (Nat.even_add_one.mp h) hk]
@@ -89,23 +89,23 @@ is a perfect square and `0` otherwise.
 Intuition/proof sketch: `λ` is completely multiplicative, so `∑_{d ∣ n} λ(d)` is multiplicative
 in `n`; on a prime power `p^a` it is `∑_{j=0}^{a} (-1)^j = 1` if `a` is even, `0` if `a` is odd;
 the product over the prime factorization is therefore `1` iff every exponent is even, i.e. iff `n`
-is a perfect square. Useful Mathlib: `ArithmeticFunction.liouville`, `liouville_apply`,
-`liouville_apply_mul`, `isMultiplicative_liouville`, `Nat.ArithmeticFunction.IsMultiplicative`
+is a perfect square. Useful Mathlib: `ArithmeticFunction.liouville'`, `liouville_apply'`,
+`liouville_apply_mul'`, `isMultiplicative_liouville'`, `Nat.ArithmeticFunction.IsMultiplicative`
 divisor-sum lemmas, `Nat.isSquare_iff_...`/`Nat.factorization` characterisations of squares. -/
 theorem liouville_divisor_sum (n : ℕ) (hn : n ≠ 0) :
-    ∑ d ∈ n.divisors, ArithmeticFunction.liouville d = if IsSquare n then 1 else 0 := by
+    ∑ d ∈ n.divisors, ArithmeticFunction.liouville' d = if IsSquare n then 1 else 0 := by
   have hmul : ((ArithmeticFunction.zeta : ArithmeticFunction ℤ) *
-      ArithmeticFunction.liouville).IsMultiplicative :=
+      ArithmeticFunction.liouville').IsMultiplicative :=
     (ArithmeticFunction.IsMultiplicative.natCast ArithmeticFunction.isMultiplicative_zeta).mul
-      ArithmeticFunction.isMultiplicative_liouville
+      ArithmeticFunction.isMultiplicative_liouville'
   rw [← ArithmeticFunction.coe_zeta_mul_apply, hmul.multiplicative_factorization _ hn]
   have hfac : ∀ p ∈ n.factorization.support,
-      ((ArithmeticFunction.zeta : ArithmeticFunction ℤ) * ArithmeticFunction.liouville)
+      ((ArithmeticFunction.zeta : ArithmeticFunction ℤ) * ArithmeticFunction.liouville')
           (p ^ n.factorization p)
         = if Even (n.factorization p) then 1 else 0 := by
     intro p hp
     rw [ArithmeticFunction.coe_zeta_mul_apply,
-      ArithmeticFunction.sum_liouville_divisors_prime_pow
+      ArithmeticFunction.sum_liouville_divisors_prime_pow'
         (Nat.prime_of_mem_primeFactors (by simpa using hp))]
   rw [Finsupp.prod, Finset.prod_congr rfl hfac]
   by_cases hsq : IsSquare n

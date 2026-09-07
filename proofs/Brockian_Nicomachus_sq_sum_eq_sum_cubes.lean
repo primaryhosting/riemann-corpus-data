@@ -24,4 +24,3 @@ theorem sq_sum_eq_sum_cubes (n : ℕ) :
       nlinarith [e1, e2]
     omega
 end Brockian.Nicomachus
-

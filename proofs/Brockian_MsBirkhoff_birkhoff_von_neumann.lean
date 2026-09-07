@@ -12,4 +12,3 @@ theorem birkhoff_von_neumann {n : ℕ} (M : Matrix (Fin n) (Fin n) ℝ)
   obtain ⟨w, hw0, hw1, hw2⟩ := exists_eq_sum_perm_of_mem_doublyStochastic hM
   exact ⟨Finset.univ, w, fun σ _ => hw0 σ, hw1, hw2.symm⟩
 end Brockian.MsBirkhoff
-

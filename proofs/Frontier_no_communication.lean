@@ -1,3 +1,10 @@
+/-
+# No Communication
+Category: Frontier Physics
+Target: Frontier.no_communication
+Verification: pending
+Provenance: Aristotle theorem prover (Harmonic)
+-/
 import Mathlib
 
 /-!
@@ -6,92 +13,97 @@ Category: Frontier Physics
 Target: Frontier.no_communication
 Verification: pending
 Provenance: Aristotle theorem prover (Harmonic)
--/
 
-open scoped Kronecker BigOperators Matrix
+## Formalization
+
+We model a bipartite finite-dimensional quantum system: Alice's degrees of freedom are
+indexed by `A`, Bob's by `B`, and a joint state is a matrix `ρ : Matrix (A × B) (A × B) ℂ`
+(no positivity or normalization is needed for the argument).
+
+* `Frontier.ptraceAlice ρ` is the partial trace over Alice's system, i.e. the reduced
+  state seen by Bob.
+* A completely general local operation performed by Alice is a quantum channel given in
+  Kraus form by operators `K i : Matrix A A ℂ` satisfying `∑ i, (K i)ᴴ * K i = 1`
+  (trace preservation).  On the joint system it acts as `ρ ↦ ∑ i, (K i ⊗ 1) ρ (K i ⊗ 1)ᴴ`,
+  see `Frontier.aliceChannel`.
+
+`Frontier.no_communication` states that Bob's reduced state is completely unaffected by
+any such local operation of Alice; in particular no information can be transmitted to Bob,
+however entangled the state `ρ` is.
+-/
 
 namespace Frontier
 
-variable {A B : Type*} [Fintype A] [DecidableEq A] [Fintype B] [DecidableEq B]
+open Matrix
 
-private theorem sum_swap4 {α β γ δ : Type*} [Fintype α] [Fintype β] [Fintype γ] [Fintype δ]
+variable {A B I : Type*} [Fintype A] [Fintype B] [Fintype I] [DecidableEq A] [DecidableEq B]
+
+/-- The partial trace over Alice's subsystem: the reduced state seen by Bob. -/
+noncomputable def ptraceAlice (ρ : Matrix (A × B) (A × B) ℂ) : Matrix B B ℂ :=
+  Matrix.of fun b b' => ∑ a : A, ρ (a, b) (a, b')
+
+/-- The operator `K ⊗ 1`: it acts as `K` on Alice's system and trivially on Bob's. -/
+noncomputable def localOp (K : Matrix A A ℂ) : Matrix (A × B) (A × B) ℂ :=
+  Matrix.of fun p q => K p.1 q.1 * (if p.2 = q.2 then 1 else 0)
+
+/-- The local quantum channel applied by Alice, given by the Kraus operators `K`. -/
+noncomputable def aliceChannel (K : I → Matrix A A ℂ) (ρ : Matrix (A × B) (A × B) ℂ) :
+    Matrix (A × B) (A × B) ℂ :=
+  ∑ i : I, (localOp (B := B) (K i)) * ρ * (localOp (B := B) (K i))ᴴ
+
+/-- Auxiliary reordering of a quadruple sum. -/
+private theorem sum_comm4 {α β γ δ : Type*} [Fintype α] [Fintype β] [Fintype γ] [Fintype δ]
     (f : α → β → γ → δ → ℂ) :
     ∑ a, ∑ b, ∑ c, ∑ d, f a b c d = ∑ c, ∑ d, ∑ a, ∑ b, f a b c d := by
-  calc ∑ a, ∑ b, ∑ c, ∑ d, f a b c d
-      = ∑ a, ∑ c, ∑ d, ∑ b, f a b c d := by
-        refine Finset.sum_congr rfl fun a _ => ?_
-        rw [Finset.sum_comm]
-        exact Finset.sum_congr rfl fun c _ => Finset.sum_comm
-    _ = ∑ c, ∑ d, ∑ a, ∑ b, f a b c d := by
-        rw [Finset.sum_comm]
-        exact Finset.sum_congr rfl fun c _ => Finset.sum_comm
+  have h1 : ∀ a : α, ∑ b, ∑ c, ∑ d, f a b c d = ∑ c, ∑ d, ∑ b, f a b c d := by
+    intro a
+    rw [Finset.sum_comm]
+    exact Finset.sum_congr rfl fun c _ => Finset.sum_comm
+  simp only [h1]
+  rw [Finset.sum_comm]
+  exact Finset.sum_congr rfl fun c _ => Finset.sum_comm
 
-/-- Partial trace over the second (Bob's) factor of a bipartite operator. -/
-noncomputable def ptraceB (ρ : Matrix (A × B) (A × B) ℂ) : Matrix A A ℂ :=
-  Matrix.of fun i j => ∑ b : B, ρ (i, b) (j, b)
-
-/-- **No-communication theorem.**  Any local quantum operation performed on Bob's half of a
-bipartite state (a completely positive trace-preserving map given in Kraus form
-`ρ ↦ ∑ k (1 ⊗ Kₖ) ρ (1 ⊗ Kₖ)†` with `∑ k Kₖ† Kₖ = 1`) leaves Alice's reduced density matrix
-completely unchanged; hence no information can be transmitted to Alice by Bob's actions. -/
-theorem no_communication {K : Type*} [Fintype K]
-    (ρ : Matrix (A × B) (A × B) ℂ) (Kr : K → Matrix B B ℂ)
-    (hK : ∑ k, (Kr k)ᴴ * (Kr k) = 1) :
-    ptraceB (∑ k, (1 ⊗ₖ Kr k) * ρ * (1 ⊗ₖ Kr k)ᴴ) = ptraceB ρ := by
-  ext i j
-  have hK' : ∀ s q : B, ∑ k, ∑ b : B, (starRingEnd ℂ) (Kr k b s) * Kr k b q =
-      if s = q then (1 : ℂ) else 0 := by
-    intro s q
-    have := congrArg (fun M : Matrix B B ℂ => M s q) hK
+/-- **No-communication theorem.**  For any bipartite state `ρ` and any local quantum
+channel applied by Alice (given by Kraus operators `K i` with `∑ i, (K i)ᴴ * K i = 1`),
+the reduced state on Bob's side is unchanged.  Hence local operations on one half of an
+entangled pair cannot transmit any information. -/
+theorem no_communication (K : I → Matrix A A ℂ) (hK : ∑ i : I, (K i)ᴴ * (K i) = 1)
+    (ρ : Matrix (A × B) (A × B) ℂ) :
+    ptraceAlice (aliceChannel K ρ) = ptraceAlice ρ := by
+  ext b b'
+  have key : ∀ a1 a2 : A, (∑ i : I, ∑ a : A, star (K i a a2) * K i a a1)
+      = if a2 = a1 then (1 : ℂ) else 0 := by
+    intro a1 a2
+    have h := congrArg (fun M : Matrix A A ℂ => M a2 a1) hK
     simpa [Matrix.sum_apply, Matrix.mul_apply, Matrix.conjTranspose_apply, Matrix.one_apply]
-      using this
-  simp only [ptraceB, Matrix.of_apply, Matrix.sum_apply, Matrix.mul_apply,
-    Matrix.conjTranspose_apply, Matrix.kroneckerMap_apply, Matrix.one_apply,
-    Fintype.sum_prod_type_right, ite_mul, one_mul, zero_mul, Finset.sum_ite_eq,
-    Finset.mem_univ, if_true, star_mul', apply_ite (star : ℂ → ℂ), star_one, star_zero, mul_ite,
-    mul_zero]
-  have step : ∀ q s : B, ∑ b : B, ∑ k, Kr k b q * ρ (i, q) (j, s) * star (Kr k b s)
-      = ρ (i, q) (j, s) * (if s = q then 1 else 0) := by
-    intro q s
-    rw [← hK' s q, Finset.sum_comm, Finset.mul_sum]
-    refine Finset.sum_congr rfl fun k _ => ?_
+      using h
+  have step : ∀ a2 a1 : A,
+      (∑ a : A, ∑ i : I, K i a a1 * ρ (a1, b) (a2, b') * star (K i a a2))
+        = ρ (a1, b) (a2, b') * (if a2 = a1 then (1 : ℂ) else 0) := by
+    intro a2 a1
+    rw [Finset.sum_comm, ← key a1 a2, Finset.mul_sum]
+    refine Finset.sum_congr rfl fun i _ => ?_
     rw [Finset.mul_sum]
-    refine Finset.sum_congr rfl fun b _ => ?_
-    simp only [starRingEnd_apply]
-    ring
-  calc ∑ b : B, ∑ k, ∑ s : B, (∑ q : B, Kr k b q * ρ (i, q) (j, s)) * star (Kr k b s)
-      = ∑ b : B, ∑ k, ∑ s : B, ∑ q : B, Kr k b q * ρ (i, q) (j, s) * star (Kr k b s) := by
-        simp [Finset.sum_mul]
-    _ = ∑ s : B, ∑ q : B, ∑ b : B, ∑ k, Kr k b q * ρ (i, q) (j, s) * star (Kr k b s) :=
-        sum_swap4 _
-    _ = ∑ s : B, ∑ q : B, ρ (i, q) (j, s) * (if s = q then 1 else 0) :=
-        Finset.sum_congr rfl fun s _ => Finset.sum_congr rfl fun q _ => step q s
-    _ = ∑ b : B, ρ (i, b) (j, b) := by simp
+    exact Finset.sum_congr rfl fun a _ => by ring
+  simp only [ptraceAlice, aliceChannel, Matrix.of_apply, Matrix.sum_apply, Matrix.mul_apply,
+    Matrix.conjTranspose_apply, localOp, Fintype.sum_prod_type, ite_mul, mul_ite, zero_mul,
+    mul_zero, mul_one, Finset.sum_ite_eq, Finset.mem_univ, if_true,
+    apply_ite (star : ℂ → ℂ), star_zero, Finset.sum_mul]
+  rw [sum_comm4 (fun a i a2 a1 => K i a a1 * ρ (a1, b) (a2, b') * star (K i a a2))]
+  simp only [step]
+  simp
+
+/-- Sanity check: the hypotheses are satisfiable.  A single unitary Kraus operator (a
+unitary local operation of Alice) is a legitimate channel. -/
+example (U : Matrix A A ℂ) (hU : Uᴴ * U = 1) :
+    ∑ _i : Unit, Uᴴ * U = 1 := by simp [hU]
+
+/-- Specialization to a unitary local operation of Alice. -/
+theorem no_communication_unitary (U : Matrix A A ℂ) (hU : Uᴴ * U = 1)
+    (ρ : Matrix (A × B) (A × B) ℂ) :
+    ptraceAlice (localOp (B := B) U * ρ * (localOp (B := B) U)ᴴ) = ptraceAlice ρ := by
+  have h := no_communication (B := B) (I := Unit) (fun _ => U) (by simp [hU]) ρ
+  simpa [aliceChannel] using h
 
 end Frontier
-
-import Mathlib
-
-open scoped BigOperators
-open scoped Real
-open scoped Nat
-open scoped Classical
-open scoped Pointwise
-
-set_option maxHeartbeats 8000000
-set_option maxRecDepth 4000
-set_option synthInstance.maxHeartbeats 20000
-set_option synthInstance.maxSize 128
-
-set_option relaxedAutoImplicit false
-set_option autoImplicit false
-
-set_option pp.fullNames true
-set_option pp.structureInstances true
-set_option pp.coercions.types true
-set_option pp.funBinderTypes true
-set_option pp.letVarTypes true
-set_option pp.piBinderTypes true
-
-set_option grind.warning false
 

@@ -40,4 +40,3 @@ theorem heron (A B C : EuclideanSpace ℝ (Fin 2)) :
   ring
 
 end Brockian.MsHeron
-

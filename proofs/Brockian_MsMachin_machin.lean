@@ -19,4 +19,3 @@ theorem machin : Real.pi / 4 = 4 * Real.arctan (1 / 5) - Real.arctan (1 / 239) :
   rw [h4, ← h3, Real.arctan_one]
   ring
 end Brockian.MsMachin
-

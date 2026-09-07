@@ -10,17 +10,23 @@ import Mathlib
 
 namespace Brockian
 
-/-- **Cosine trace-norm bound.**  If each row `i` of a real square matrix `A` is rescaled by
-`Real.cos (θ i)`, then the trace of the resulting matrix is bounded in absolute value by the
-sum of the absolute values of the diagonal entries of `A`. -/
-theorem CosTraceNorm3499 {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ) (θ : Fin n → ℝ) :
-    |Matrix.trace (Matrix.of fun i j => Real.cos (θ i) * A i j)| ≤ ∑ i, |A i i| := by
-  rw [Matrix.trace]
-  refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum ?_)
-  intro i _
-  simp only [Matrix.diag_apply, Matrix.of_apply, abs_mul]
-  have h : |Real.cos (θ i)| ≤ 1 := Real.abs_cos_le_one _
-  nlinarith [abs_nonneg (A i i), abs_nonneg (Real.cos (θ i))]
+/-- **Cos Trace Norm 3499.**
+
+For the real diagonal matrix `D = diagonal (fun i => cos (θ i))` of size `n`, the absolute
+value of its trace is bounded by its trace norm `∑ i, |cos (θ i)|` (the sum of the singular
+values of a real diagonal matrix), which in turn is bounded by `n`.
+
+The proof uses the Mathlib lemmas `Matrix.trace_diagonal`, `Finset.abs_sum_le_sum_abs` and
+`Real.abs_cos_le_one`. -/
+theorem CosTraceNorm3499 (n : ℕ) (θ : Fin n → ℝ) :
+    |Matrix.trace (Matrix.diagonal fun i => Real.cos (θ i))| ≤ ∑ i, |Real.cos (θ i)| ∧
+      ∑ i, |Real.cos (θ i)| ≤ (n : ℝ) := by
+  constructor
+  · rw [Matrix.trace_diagonal]
+    exact Finset.abs_sum_le_sum_abs _ _
+  · calc ∑ i, |Real.cos (θ i)| ≤ ∑ _i : Fin n, (1 : ℝ) :=
+          Finset.sum_le_sum fun i _ => Real.abs_cos_le_one _
+      _ = (n : ℝ) := by simp
 
 end Brockian
 

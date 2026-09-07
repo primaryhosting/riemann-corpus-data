@@ -8,4 +8,3 @@ theorem chebyshev_sum {n : ℕ} (a b : Fin n → ℝ) (hmono : Monotone a) (hmon
   have h := (hmono.monovary hmono').sum_mul_sum_le_card_mul_sum
   simpa using h
 end Brockian.MsChebyshevSum
-

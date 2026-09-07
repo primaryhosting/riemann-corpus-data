@@ -1,13 +1,5 @@
 import Mathlib
 
-/-!
-# Binary Search Correct
-Category: Computer Science
-Target: CS.binary_search_correct
-Verification: pending
-Provenance: Aristotle theorem prover (Harmonic)
--/
-
 open scoped BigOperators
 open scoped Real
 open scoped Nat
@@ -22,111 +14,124 @@ set_option synthInstance.maxSize 128
 set_option relaxedAutoImplicit false
 set_option autoImplicit false
 
+set_option pp.fullNames true
+set_option pp.structureInstances true
+set_option pp.coercions.types true
+set_option pp.funBinderTypes true
+set_option pp.letVarTypes true
+set_option pp.piBinderTypes true
+
 set_option grind.warning false
 
 namespace CS
 
-variable {α : Type*} [LinearOrder α]
-
-/-- Binary search for `key` in the index range `[lo, hi)` of the "array" `f`. -/
-def bsearchAux (f : ℕ → α) (key : α) (lo hi : ℕ) : Option ℕ :=
-  if lo < hi then
-    if f ((lo + hi) / 2) = key then some ((lo + hi) / 2)
-    else if f ((lo + hi) / 2) < key then bsearchAux f key ((lo + hi) / 2 + 1) hi
-    else bsearchAux f key lo ((lo + hi) / 2)
+/-- Binary search for `key` in the sub-range `[lo, hi)` of the array `a`.
+Returns `some i` for an index `i` with `a[i]! = key`, and `none` if the key is
+not found in that range. -/
+def bsearchAux (a : Array Int) (key : Int) (lo hi : Nat) : Option Nat :=
+  if _h : lo < hi then
+    if a[(lo + hi) / 2]! = key then some ((lo + hi) / 2)
+    else if a[(lo + hi) / 2]! < key then bsearchAux a key ((lo + hi) / 2 + 1) hi
+    else bsearchAux a key lo ((lo + hi) / 2)
   else none
 termination_by hi - lo
 decreasing_by
   · omega
   · omega
 
-/-- Soundness: if binary search returns an index, it is in range and holds the key. -/
-theorem bsearchAux_sound (f : ℕ → α) (key : α) (lo hi i : ℕ)
-    (h : bsearchAux f key lo hi = some i) :
-    lo ≤ i ∧ i < hi ∧ f i = key := by
-  induction lo, hi using bsearchAux.induct (f := f) (key := key) with
-  | case1 lo hi hlt hmid =>
-      rw [bsearchAux, if_pos hlt, if_pos hmid] at h
-      have hi' : i = (lo + hi) / 2 := by simpa using h.symm
-      subst hi'
-      exact ⟨by omega, by omega, hmid⟩
-  | case2 lo hi hlt hne hmlt ih =>
-      rw [bsearchAux, if_pos hlt, if_neg hne, if_pos hmlt] at h
-      have := ih h
-      exact ⟨by omega, this.2.1, this.2.2⟩
-  | case3 lo hi hlt hne hmlt ih =>
-      rw [bsearchAux, if_pos hlt, if_neg hne, if_neg hmlt] at h
-      have := ih h
-      exact ⟨this.1, by omega, this.2.2⟩
-  | case4 lo hi hlt =>
-      rw [bsearchAux, if_neg hlt] at h
-      exact absurd h (by simp)
+/-- Binary search over the whole array. -/
+def binarySearch (a : Array Int) (key : Int) : Option Nat :=
+  bsearchAux a key 0 a.size
 
-/-- Completeness: on a range where `f` is monotone, if the key occurs then binary search
-finds some index. -/
-theorem bsearchAux_complete (f : ℕ → α) (key : α) (lo hi : ℕ)
-    (hmono : ∀ i j, lo ≤ i → i ≤ j → j < hi → f i ≤ f j)
-    (i : ℕ) (hlo : lo ≤ i) (hhi : i < hi) (hfi : f i = key) :
-    (bsearchAux f key lo hi).isSome := by
-  induction lo, hi using bsearchAux.induct (f := f) (key := key) generalizing i with
-  | case1 lo hi hlt hmid =>
-      rw [bsearchAux, if_pos hlt, if_pos hmid]
-      rfl
-  | case2 lo hi hlt hne hmlt ih =>
-      rw [bsearchAux, if_pos hlt, if_neg hne, if_pos hmlt]
-      have himid : (lo + hi) / 2 < i := by
-        by_contra hcon
-        push_neg at hcon
-        have hle : f i ≤ f ((lo + hi) / 2) := hmono i ((lo + hi) / 2) hlo hcon (by omega)
-        rw [hfi] at hle
-        exact absurd hmlt (not_lt.mpr hle)
-      exact ih (fun a b ha hab hb => hmono a b (by omega) hab hb) i (by omega) hhi hfi
-  | case3 lo hi hlt hne hmlt ih =>
-      rw [bsearchAux, if_pos hlt, if_neg hne, if_neg hmlt]
-      have himid : i < (lo + hi) / 2 := by
-        by_contra hcon
-        push_neg at hcon
-        have hle : f ((lo + hi) / 2) ≤ f i := hmono ((lo + hi) / 2) i (by omega) hcon hhi
-        rw [hfi] at hle
-        have hkm : key < f ((lo + hi) / 2) := lt_of_le_of_ne (not_lt.mp hmlt) (Ne.symm hne)
-        exact absurd hle (not_le.mpr hkm)
-      exact ih (fun a b ha hab hb => hmono a b ha hab (by omega)) i hlo himid hfi
-  | case4 lo hi hlt =>
-      omega
+/-- `a` is sorted in non-decreasing order. -/
+def Sorted (a : Array Int) : Prop :=
+  ∀ i j : Nat, i ≤ j → j < a.size → a[i]! ≤ a[j]!
 
-/-- Binary search on an array, using the standard midpoint recursion. -/
-def bsearch [Inhabited α] (a : Array α) (key : α) : Option ℕ :=
-  bsearchAux (fun i => a[i]!) key 0 a.size
+/-- Soundness of the auxiliary search: any returned index lies in the searched
+range and points at the key. -/
+theorem bsearchAux_sound (a : Array Int) (key : Int) :
+    ∀ (lo hi i : Nat), bsearchAux a key lo hi = some i →
+      lo ≤ i ∧ i < hi ∧ a[i]! = key := by
+  intro lo hi
+  induction lo, hi using bsearchAux.induct (a := a) (key := key) with
+  | case1 lo hi h hmid =>
+    intro i hi'
+    rw [bsearchAux] at hi'
+    simp only [dif_pos h, if_pos hmid, Option.some.injEq] at hi'
+    subst hi'
+    exact ⟨by omega, by omega, hmid⟩
+  | case2 lo hi h hne hlt ih =>
+    intro i hi'
+    rw [bsearchAux] at hi'
+    simp only [dif_pos h, if_neg hne, if_pos hlt] at hi'
+    have := ih i hi'
+    exact ⟨by omega, this.2.1, this.2.2⟩
+  | case3 lo hi h hne hlt ih =>
+    intro i hi'
+    rw [bsearchAux] at hi'
+    simp only [dif_pos h, if_neg hne, if_neg hlt] at hi'
+    have := ih i hi'
+    exact ⟨this.1, by omega, this.2.2⟩
+  | case4 lo hi h =>
+    intro i hi'
+    rw [bsearchAux] at hi'
+    simp only [dif_neg h, reduceCtorEq] at hi'
 
-/--
-**Binary search is correct.**
+/-- Completeness of the auxiliary search on a sorted array: if the key occurs in
+the searched range, the search returns some index. -/
+theorem bsearchAux_complete (a : Array Int) (key : Int) (hs : Sorted a) :
+    ∀ (lo hi : Nat), hi ≤ a.size →
+      ∀ j : Nat, lo ≤ j → j < hi → a[j]! = key →
+        ∃ i, bsearchAux a key lo hi = some i := by
+  intro lo hi
+  induction lo, hi using bsearchAux.induct (a := a) (key := key) with
+  | case1 lo hi h hmid =>
+    intro _ _ _ _ _
+    refine ⟨(lo + hi) / 2, ?_⟩
+    rw [bsearchAux]
+    simp only [dif_pos h, if_pos hmid]
+  | case2 lo hi h hne hlt ih =>
+    intro hhi j hlj hjh hj
+    rw [bsearchAux]
+    simp only [dif_pos h, if_neg hne, if_pos hlt]
+    refine ih hhi j ?_ hjh hj
+    by_contra hcon
+    have hjm : j ≤ (lo + hi) / 2 := by omega
+    have := hs j ((lo + hi) / 2) hjm (by omega)
+    rw [hj] at this
+    omega
+  | case3 lo hi h hne hlt ih =>
+    intro hhi j hlj hjh hj
+    rw [bsearchAux]
+    simp only [dif_pos h, if_neg hne, if_neg hlt]
+    refine ih (by omega) j hlj ?_ hj
+    by_contra hcon
+    have hmj : (lo + hi) / 2 ≤ j := by omega
+    have := hs ((lo + hi) / 2) j hmj (by omega)
+    rw [hj] at this
+    omega
+  | case4 lo hi h =>
+    intro _ j hlj hjh _
+    omega
 
-If `a` is a sorted array (indices in increasing order have non-decreasing entries), then
-`CS.bsearch a key` returns an index if and only if `key` occurs in `a`; moreover whenever it
-returns an index `i`, that index is in range and `a[i] = key`.
--/
-theorem binary_search_correct [Inhabited α] (a : Array α) (key : α)
-    (hsorted : ∀ i j, i ≤ j → j < a.size → a[i]! ≤ a[j]!) :
-    ((bsearch a key).isSome ↔ ∃ i, ∃ h : i < a.size, a[i] = key) ∧
-      ∀ i, bsearch a key = some i → ∃ h : i < a.size, a[i] = key := by
-  have hsound : ∀ i, bsearch a key = some i → 0 ≤ i ∧ i < a.size ∧ a[i]! = key := by
-    intro i h
-    exact bsearchAux_sound (fun i => a[i]!) key 0 a.size i h
+/-- **Binary search is correct**: on a sorted array, binary search returns an
+index if and only if the key is present in the array.  Moreover (see
+`CS.binary_search_index`) any returned index really points at the key. -/
+theorem binary_search_correct (a : Array Int) (key : Int) (hs : Sorted a) :
+    (∃ i, binarySearch a key = some i) ↔ (∃ i, i < a.size ∧ a[i]! = key) := by
   constructor
-  · constructor
-    · intro h
-      obtain ⟨i, hi⟩ := Option.isSome_iff_exists.mp h
-      obtain ⟨-, hlt, heq⟩ := hsound i hi
-      exact ⟨i, hlt, by rwa [getElem!_pos a i hlt] at heq⟩
-    · rintro ⟨i, hlt, heq⟩
-      refine bsearchAux_complete (fun i => a[i]!) key 0 a.size
-        (fun p q _ hpq hq => hsorted p q hpq hq) i (Nat.zero_le _) hlt ?_
-      simpa [getElem!_pos a i hlt] using heq
-  · intro i h
-    obtain ⟨-, hlt, heq⟩ := hsound i h
-    exact ⟨hlt, by rwa [getElem!_pos a i hlt] at heq⟩
+  · rintro ⟨i, hi⟩
+    obtain ⟨-, h2, h3⟩ := bsearchAux_sound a key 0 a.size i hi
+    exact ⟨i, h2, h3⟩
+  · rintro ⟨j, hj, hjk⟩
+    exact bsearchAux_complete a key hs 0 a.size le_rfl j (Nat.zero_le _) hj hjk
+
+/-- Any index returned by binary search is a valid index of the array holding
+the key. -/
+theorem binary_search_index (a : Array Int) (key : Int) (i : Nat)
+    (h : binarySearch a key = some i) : i < a.size ∧ a[i]! = key := by
+  obtain ⟨-, h2, h3⟩ := bsearchAux_sound a key 0 a.size i h
+  exact ⟨h2, h3⟩
 
 end CS
-
-#print axioms CS.binary_search_correct
 

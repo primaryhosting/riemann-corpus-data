@@ -9,4 +9,3 @@ theorem freshman_dream (p a b : ℕ) (hp : p.Prime) :
     exact add_pow_char _ _ _
   exact (ZMod.natCast_eq_natCast_iff _ _ _).mp h
 end Brockian.FreshmanDream
-

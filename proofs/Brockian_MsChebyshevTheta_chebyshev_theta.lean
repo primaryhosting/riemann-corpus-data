@@ -18,4 +18,3 @@ theorem chebyshev_theta (n : ℕ) :
         push_cast
         rw [Real.log_pow]
 end Brockian.MsChebyshevTheta
-

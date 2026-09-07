@@ -1,3 +1,11 @@
+/-
+# Sato Tate
+Category: Frontier Math
+Target: Math2.sato_tate
+Verification: pending
+Provenance: Aristotle theorem prover (Harmonic)
+-/
+
 import Mathlib
 
 /-!
@@ -8,89 +16,158 @@ Verification: pending
 Provenance: Aristotle theorem prover (Harmonic)
 -/
 
-open Real Filter Topology
+open scoped Real ENNReal NNReal Classical
+open MeasureTheory Filter Topology Set
 
 namespace Math2
 
-open scoped Classical
+/-- The Sato–Tate density on `[0, π]`: `θ ↦ (2/π) sin²θ`. -/
+noncomputable def satoTateDensity (x : ℝ) : ℝ := 2 / Real.pi * Real.sin x ^ 2
 
-/-- The Sato–Tate density on `[0, π]`: `θ ↦ (2/π) · sin²θ`.
-The associated measure `(2/π) sin²θ dθ` on `[0, π]` is the Sato–Tate measure. -/
-noncomputable def satoTateDensity (θ : ℝ) : ℝ := (2 / Real.pi) * Real.sin θ ^ 2
+/-- The Sato–Tate measure: the measure on `ℝ` with density `(2/π) sin²θ` supported on `[0, π]`. -/
+noncomputable def satoTateMeasure : Measure ℝ :=
+  (volume.restrict (Set.Icc 0 Real.pi)).withDensity fun x => ENNReal.ofReal (satoTateDensity x)
 
-/-- The Frobenius angle attached to a prime `p` and the trace of Frobenius `a`:
-the unique `θ ∈ [0, π]` with `a = 2√p · cos θ` (the Hasse bound `|a| ≤ 2√p`
-guarantees that this is well defined). -/
-noncomputable def frobeniusAngle (p : ℕ) (a : ℤ) : ℝ :=
+lemma satoTateDensity_nonneg (x : ℝ) : 0 ≤ satoTateDensity x := by
+  have h : (0:ℝ) < Real.pi := Real.pi_pos
+  unfold satoTateDensity
+  positivity
+
+/-- The value of the Sato–Tate integral over an interval. -/
+lemma lintegral_satoTateDensity_Icc {a b : ℝ} (hab : a ≤ b) :
+    ∫⁻ x in Set.Icc a b, ENNReal.ofReal (satoTateDensity x) =
+      ENNReal.ofReal ((b - a - (Real.sin b * Real.cos b - Real.sin a * Real.cos a)) / Real.pi) := by
+  have hcont : Continuous satoTateDensity := by unfold satoTateDensity; fun_prop
+  have hint : IntegrableOn satoTateDensity (Set.Icc a b) := hcont.integrableOn_Icc
+  rw [← ofReal_integral_eq_lintegral_ofReal hint
+    (Filter.Eventually.of_forall satoTateDensity_nonneg)]
+  congr 1
+  rw [MeasureTheory.integral_Icc_eq_integral_Ioc, ← intervalIntegral.integral_of_le hab]
+  unfold satoTateDensity
+  rw [intervalIntegral.integral_const_mul, integral_sin_sq]
+  have : Real.pi ≠ 0 := Real.pi_ne_zero
+  field_simp
+  ring
+
+/-- The Sato–Tate mass of an interval is nonnegative. -/
+lemma satoTate_value_nonneg {a b : ℝ} (hab : a ≤ b) :
+    0 ≤ (b - a - (Real.sin b * Real.cos b - Real.sin a * Real.cos a)) / Real.pi := by
+  have h : (0:ℝ) ≤ ∫ x in a..b, Real.sin x ^ 2 :=
+    intervalIntegral.integral_nonneg hab fun x _ => sq_nonneg _
+  rw [integral_sin_sq] at h
+  have hpi : (0:ℝ) < Real.pi := Real.pi_pos
+  apply div_nonneg _ hpi.le
+  linarith
+
+/-- The Sato–Tate measure of a subinterval `[a,b] ⊆ [0,π]`. -/
+theorem satoTateMeasure_Icc {a b : ℝ} (ha : 0 ≤ a) (hab : a ≤ b) (hb : b ≤ Real.pi) :
+    satoTateMeasure (Set.Icc a b) =
+      ENNReal.ofReal ((b - a - (Real.sin b * Real.cos b - Real.sin a * Real.cos a)) / Real.pi) := by
+  rw [satoTateMeasure, withDensity_apply _ measurableSet_Icc,
+    Measure.restrict_restrict measurableSet_Icc,
+    Set.inter_eq_self_of_subset_left (Set.Icc_subset_Icc ha hb),
+    lintegral_satoTateDensity_Icc hab]
+
+/-- The Sato–Tate measure is a probability measure. -/
+instance satoTate_isProbabilityMeasure : IsProbabilityMeasure satoTateMeasure := by
+  constructor
+  rw [satoTateMeasure, withDensity_apply _ MeasurableSet.univ, Measure.restrict_univ,
+    lintegral_satoTateDensity_Icc Real.pi_pos.le]
+  simp [Real.pi_ne_zero]
+
+/-- The Sato–Tate distribution, as a probability measure on `ℝ`. -/
+noncomputable def satoTateProb : ProbabilityMeasure ℝ := ⟨satoTateMeasure, inferInstance⟩
+
+/-- The Sato–Tate measure has no atoms. -/
+lemma satoTateMeasure_singleton (x : ℝ) : satoTateMeasure {x} = 0 := by
+  rw [satoTateMeasure, withDensity_apply _ (measurableSet_singleton x)]
+  refine setLIntegral_measure_zero _ _ ?_
+  simp
+
+/-- The Sato–Tate measure gives no mass to the boundary of an interval. -/
+lemma satoTateMeasure_frontier_Icc (a b : ℝ) : satoTateMeasure (frontier (Set.Icc a b)) = 0 := by
+  have hsub : frontier (Set.Icc a b) ⊆ {a, b} := by
+    intro x hx
+    have h1 : x ∈ closure (Set.Icc a b) := frontier_subset_closure hx
+    have h2 : x ∉ interior (Set.Icc a b) := by
+      rw [frontier] at hx; exact hx.2
+    rw [closure_Icc] at h1
+    rw [interior_Icc] at h2
+    simp only [Set.mem_Ioo, not_and_or, not_lt] at h2
+    rcases h2 with h | h
+    · exact Or.inl (le_antisymm h h1.1)
+    · exact Or.inr (le_antisymm h1.2 h)
+  refine measure_mono_null hsub ?_
+  rw [Set.insert_eq]
+  exact measure_union_null (satoTateMeasure_singleton a) (satoTateMeasure_singleton b)
+
+/-- The Frobenius angle attached to a trace of Frobenius `a` at a prime `p`:
+`θ_p = arccos (a_p / (2√p))`, where `a_p = p + 1 - #E(𝔽_p)`. -/
+noncomputable def frobeniusAngle (a : ℤ) (p : ℕ) : ℝ :=
   Real.arccos ((a : ℝ) / (2 * Real.sqrt p))
 
-/-- The proportion, among the primes `p < N`, of those whose Frobenius angle lies in
-`[α, β]`. -/
-noncomputable def angleRatio (a : ℕ → ℤ) (α β : ℝ) (N : ℕ) : ℝ :=
-  (((Finset.range N).filter
-      (fun p => Nat.Prime p ∧ frobeniusAngle p (a p) ∈ Set.Icc α β)).card : ℝ) /
-    (((Finset.range N).filter Nat.Prime).card : ℝ)
+lemma frobeniusAngle_mem_Icc (a : ℤ) (p : ℕ) : frobeniusAngle a p ∈ Set.Icc 0 Real.pi :=
+  ⟨Real.arccos_nonneg _, Real.arccos_le_pi _⟩
 
-/-- The Sato–Tate equidistribution property for a sequence `a : ℕ → ℤ` of traces of
-Frobenius: for every subinterval `[α, β] ⊆ [0, π]`, the proportion of primes whose
-Frobenius angle lies in `[α, β]` converges to the Sato–Tate measure of `[α, β]`.
-
-The Sato–Tate conjecture (a theorem of Clozel–Harris–Shepherd-Barron–Taylor for
-elliptic curves over `ℚ`) asserts that this holds for the trace sequence of any
-elliptic curve without complex multiplication. -/
-def SatoTateEquidistributed (a : ℕ → ℤ) : Prop :=
-  ∀ α β : ℝ, 0 ≤ α → α ≤ β → β ≤ Real.pi →
-    Tendsto (angleRatio a α β) atTop (𝓝 (∫ θ in α..β, satoTateDensity θ))
-
-/-- The Sato–Tate density integrates to `1` over `[0, π]`, i.e. `(2/π) sin²θ dθ` is a
-probability measure on `[0, π]`. -/
-theorem integral_satoTateDensity : (∫ θ in (0:ℝ)..Real.pi, satoTateDensity θ) = 1 := by
-  have hπ : Real.pi ≠ 0 := Real.pi_ne_zero
-  simp only [satoTateDensity]
-  rw [intervalIntegral.integral_const_mul, integral_sin_sq]
+/-- Under the Hasse bound `|a_p| ≤ 2√p`, the Frobenius angle satisfies
+`a_p = 2 √p cos θ_p`. -/
+lemma cos_frobeniusAngle {a : ℤ} {p : ℕ} (hp : 0 < p)
+    (hasse : |(a : ℝ)| ≤ 2 * Real.sqrt p) :
+    2 * Real.sqrt p * Real.cos (frobeniusAngle a p) = (a : ℝ) := by
+  have hs : 0 < Real.sqrt p := Real.sqrt_pos.mpr (by exact_mod_cast hp)
+  have h2 : (0:ℝ) < 2 * Real.sqrt p := by linarith
+  have habs : |(a:ℝ) / (2 * Real.sqrt p)| ≤ 1 := by
+    rw [abs_div, abs_of_pos h2, div_le_one h2]; exact hasse
+  rw [abs_le] at habs
+  rw [frobeniusAngle, Real.cos_arccos habs.1 habs.2]
   field_simp
-  simp
+
+/-- The empirical distribution of the first `N` terms of a sequence of angles. -/
+noncomputable def empiricalMeasure (θ : ℕ → ℝ) (N : ℕ) : Measure ℝ :=
+  (N : ℝ≥0∞)⁻¹ • ∑ i ∈ Finset.range N, Measure.dirac (θ i)
+
+lemma empiricalMeasure_apply (θ : ℕ → ℝ) (N : ℕ) {s : Set ℝ} (hs : MeasurableSet s) :
+    empiricalMeasure θ N s =
+      (N : ℝ≥0∞)⁻¹ * ((Finset.range N).filter fun i => θ i ∈ s).card := by
+  simp [empiricalMeasure, Measure.smul_apply, Measure.dirac_apply' _ hs, Set.indicator_apply,
+    Finset.sum_boole]
 
 /-- **The Sato–Tate distribution of Frobenius angles.**
 
-Let `a : ℕ → ℤ` be the trace-of-Frobenius sequence of an elliptic curve over `ℚ`
-(so `a p = p + 1 - #E(𝔽_p)` at a prime `p` of good reduction), subject to the Hasse
-bound `|a p| ≤ 2√p`, and assume the curve has no complex multiplication, so that its
-Frobenius angles are Sato–Tate equidistributed. Then:
+Let `θ : ℕ → ℝ` enumerate the Frobenius angles `θ_p = arccos (a_p / (2√p))` of an elliptic
+curve without complex multiplication, and let `μs N` be the empirical distribution of the first
+`N` of them.  The Sato–Tate conjecture — a theorem of Clozel–Harris–Shepherd-Barron–Taylor for
+non-CM curves over `ℚ` (and over totally real fields), whose proof is far beyond what is
+currently formalized — states that `μs` converges weakly to the Sato–Tate measure
+`(2/π) sin²θ dθ` on `[0, π]`.  This is taken here as the hypothesis `hST`.
 
-* each Frobenius angle `θ p = arccos (a p / (2√p))` lies in `[0, π]`;
-* it is the genuine Frobenius angle, i.e. `a p = 2√p · cos (θ p)`;
-* the Sato–Tate density `(2/π) sin²θ` is a probability density on `[0, π]`;
-* consequently the angles are distributed on `[0, π]` according to the Sato–Tate
-  measure, the total mass being `1`.
--/
-theorem sato_tate (a : ℕ → ℤ) (hHasse : ∀ p : ℕ, p.Prime → |(a p : ℝ)| ≤ 2 * Real.sqrt p)
-    (hST : SatoTateEquidistributed a) :
-    (∀ p : ℕ, frobeniusAngle p (a p) ∈ Set.Icc 0 Real.pi) ∧
-    (∀ p : ℕ, p.Prime → 2 * Real.sqrt p * Real.cos (frobeniusAngle p (a p)) = (a p : ℝ)) ∧
-    (∀ θ : ℝ, 0 ≤ satoTateDensity θ) ∧
-    (∫ θ in (0:ℝ)..Real.pi, satoTateDensity θ) = 1 ∧
-    (∀ α β : ℝ, 0 ≤ α → α ≤ β → β ≤ Real.pi →
-      Tendsto (angleRatio a α β) atTop (𝓝 (∫ θ in α..β, satoTateDensity θ))) ∧
-    Tendsto (angleRatio a 0 Real.pi) atTop (𝓝 1) := by
-  refine ⟨fun p => ⟨Real.arccos_nonneg _, Real.arccos_le_pi _⟩, ?_, ?_,
-    integral_satoTateDensity, hST, ?_⟩
-  · intro p hp
-    have hp0 : (0:ℝ) < p := by exact_mod_cast hp.pos
-    have hs : 0 < Real.sqrt p := Real.sqrt_pos.mpr hp0
-    have hne : (2 * Real.sqrt p) ≠ 0 := by positivity
-    have habs : |(a p : ℝ) / (2 * Real.sqrt p)| ≤ 1 := by
-      rw [abs_div, abs_of_pos (by positivity : (0:ℝ) < 2 * Real.sqrt p),
-        div_le_one (by positivity)]
-      exact hHasse p hp
-    have := abs_le.mp habs
-    rw [frobeniusAngle, Real.cos_arccos this.1 this.2]
-    field_simp
-  · intro θ
-    have h : (0:ℝ) ≤ 2 / Real.pi := by positivity
-    exact mul_nonneg h (sq_nonneg _)
-  · have := hST 0 Real.pi le_rfl Real.pi_nonneg le_rfl
-    rwa [integral_satoTateDensity] at this
+The conclusion is the resulting distribution statement: for every subinterval `[a,b] ⊆ [0,π]`,
+the proportion of the first `N` Frobenius angles lying in `[a,b]` converges to
+`(2/π) ∫_a^b sin²θ dθ = (b - a - (sin b cos b - sin a cos a))/π`. -/
+theorem sato_tate (θ : ℕ → ℝ) (μs : ℕ → ProbabilityMeasure ℝ)
+    (hemp : ∀ N, 0 < N → (μs N : Measure ℝ) = empiricalMeasure θ N)
+    (hST : Tendsto μs atTop (𝓝 satoTateProb))
+    {a b : ℝ} (ha : 0 ≤ a) (hab : a ≤ b) (hb : b ≤ Real.pi) :
+    Tendsto
+      (fun N : ℕ => (((Finset.range N).filter fun i => θ i ∈ Set.Icc a b).card : ℝ) / N)
+      atTop
+      (𝓝 ((b - a - (Real.sin b * Real.cos b - Real.sin a * Real.cos a)) / Real.pi)) := by
+  have hnull : (satoTateProb : Measure ℝ) (frontier (Set.Icc a b)) = 0 :=
+    satoTateMeasure_frontier_Icc a b
+  have key := ProbabilityMeasure.tendsto_measure_of_null_frontier_of_tendsto' hST hnull
+  have hlim : ((satoTateProb : Measure ℝ) (Set.Icc a b)).toReal =
+      (b - a - (Real.sin b * Real.cos b - Real.sin a * Real.cos a)) / Real.pi := by
+    show (satoTateMeasure (Set.Icc a b)).toReal = _
+    rw [satoTateMeasure_Icc ha hab hb,
+      ENNReal.toReal_ofReal (satoTate_value_nonneg hab)]
+  have hreal := (ENNReal.tendsto_toReal (measure_ne_top (satoTateProb : Measure ℝ) _)).comp key
+  rw [Function.comp_def, hlim] at hreal
+  refine hreal.congr' ?_
+  filter_upwards [Filter.eventually_gt_atTop 0] with N hN
+  rw [hemp N hN, empiricalMeasure_apply θ N measurableSet_Icc]
+  rw [ENNReal.toReal_mul, ENNReal.toReal_inv, ENNReal.toReal_natCast, ENNReal.toReal_natCast,
+    div_eq_inv_mul]
+  simp
 
 end Math2
 

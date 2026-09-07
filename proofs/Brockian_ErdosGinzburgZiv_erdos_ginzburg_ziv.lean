@@ -7,4 +7,3 @@ theorem erdos_ginzburg_ziv (n : ℕ) (hn : 0 < n) (f : Fin (2 * n - 1) → ZMod 
     ZMod.erdos_ginzburg_ziv (s := Finset.univ) f (by simp)
   exact ⟨s, hs, hsum⟩
 end Brockian.ErdosGinzburgZiv
-

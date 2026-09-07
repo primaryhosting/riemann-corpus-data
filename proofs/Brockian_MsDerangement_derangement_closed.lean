@@ -20,4 +20,3 @@ theorem derangement_closed (n : ℕ) :
     ring
 
 end Brockian.MsDerangement
-

@@ -22,20 +22,26 @@ set_option synthInstance.maxSize 128
 set_option relaxedAutoImplicit false
 set_option autoImplicit false
 
+set_option pp.fullNames true
+set_option pp.structureInstances true
+set_option pp.coercions.types true
+set_option pp.funBinderTypes true
+set_option pp.letVarTypes true
+set_option pp.piBinderTypes true
+
 set_option grind.warning false
 
 namespace Ordinal
 
-/-- Key intermediate lemma: `ω ^ 1 = ω`.
-(In current Mathlib the ordinal `ω` is named `Ordinal.omega0`; `Ordinal.omega` is the
-`ω_` indexing function, so the statements below are phrased with `omega0`.) -/
-theorem omega_pow_one : omega0 ^ (1 : Ordinal) = omega0 :=
-  opow_one _
+/-- `ω ^ 1 = ω`. -/
+theorem omega_pow_one : Ordinal.omega0 ^ (1 : Ordinal) = Ordinal.omega0 :=
+  Ordinal.opow_one _
 
-/-- `ω ≤ ω ^ 2`, obtained from `ω ^ 1 = ω` and monotonicity of `ω ^ ·`. -/
-theorem omega_le_omega_pow : omega0 ≤ omega0 ^ (2 : Ordinal) := by
-  calc omega0 = omega0 ^ (1 : Ordinal) := omega_pow_one.symm
-    _ ≤ omega0 ^ (2 : Ordinal) := opow_le_opow_right omega0_pos (by norm_num)
+/-- `ω ≤ ω ^ 2`. -/
+theorem omega_le_omega_pow : Ordinal.omega0 ≤ Ordinal.omega0 ^ (2 : Ordinal) := by
+  calc Ordinal.omega0 = Ordinal.omega0 ^ (1 : Ordinal) := omega_pow_one.symm
+    _ ≤ Ordinal.omega0 ^ (2 : Ordinal) :=
+        Ordinal.opow_le_opow_right Ordinal.omega0_pos (by norm_num)
 
 end Ordinal
 

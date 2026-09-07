@@ -10,4 +10,3 @@ theorem two_is_qr_iff {p : ℕ} (hp : p.Prime) (hodd : Odd p) :
   obtain ⟨k, hk⟩ := hodd
   omega
 end Brockian.MsQrTwo
-

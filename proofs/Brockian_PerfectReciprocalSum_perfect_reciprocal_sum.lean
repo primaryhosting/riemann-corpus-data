@@ -31,4 +31,3 @@ theorem perfect_reciprocal_sum (n : ℕ) (hn : 0 < n) (hp : Nat.Perfect n) :
           apply (div_eq_iff hnq).2
           norm_num
 end Brockian.PerfectReciprocalSum
-

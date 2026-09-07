@@ -8,4 +8,3 @@ theorem niven_cos (q r : ℚ) (h : Real.cos (q * Real.pi) = (r : ℝ)) :
   simp only [Set.mem_insert_iff, Set.mem_singleton_iff] at key
   rcases key with h1 | h1 | h1 | h1 | h1 <;> rw [h1] <;> norm_num
 end Brockian.Niven
-

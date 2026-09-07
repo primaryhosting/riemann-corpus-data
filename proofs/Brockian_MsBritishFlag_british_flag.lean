@@ -13,4 +13,3 @@ theorem british_flag {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E
   simp only [inner_sub_left, inner_sub_right, real_inner_comm u v, h]
   ring_nf
 end Brockian.MsBritishFlag
-

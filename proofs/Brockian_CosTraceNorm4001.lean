@@ -1,5 +1,4 @@
 import Mathlib
-
 /-!
 # Cos Trace Norm 4001
 Category: Brockian Corpus
@@ -10,18 +9,24 @@ Provenance: Aristotle theorem prover (Harmonic)
 
 namespace Brockian
 
-/-- **Cos trace norm bound.** For any family of angles `θ : Fin 4001 → ℝ`, the trace of the
-`4001 × 4001` real diagonal matrix with entries `cos (θ i)` has absolute value at most `4001`.
+open Finset Matrix
 
-The key Mathlib ingredients are `Matrix.trace_diagonal`, `Finset.abs_sum_le_sum_abs` and
-`Real.abs_cos_le_one`. -/
-theorem CosTraceNorm4001 (θ : Fin 4001 → ℝ) :
-    |(Matrix.diagonal fun i => Real.cos (θ i)).trace| ≤ 4001 := by
-  rw [Matrix.trace_diagonal]
-  calc |∑ i, Real.cos (θ i)| ≤ ∑ _i : Fin 4001, (1 : ℝ) := by
-        refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
-        exact Finset.sum_le_sum fun i _ => Real.abs_cos_le_one (θ i)
-    _ = 4001 := by simp
+/-- **Cos Trace Norm 4001.**  For any family of angles `θ : Fin n → ℝ`, the diagonal
+matrix with entries `cos (θ i)` has trace equal to `∑ i, cos (θ i)`, and this trace is
+bounded in absolute value by `n`.
+
+The key Mathlib ingredients are `Matrix.trace_diagonal`, `Finset.abs_sum_le_sum_abs`
+and `Real.abs_cos_le_one`. -/
+theorem CosTraceNorm4001 {n : ℕ} (θ : Fin n → ℝ) :
+    Matrix.trace (Matrix.diagonal fun i => Real.cos (θ i)) = ∑ i, Real.cos (θ i) ∧
+      |Matrix.trace (Matrix.diagonal fun i => Real.cos (θ i))| ≤ (n : ℝ) := by
+  have htr : Matrix.trace (Matrix.diagonal fun i => Real.cos (θ i)) = ∑ i, Real.cos (θ i) :=
+    Matrix.trace_diagonal _
+  refine ⟨htr, ?_⟩
+  rw [htr]
+  calc |∑ i, Real.cos (θ i)| ≤ ∑ i : Fin n, |Real.cos (θ i)| := Finset.abs_sum_le_sum_abs _ _
+    _ ≤ ∑ _i : Fin n, (1 : ℝ) := Finset.sum_le_sum fun i _ => Real.abs_cos_le_one (θ i)
+    _ = (n : ℝ) := by simp
 
 end Brockian
 

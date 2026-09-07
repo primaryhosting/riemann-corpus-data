@@ -1,4 +1,20 @@
+/-
+# Teleportation Identity
+Category: Quantum Computing
+Target: QC.teleportation_identity
+Verification: pending
+Provenance: Aristotle theorem prover (Harmonic)
+-/
+
 import Mathlib
+
+/-!
+# Teleportation Identity
+Category: Quantum Computing
+Target: QC.teleportation_identity
+Verification: pending
+Provenance: Aristotle theorem prover (Harmonic)
+-/
 
 open scoped BigOperators
 open scoped Real
@@ -14,69 +30,67 @@ set_option synthInstance.maxSize 128
 set_option relaxedAutoImplicit false
 set_option autoImplicit false
 
-set_option pp.fullNames true
-set_option pp.structureInstances true
-set_option pp.coercions.types true
-set_option pp.funBinderTypes true
-set_option pp.letVarTypes true
-set_option pp.piBinderTypes true
-
-set_option grind.warning false
-
-/-!
-# Teleportation Identity
-Category: Quantum Computing
-Target: QC.teleportation_identity
-Verification: pending
-Provenance: Aristotle theorem prover (Harmonic)
--/
-
 namespace QC
 
-/-- Bit flip on a qubit index. -/
-def bitFlip (i : Fin 2) : Fin 2 := i + 1
+open Complex Finset
 
-/-- The Bell basis state `β_{m n}` as an amplitude function on two qubits:
-`β_{m n} = (|0, n⟩ + (-1)^m |1, n ⊕ 1⟩)/√2`. -/
-noncomputable def bell (m n : Fin 2) : Fin 2 → Fin 2 → ℂ := fun i j =>
-  if i = 0 then (if j = n then (1 / (Real.sqrt 2 : ℝ) : ℂ) else 0)
-  else (if j = bitFlip n then ((-1 : ℂ) ^ (m : ℕ) / ((Real.sqrt 2 : ℝ) : ℂ)) else 0)
+/-- The scalar `1/√2`, the normalization constant of the Bell states. -/
+noncomputable def invSqrt2 : ℂ := ((Real.sqrt 2 : ℝ) : ℂ)⁻¹
 
-/-- The three–qubit input state of the teleportation protocol:
-the unknown qubit `psi` tensored with the Bell pair `(|00⟩ + |11⟩)/√2`. -/
-noncomputable def teleportInput (psi : Fin 2 → ℂ) : Fin 2 → Fin 2 → Fin 2 → ℂ :=
-  fun i j k => psi i * (if j = k then (1 / (Real.sqrt 2 : ℝ) : ℂ) else 0)
-
-/-- Bob's (unnormalized) qubit after Alice measures qubits 1,2 in the Bell basis
-and obtains the outcome `(m, n)`. -/
-noncomputable def bobState (psi : Fin 2 → ℂ) (m n : Fin 2) : Fin 2 → ℂ := fun k =>
-  ∑ i : Fin 2, ∑ j : Fin 2, (starRingEnd ℂ) (bell m n i j) * teleportInput psi i j k
-
-/-- Pauli `X` acting on a qubit amplitude vector. -/
-def pauliX (v : Fin 2 → ℂ) : Fin 2 → ℂ := fun k => v (bitFlip k)
-
-/-- Pauli `Z` acting on a qubit amplitude vector. -/
-def pauliZ (v : Fin 2 → ℂ) : Fin 2 → ℂ := fun k => (-1 : ℂ) ^ (k : ℕ) * v k
-
-/-- Bob's correction unitary `Z^m X^n` for the measurement outcome `(m, n)`. -/
-def correction (m n : Fin 2) (v : Fin 2 → ℂ) : Fin 2 → ℂ :=
-  (if m = 1 then pauliZ else id) ((if n = 1 then pauliX else id) v)
-
-/-- **Teleportation identity.** For every measurement outcome `(m, n)`, applying the
-correction `Z^m X^n` to Bob's post-measurement state (renormalized by the factor `2`,
-i.e. `1/‖·‖` for the outcome probability `1/4`) returns exactly the input qubit `psi`. -/
-theorem teleportation_identity (psi : Fin 2 → ℂ) (m n : Fin 2) :
-    correction m n (fun k => 2 * bobState psi m n k) = psi := by
-  have hsq : ((Real.sqrt 2 : ℝ) : ℂ) * ((Real.sqrt 2 : ℝ) : ℂ) = 2 := by
-    rw [← Complex.ofReal_mul, ← Real.sqrt_mul_self (by norm_num : (0:ℝ) ≤ 2)]
+lemma invSqrt2_sq : invSqrt2 * invSqrt2 = 1 / 2 := by
+  have h : ((Real.sqrt 2 : ℝ) : ℂ) * ((Real.sqrt 2 : ℝ) : ℂ) = (2 : ℂ) := by
+    rw [← Complex.ofReal_mul, Real.mul_self_sqrt (by norm_num)]
     norm_num
-  have h2 : ((Real.sqrt 2 : ℝ) : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr (by positivity)
-  funext k
-  fin_cases m <;> fin_cases n <;> fin_cases k <;>
-    simp [correction, bobState, bell, teleportInput, pauliX, pauliZ, bitFlip,
-      Fin.sum_univ_two] <;>
-    field_simp <;>
-    rw [sq, hsq]
+  rw [invSqrt2, ← mul_inv, h]
+  norm_num
+
+lemma conj_invSqrt2 : (starRingEnd ℂ) invSqrt2 = invSqrt2 := by
+  simp [invSqrt2, ← Complex.ofReal_inv]
+
+/-- The sign `(-1)^(a·i)` appearing in the Bell states and in the Pauli `Z` correction. -/
+def sgn (a i : Bool) : ℂ := if a && i then -1 else 1
+
+/-- The four Bell states `B a b`, indexed by two classical bits `a` (phase) and `b` (parity):
+`B a b i j = (-1)^(a·i)/√2` if `j = i ⊕ b`, and `0` otherwise.
+Thus `B false false = (|00⟩+|11⟩)/√2`, `B false true = (|01⟩+|10⟩)/√2`,
+`B true false = (|00⟩-|11⟩)/√2`, `B true true = (|01⟩-|10⟩)/√2`. -/
+noncomputable def bell (a b i j : Bool) : ℂ := if j = xor i b then invSqrt2 * sgn a i else 0
+
+/-- The four Bell states form an orthonormal basis of the two-qubit space, so the Bell
+measurement used in the protocol is a genuine projective measurement. -/
+lemma bell_orthonormal (a b a' b' : Bool) :
+    ∑ i : Bool, ∑ j : Bool, (starRingEnd ℂ) (bell a b i j) * bell a' b' i j =
+      if a = a' ∧ b = b' then 1 else 0 := by
+  have h2 : invSqrt2 * invSqrt2 = 1 / 2 := invSqrt2_sq
+  cases a <;> cases b <;> cases a' <;> cases b' <;>
+    simp [bell, sgn, conj_invSqrt2, h2] <;>
+    ring_nf
+
+/-- The initial three-qubit state `|ψ⟩ ⊗ |Φ⁺⟩`: Alice holds qubits 1 and 2, Bob holds qubit 3. -/
+noncomputable def inputState (psi : Bool → ℂ) (i j k : Bool) : ℂ :=
+  psi i * bell false false j k
+
+/-- Bob's (normalized) state after Alice measures qubits 1,2 in the Bell basis and obtains the
+outcome `(a, b)`. The amplitude of each outcome is `1/2`, so the projection is rescaled by `2`. -/
+noncomputable def postMeasure (psi : Bool → ℂ) (a b : Bool) (k : Bool) : ℂ :=
+  2 * ∑ i : Bool, ∑ j : Bool, (starRingEnd ℂ) (bell a b i j) * inputState psi i j k
+
+/-- Bob's correction, applying the Pauli operator `Z^a X^b` to his qubit. -/
+noncomputable def correct (a b : Bool) (phi : Bool → ℂ) (k : Bool) : ℂ :=
+  sgn a k * phi (xor k b)
+
+/-- **Teleportation identity.** For every input qubit state `ψ` and every Bell-measurement
+outcome `(a, b)`, applying the Pauli correction `Z^a X^b` to Bob's post-measurement state
+returns exactly the input state `ψ`. -/
+theorem teleportation_identity (psi : Bool → ℂ) (a b k : Bool) :
+    correct a b (postMeasure psi a b) k = psi k := by
+  have h2 : invSqrt2 * invSqrt2 = 1 / 2 := invSqrt2_sq
+  cases a <;> cases b <;> cases k <;>
+    simp [correct, postMeasure, inputState, bell, sgn, conj_invSqrt2,
+      Bool.xor_comm, mul_comm, mul_left_comm, mul_assoc] <;>
+    ring_nf <;>
+    rw [show invSqrt2 ^ 2 = invSqrt2 * invSqrt2 from (sq invSqrt2), h2] <;>
+    ring
 
 end QC
 

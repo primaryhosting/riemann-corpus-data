@@ -196,7 +196,7 @@ theorem wolstenholme (p : ℕ) (hp : p.Prime) (h5 : 5 ≤ p) :
       -- Now we need ∑ k ∈ range (p-1), (k+1)² = 0
       -- This equals (p-1)p(2p-1)/6 which is 0 in ZMod p since p | numerator
       -- Use the sum of squares formula: ∑_{k=0}^{n-1} (k+1)² = n(n+1)(2n+1)/6
-      have sum_sq_formula : ∀ n : ℕ, ∑ k ∈ Finset.range n, ((k + 1) : ZMod p) ^ 2 = 
+      have sum_sq_formula : ∀ n : ℕ, ∑ k ∈ Finset.range n, ((k + 1) : ZMod p) ^ 2 =
                            ((n : ZMod p) * ((n : ZMod p) + 1) * (2 * (n : ZMod p) + 1) : ZMod p) * 6⁻¹ := by
         intro n
         induction n with
@@ -240,11 +240,11 @@ theorem wolstenholme (p : ℕ) (hp : p.Prime) (h5 : 5 ≤ p) :
     simp [Finset.sum_range_succ, vid]
     omega
   -- Use central_choose_sub_two to rewrite in terms of sum of squares
-  have h1 : (Nat.choose (2 * p) p : ℤ) - 2 = ∑ i ∈ Finset.Ico 1 p, (Nat.choose p i : ℤ) ^ 2 := 
+  have h1 : (Nat.choose (2 * p) p : ℤ) - 2 = ∑ i ∈ Finset.Ico 1 p, (Nat.choose p i : ℤ) ^ 2 :=
     central_choose_sub_two p hp.pos
   rw [h1]
   -- Each C(p,i) = p * q(p,i), so C(p,i)^2 = p^2 * q(p,i)^2
-  have h2 : ∑ i ∈ Finset.Ico 1 p, (Nat.choose p i : ℤ) ^ 2 = 
+  have h2 : ∑ i ∈ Finset.Ico 1 p, (Nat.choose p i : ℤ) ^ 2 =
             p ^ 2 * ∑ i ∈ Finset.Ico 1 p, (q p i : ℤ) ^ 2 := by
     rw [Finset.mul_sum]
     apply Finset.sum_congr rfl
@@ -261,4 +261,3 @@ theorem wolstenholme (p : ℕ) (hp : p.Prime) (h5 : 5 ≤ p) :
     norm_cast
   exact mul_dvd_mul_left (p ^ 2 : ℤ) h3
 end Brockian.Wolstenholme
-

@@ -1,40 +1,50 @@
 import Mathlib
 
-/-!
-# Dfa Complement Regular
-Category: Computer Science
-Target: CS.dfa_complement_regular
-Verification: pending
-Provenance: Aristotle theorem prover (Harmonic)
--/
+open scoped BigOperators
+open scoped Real
+open scoped Nat
+open scoped Classical
+open scoped Pointwise
+
+set_option maxHeartbeats 8000000
+set_option maxRecDepth 4000
+set_option synthInstance.maxHeartbeats 20000
+set_option synthInstance.maxSize 128
+
+set_option relaxedAutoImplicit false
+set_option autoImplicit false
+
+set_option pp.fullNames true
+set_option pp.structureInstances true
+set_option pp.coercions.types true
+set_option pp.funBinderTypes true
+set_option pp.letVarTypes true
+set_option pp.piBinderTypes true
+
+set_option grind.warning false
+
+universe u v
 
 namespace CS
 
-/-- A language is *regular* if it is the language accepted by some
-deterministic finite automaton (a `DFA` with finitely many states). -/
-def IsRegular {α : Type*} (L : Language α) : Prop :=
-  ∃ (σ : Type) (_ : Fintype σ) (M : DFA α σ), M.accepts = L
+open Language
 
 /-- The DFA obtained from `M` by complementing its set of accepting states. -/
-def complDFA {α σ : Type*} (M : DFA α σ) : DFA α σ :=
-  { step := M.step, start := M.start, accept := M.acceptᶜ }
+def dfaCompl {α : Type u} {σ : Type v} (M : DFA α σ) : DFA α σ :=
+  { step := M.step, start := M.start, accept := (M.accept)ᶜ }
 
-@[simp]
-theorem eval_complDFA {α σ : Type*} (M : DFA α σ) (x : List α) :
-    (complDFA M).eval x = M.eval x := rfl
-
-/-- The complement automaton accepts exactly the complement language. -/
-theorem accepts_complDFA {α σ : Type*} (M : DFA α σ) :
-    (complDFA M).accepts = (M.accepts)ᶜ := by
+/-- The DFA with complemented accepting states accepts exactly the complement language. -/
+theorem accepts_dfaCompl {α : Type u} {σ : Type v} (M : DFA α σ) :
+    (dfaCompl M).accepts = (M.accepts)ᶜ := by
   ext x
-  show (complDFA M).eval x ∈ (complDFA M).accept ↔ ¬ (M.eval x ∈ M.accept)
+  simp only [DFA.mem_accepts, Set.mem_compl_iff, dfaCompl]
   rfl
 
-/-- **Regular languages are closed under complement.** -/
-theorem dfa_complement_regular {α : Type*} (L : Language α) (hL : IsRegular L) :
-    IsRegular Lᶜ := by
-  obtain ⟨σ, hσ, M, rfl⟩ := hL
-  exact ⟨σ, hσ, complDFA M, accepts_complDFA M⟩
+/-- Regular languages are closed under complement. -/
+theorem dfa_complement_regular {α : Type} {L : Language α} (hL : L.IsRegular) :
+    Lᶜ.IsRegular := by
+  obtain ⟨σ, hσ, M, hM⟩ := hL
+  exact ⟨σ, hσ, dfaCompl M, by rw [accepts_dfaCompl, hM]⟩
 
 end CS
 

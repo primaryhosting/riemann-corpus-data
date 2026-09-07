@@ -40,4 +40,3 @@ theorem turan {V : Type*} [Fintype V] [DecidableEq V] (G : SimpleGraph V) [Decid
   rw [h3, h5]
   omega
 end Brockian.Turan
-

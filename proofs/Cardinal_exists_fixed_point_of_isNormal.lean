@@ -33,6 +33,8 @@ Verification: pending
 Provenance: Aristotle theorem prover (Harmonic)
 -/
 
+universe u
+
 open Ordinal Cardinal
 
 namespace Cardinal

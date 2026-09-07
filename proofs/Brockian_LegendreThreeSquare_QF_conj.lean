@@ -558,11 +558,8 @@ theorem classify2 (C : Matrix (Fin 2) (Fin 2) ℤ) (hsym : C.IsSymm) (hpos : Pos
   -- w = C.mulVec v satisfies w ⬝ᵥ v = QF C v = 1
   let w := C.mulVec v
   have hwv : w ⬝ᵥ v = 1 := by
-    have h := hv
-    simp [QF, dotProduct] at h
-    convert h using 1
-    simp [w, Matrix.mulVec]
-    ring
+    rw [dotProduct_comm]
+    exact hv
   obtain ⟨U, hUdet, hUcol⟩ := exists_unimodular_col2 v w hwv
   -- (Uᵀ * C * U) 0 0 = QF C v = 1
   have h00 : (Uᵀ * C * U) 0 0 = 1 := by
@@ -738,7 +735,7 @@ lemma exists_prime_mod (M : ℕ) (hM : 0 < M) (r : ℕ) (hr : Nat.Coprime r M) (
   have h : Set.Infinite {p : ℕ | Nat.Prime p ∧ p ≡ r [MOD M]} := by
     exact Nat.infinite_setOf_prime_and_modEq hM0 hr
   obtain ⟨p, hp, hpN⟩ := h.exists_gt N
-  exact ⟨p, hp.1, hpN, by simpa using hp.2⟩
+  exact ⟨p, hp.1, hpN, hp.2⟩
 
 lemma jacobi_p_mod_n (n p : ℕ) (hpn : (p + 1) % n = 0) :
     jacobiSym (p : ℤ) n = jacobiSym (-1) n := by

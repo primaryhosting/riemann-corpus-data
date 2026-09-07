@@ -5,7 +5,7 @@ namespace C4.An6
 theorem taylor_zeroth (f : ℝ → ℝ) (x : ℝ) (hf : Continuous f) :
     Tendsto (fun h => f (x + h)) (nhds 0) (nhds (f x)) := by
   have := (hf.tendsto (x + 0)).comp (Filter.tendsto_id.const_add x)
-  simpa [Function.comp] using this
+  simpa [Function.comp_def] using this
 
 theorem deriv_pow (n : ℕ) (x : ℝ) : deriv (fun y => y ^ n) x = n * x ^ (n - 1) := by
   simp

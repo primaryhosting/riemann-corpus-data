@@ -119,7 +119,7 @@ theorem riemannZeta_conj_of_one_lt_re {s : ℂ} (hs : 1 < s.re) :
   rw [← this]
 
 /-- `ζ` commutes with complex conjugation away from the pole. -/
-theorem riemannZeta_conj {s : ℂ} (hs : s ≠ 1) :
+theorem riemannZeta_conj' {s : ℂ} (hs : s ≠ 1) :
     riemannZeta ((starRingEnd ℂ) s) = (starRingEnd ℂ) (riemannZeta s) := by
   set g : ℂ → ℂ := fun z => (starRingEnd ℂ) (riemannZeta ((starRingEnd ℂ) z)) with hg
   have hUopen : IsOpen ({(1 : ℂ)}ᶜ) := isOpen_compl_singleton
@@ -165,7 +165,7 @@ theorem zeta_zero_quartet_of_mem_critical_strip {s : ℂ}
       riemannZeta (1 - starRingEnd ℂ s) = 0 := by
   have hs1 : s ≠ 1 := by rintro rfl; simp at h1
   have hconj : riemannZeta (starRingEnd ℂ s) = 0 := by
-    rw [riemannZeta_conj hs1, hz, map_zero]
+    rw [riemannZeta_conj' hs1, hz, map_zero]
   have hcre : ((starRingEnd ℂ) s).re = s.re := Complex.conj_re s
   refine ⟨hz, zeta_zero_one_sub_of_mem_critical_strip h0 h1 hz, hconj, ?_⟩
   refine zeta_zero_one_sub_of_mem_critical_strip (by rw [hcre]; exact h0)
